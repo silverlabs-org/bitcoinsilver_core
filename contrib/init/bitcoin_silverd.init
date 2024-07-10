@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+#  bitcoin_silverd The bitcoin_silver core server.
+#
+#
+# chkconfig: 345 80 20
+# description: bitcoin_silverd
+# processname: bitcoin_silverd
+#
+
+# Source function library.
+. /etc/init.d/functions
+
+# you can override defaults in /etc/sysconfig/bitcoin_silverd, see below
+if [ -f /etc/sysconfig/bitcoin_silverd ]; then
+        . /etc/sysconfig/bitcoin_silverd
+fi
+
+RETVAL=0
+
+prog=bitcoin_silverd
+# you can override the lockfile via BITCOIN_SILVERD_LOCKFILE in /etc/sysconfig/bitcoin_silverd
+lockfile=${BITCOIN_SILVERD_LOCKFILE-/var/lock/subsys/bitcoin_silverd}
+
+# bitcoin_silverd defaults to /usr/bin/bitcoin_silverd, override with BITCOIN_SILVERD_BIN
+bitcoin_silverd=${BITCOIN_SILVERD_BIN-/usr/bin/bitcoin_silverd}
+
+# bitcoin_silverd opts default to -disablewallet, override with BITCOIN_SILVERD_OPTS
+bitcoin_silverd_opts=${BITCOIN_SILVERD_OPTS--disablewallet}
+
+start() {
+    echo -n $"Starting $prog: "
+    daemon $DAEMONOPTS $bitcoin_silverd $bitcoin_silverd_opts
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc $prog -t600
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    return $RETVAL
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status $prog
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: service $prog {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
