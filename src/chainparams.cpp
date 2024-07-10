@@ -98,11 +98,11 @@ public:
 
         // BTCS DEV Fund
         strCommunityAutonomousAddress = "1LkxSnjnuLqaCm2QKtmU5vA8Xs9iZSKWx9";
-        nCommunityAutonomousAmount = 5;
+        nCommunityAutonomousAmount = 0;
 
         // BTCS Exchange Fund
         strExchangeFundAddress = "123NTPgmMhZp3hYYWWhL8rkuQBm8LtQ8HP";
-        nExchangeFundAmount = 20;
+        nExchangeFundAmount = 0;
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
