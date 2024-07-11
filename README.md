@@ -8,7 +8,7 @@ Bitcoin Silver
 <tr><td>Coin Name</td><td>Bitcoin Silver</td></tr>
 <tr><td>Ticker</td><td>BTCS</td></tr>
 <tr><td>Algorithm</td><td>SHA256</td></tr>
-<tr><td>Block Time</td><td>10 Min.</td></tr>
+<tr><td>Block Time</td><td>5 Min.</td></tr>
 <tr><td>Maximum Supply</td><td>21,000,000 BTCS</td></tr>
 <tr><td>Coin Maturity</td><td>100 Block</td></tr>
 <tr><td>Address Prefix</td><td>1</td></tr>
