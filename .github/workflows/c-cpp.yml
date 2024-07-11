@@ -1,4 +1,4 @@
-name: Build Bitcoin Core
+name: Build Bitcoin Silver
 
 on:
   push:
@@ -16,36 +16,20 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3
+        sudo apt-get install -y build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 libssl-dev libevent-dev libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev libminiupnpc-dev libzmq3-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler git ccache
 
-    - name: Download and build Berkeley DB
+    - name: Build Bitcoin Silver
       run: |
-        wget 'http://download.oracle.com/berkeley-db/db-4.8.30.NC.tar.gz'
-        tar -xzvf db-4.8.30.NC.tar.gz
-        cd db-4.8.30.NC/build_unix/
-        ../dist/configure --enable-cxx
-        make
-        sudo make install
-
-    - name: Build Bitcoin Core
-      run: |
-        git clone https://github.com/bitcoin/bitcoin.git
-        cd bitcoin
-        ./autogen.sh
-        ./configure --without-gui
-        make -j$(nproc)
+        git clone https://github.com/MrVistos/bitcoinsilver.git
+        cd bitcoinsilver
+        ./contrib/install_db4.sh `pwd`
 
     - name: Run tests (optional)
       run: |
-        cd bitcoin
+        cd bitcoinsilver
         make check
-
-    - name: Install Bitcoin Core (optional)
-      run: |
-        cd bitcoin
-        sudo make install
 
     - name: Clean up
       run: |
         cd ..
-        rm -rf bitcoin
+        rm -rf bitcoinsilver
