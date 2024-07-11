@@ -22,7 +22,7 @@ jobs:
       run: |
         git clone https://github.com/MrVistos/bitcoinsilver.git
         cd bitcoinsilver
-        ./contrib/install_db4.sh `pwd`
+        contrib/install_db4.sh `pwd`
 
     - name: Run tests (optional)
       run: |
