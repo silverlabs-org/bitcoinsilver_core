@@ -1,0 +1,51 @@
+name: Build Bitcoin Core
+
+on:
+  push:
+    branches:
+      - main  # Hier anpassen, falls deine Haupt-Branch anders benannt ist
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check out the repository
+      uses: actions/checkout@v2
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3
+
+    - name: Download and build Berkeley DB
+      run: |
+        wget 'http://download.oracle.com/berkeley-db/db-4.8.30.NC.tar.gz'
+        tar -xzvf db-4.8.30.NC.tar.gz
+        cd db-4.8.30.NC/build_unix/
+        ../dist/configure --enable-cxx
+        make
+        sudo make install
+
+    - name: Build Bitcoin Core
+      run: |
+        git clone https://github.com/bitcoin/bitcoin.git
+        cd bitcoin
+        ./autogen.sh
+        ./configure --without-gui
+        make -j$(nproc)
+
+    - name: Run tests (optional)
+      run: |
+        cd bitcoin
+        make check
+
+    - name: Install Bitcoin Core (optional)
+      run: |
+        cd bitcoin
+        sudo make install
+
+    - name: Clean up
+      run: |
+        cd ..
+        rm -rf bitcoin
