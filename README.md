@@ -15,6 +15,4 @@ Bitcoin Silver
 <tr><td>Halving Interval</td><td>210,000 Block</td></tr>
 <tr><td>RPC Port</td><td>8332, 8334</td></tr>
 <tr><td>Network Port</td><td>8333</td></tr>
-<tr><td>Block Template</td><td>75% Miner, 20% Exchange & 5% Dev Address</td></tr>
 </table>
-Note: Actually there is no exchange and dev fee since they left the project.
