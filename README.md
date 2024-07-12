@@ -23,7 +23,7 @@ Bitcoin Silver aims to enhance the original Bitcoin network by:
 <tr><td>Algorithm</td><td>SHA256</td></tr>
 <tr><td>Block Time</td><td>5 Min.</td></tr>
 <tr><td>Maximum Supply</td><td>21,000,000 BTCS</td></tr>
-<tr><td>Coin Maturity</td><td>100 Block</td></tr>
+<tr><td>Coin Maturity</td><td>200 Block</td></tr>
 <tr><td>Address Prefix</td><td>1</td></tr>
 <tr><td>Halving Interval</td><td>210,000 Block</td></tr>
 <tr><td>RPC Port</td><td>8382, 8384</td></tr>
