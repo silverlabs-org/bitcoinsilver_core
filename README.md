@@ -1,5 +1,4 @@
-
-# Bitcoin Silver
+# Bitcoin Silver (BTCS)
 
 Bitcoin Silver is a fork of Bitcoin designed to provide a faster network and continuous development. This README provides an overview of the project, installation instructions, and details on how to contribute.
 
