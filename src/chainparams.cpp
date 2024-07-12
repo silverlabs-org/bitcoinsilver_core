@@ -51,8 +51,8 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
  */
 static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
-    const char* pszTimestamp = "US and Germany foiled Russian plot to assassinate CEO of arms manufacturer sending weapons to Ukraine";
-    const CScript genesisOutputScript = CScript() << ParseHex("04b10c7e48bcae1c0bbae8cbeabbac56f7f7738f4ae8b1e4e7a738b53700a0b1dd0da9ffdf49df9a9847e1f89b38c1b04aeb19b181f63aa16fce80104534f3b17a") << OP_CHECKSIG;
+    const char* pszTimestamp = "US and Germany foiled Russian plot to assassinate CEO of arms manufacturer";
+    const CScript genesisOutputScript = CScript() << ParseHex("04423ef45ccb4dc584e8b617789ee4cf108ae18b1cae979eb7cd7f3c69b538e3f888e8efd8dab0b0777baff8871f96b116b47576b731bdeaad005ee7492ceb592c") << OP_CHECKSIG;
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
 
@@ -94,9 +94,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 10; // Approximately November 12th, 2021
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
-        consensus.defaultAssumeValid = uint256S("0x000003697dfe9df04c15da2cd4ab42877bb753664e9755cc0469dc7f6081a519");
-
-
+        consensus.defaultAssumeValid = uint256S("0x00000ea8e97e04892a03df35947ff0c4df705723f5b18be7cc6456ed16e9788e");
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -112,19 +110,10 @@ public:
         m_assumed_blockchain_size = 420;
         m_assumed_chain_state_size = 6;
 
-        genesis = CreateGenesisBlock(1231006505, 2083236893, 0x1d00ffff, 1, 1 * COIN);
+        genesis = CreateGenesisBlock(1720806555, 1255631, 0x1e0ffff0, 1, 0 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"));
-        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88a7c8d7a64be7bc1e63fbee9c0c57d961e815dba3"));
-
-        //uint32_t nNonce = 0;
-        //while (genesis.GetHash().GetHex() > consensus.powLimit.GetHex()) {
-        //    nNonce++;
-        //    genesis = CreateGenesisBlock(1718077469, nNonce, 0x1e0ffff0, 1, 0);
-        //}
-        //// (uint32_t nTimeTx, uint32_t nTimeBlock, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
-        //genesis = CreateGenesisBlock(1718077469, nNonce, 0x1e0ffff0, 1, 0);
-        //consensus.hashGenesisBlock = genesis.GetHash(); 
+        assert(consensus.hashGenesisBlock == uint256S("0x00000ea8e97e04892a03df35947ff0c4df705723f5b18be7cc6456ed16e9788e"));
+        assert(genesis.hashMerkleRoot == uint256S("0xf7224a6085bc48821bd7c7c1fa0f0e4aa1f7217da863af69f8c1c102e1184b39"));
 
         // Note that of those which support the service bits prefix, most only support a subset of
         // possible options.
@@ -150,8 +139,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0x000003697dfe9df04c15da2cd4ab42877bb753664e9755cc0469dc7f6081a519")},
-                {180, uint256S("0x00000d3dc2f9ba3dc136ba5a3dffcb6c8f9a7b1401300438235ef7414d9e0d5d")},
+                {0, uint256S("0x00000ea8e97e04892a03df35947ff0c4df705723f5b18be7cc6456ed16e9788e")},
             }
         };
 
@@ -160,10 +148,10 @@ public:
         };
 
         chainTxData = ChainTxData{
-            // Data from RPC: getchaintxstats 4096 00000000000000000008a89e854d57e5667df88f1cdef6fde2fbca1de5b639ad
-            /* nTime    */ 1673865069,
-            /* nTxCount */ 656509474,
-            /* dTxRate  */ 2.424920418708139,
+            // Data from RPC: getchaintxstats
+            /* nTime    */ 1720806555,
+            /* nTxCount */ 0,
+            /* dTxRate  */ 0.00,
         };
     }
 };
