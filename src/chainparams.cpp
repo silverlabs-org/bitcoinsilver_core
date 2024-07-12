@@ -51,8 +51,8 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
  */
 static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
-    const char* pszTimestamp = "US Navy launches PARANOID blockchain security tech to private sector";
-    const CScript genesisOutputScript = CScript() << ParseHex("04678fabb0fe5548271967d1a67130b7105cd6b828e03909a67962d0db1f61deb649f6bc3f4cdf38c4f35504e51db112de5c384df7ba0d8d578a4f702b6bf11d5f") << OP_CHECKSIG;
+    const char* pszTimestamp = "US and Germany foiled Russian plot to assassinate CEO of arms manufacturer sending weapons to Ukraine";
+    const CScript genesisOutputScript = CScript() << ParseHex("04b10c7e48bcae1c0bbae8cbeabbac56f7f7738f4ae8b1e4e7a738b53700a0b1dd0da9ffdf49df9a9847e1f89b38c1b04aeb19b181f63aa16fce80104534f3b17a") << OP_CHECKSIG;
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
 
@@ -109,19 +109,19 @@ public:
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0x9e;
+        pchMessageStart[0] = 0xf9;
         pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0x3b;
-        pchMessageStart[3] = 0x9c;
+        pchMessageStart[2] = 0xb4;
+        pchMessageStart[3] = 0xd9;
         nDefaultPort = 8333;
         nPruneAfterHeight = 100000;
         m_assumed_blockchain_size = 420;
         m_assumed_chain_state_size = 6;
 
-        genesis = CreateGenesisBlock(1718077469, 594726, 0x1e0ffff0, 1, 0 * COIN);
+        genesis = CreateGenesisBlock(1231006505, 2083236893, 0x1d00ffff, 1, 1 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x000003697dfe9df04c15da2cd4ab42877bb753664e9755cc0469dc7f6081a519"));
-        assert(genesis.hashMerkleRoot == uint256S("0x48e0ca9ebcd69aae0d03d9c704d310de967b12214886085af54c77ec3be432a9"));
+        assert(consensus.hashGenesisBlock == uint256S("0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"));
+        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88a7c8d7a64be7bc1e63fbee9c0c57d961e815dba3"));
 
         //uint32_t nNonce = 0;
         //while (genesis.GetHash().GetHex() > consensus.powLimit.GetHex()) {
@@ -139,9 +139,9 @@ public:
         // release ASAP to avoid it where possible.
         vSeeds.emplace_back("78.138.45.19");
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,128);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0x1A); // Addresses start with 'B'
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,0x05);
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,0x80);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 

@@ -7,7 +7,7 @@
  * Each line contains a BIP155 serialized (networkID, addr, port) tuple.
  */
 static const uint8_t chainparams_seed_main[] = {
-    0x01, 0x04, 0x6D, 0xCD, 0xB5, 0xAB, 0x00, 0x00,
+    0x01, 0x04, 0x4E, 0x8A, 0x2D, 0x13, 0x20, 0x8D,
     // Weitere Seed-Nodes hier hinzufügen, falls erforderlich
 };
 
