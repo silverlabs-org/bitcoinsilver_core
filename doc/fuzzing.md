@@ -241,9 +241,9 @@ EOF
 $ make -C src/ bitcoin_silverd
 $ mkdir -p inputs/
 $ honggfuzz/honggfuzz --exit_upon_crash --quiet --timeout 4 -n 1 -Q \
-      -E HFND_TCP_PORT=18444 -f inputs/ -- \
+      -E HFND_TCP_PORT=18484 -f inputs/ -- \
           src/bitcoin_silverd -regtest -discover=0 -dns=0 -dnsseed=0 -listenonion=0 \
-                       -nodebuglogfile -bind=127.0.0.1:18444 -logthreadnames \
+                       -nodebuglogfile -bind=127.0.0.1:18484 -logthreadnames \
                        -debug
 ```
 

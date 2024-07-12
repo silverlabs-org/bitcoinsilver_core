@@ -82,8 +82,8 @@ The high water mark value must be an integer greater than or equal to 0.
 
 For instance:
 
-    $ bitcoin_silverd -zmqpubhashtx=tcp://127.0.0.1:28332 \
-               -zmqpubhashtx=tcp://192.168.1.2:28332 \
+    $ bitcoin_silverd -zmqpubhashtx=tcp://127.0.0.1:28382 \
+               -zmqpubhashtx=tcp://192.168.1.2:28382 \
                -zmqpubrawtx=ipc:///tmp/bitcoin_silverd.tx.raw \
                -zmqpubhashtxhwm=10000
 

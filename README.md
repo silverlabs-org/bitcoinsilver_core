@@ -26,8 +26,8 @@ Bitcoin Silver aims to enhance the original Bitcoin network by:
 <tr><td>Coin Maturity</td><td>100 Block</td></tr>
 <tr><td>Address Prefix</td><td>1</td></tr>
 <tr><td>Halving Interval</td><td>210,000 Block</td></tr>
-<tr><td>RPC Port</td><td>8332, 8334</td></tr>
-<tr><td>Network Port</td><td>8333</td></tr>
+<tr><td>RPC Port</td><td>8382, 8384</td></tr>
+<tr><td>Network Port</td><td>8383</td></tr>
 </table>
 
 ## Getting Started
