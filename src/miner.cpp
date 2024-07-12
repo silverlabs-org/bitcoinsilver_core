@@ -161,37 +161,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
 
-    //vout
-    CAmount nSubsidy = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    CAmount nCommunityAutonomousAmount = chainparams.CommunityAutonomousAmount();
-    CAmount nExchangeSubsidy = chainparams.ExchangeFundAmount();
-
-    coinbaseTx.vout.resize(3);
+    coinbaseTx.vout.resize(1);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[0].nValue = nFees + ((100 - nCommunityAutonomousAmount - nExchangeSubsidy) * nSubsidy / 100);
-
-    // Assign the set % in chainparams.cpp to the TX
-    std::string GetCommunityAutonomousAddress = chainparams.CommunityAutonomousAddress();
-    CTxDestination destCommunityAutonomous = DecodeDestination(GetCommunityAutonomousAddress);
-    if (!IsValidDestination(destCommunityAutonomous)) {
-        LogPrintf("IsValidDestination: Invalid BTC address %s \n", GetCommunityAutonomousAddress);
-    }
-
-    std::string GetExchangeSubsidyAddress = chainparams.ExchangeFundAddress();
-    CTxDestination destExchangeAddress = DecodeDestination(GetExchangeSubsidyAddress);
-    if (!IsValidDestination(destExchangeAddress)) {
-        LogPrintf("IsValidDestination: Invalid BTC address %s \n", GetExchangeSubsidyAddress);
-    }
-
-    // We need to parse the address ready to send to it
-    CScript scriptPubKeyCommunityAutonomous = GetScriptForDestination(destCommunityAutonomous);
-    CScript scriptPubKeyExchangeAddress = GetScriptForDestination(destExchangeAddress);
-
-    coinbaseTx.vout[1].scriptPubKey = scriptPubKeyCommunityAutonomous;
-    coinbaseTx.vout[1].nValue = nSubsidy * nCommunityAutonomousAmount / 100;
-
-    coinbaseTx.vout[2].scriptPubKey = scriptPubKeyExchangeAddress;
-    coinbaseTx.vout[2].nValue = nSubsidy * nExchangeSubsidy / 100;
+    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
 
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
 

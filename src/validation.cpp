@@ -1968,59 +1968,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
     if (block.vtx[0]->GetValueOut() > blockReward) {
         LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", block.vtx[0]->GetValueOut(), blockReward);
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
-                             "bad-cb-amount",
-                             "Developer Reward Check Failed");
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
     }
-
-    //DEV Assign 10%
-    std::string GetCommunityAutonomousAddress = Params().CommunityAutonomousAddress();
-    CTxDestination destCommunityAutonomous = DecodeDestination(GetCommunityAutonomousAddress);
-    if (!IsValidDestination(destCommunityAutonomous)) {
-        LogPrintf("IsValidDestination: Invalid BTC address %s \n", GetCommunityAutonomousAddress);
-    }
-
-    //Exchange Assign
-    std::string GetExchangeFundAddress = Params().ExchangeFundAddress();
-    CTxDestination destExchangeAddress = DecodeDestination(GetExchangeFundAddress);
-    if (!IsValidDestination(destExchangeAddress)) {
-        LogPrintf("IsValidDestination: Invalid BTC address %s \n", GetExchangeFundAddress);
-    }
-
-    // Parse BTC address
-    CScript scriptPubKeyCommunityAutonomous = GetScriptForDestination(destCommunityAutonomous);
-    CScript scriptPubKeyExchangeAddress = GetScriptForDestination(destExchangeAddress);
-
-    CAmount nCommunityAutonomousAmount = Params().CommunityAutonomousAmount();
-    CAmount nExchangeAmount = Params().ExchangeFundAmount();
-    CAmount nSubsidy = GetBlockSubsidy(pindex->nHeight, Params().GetConsensus());
-    CAmount nCommunityAutonomousAmountValue = nSubsidy * nCommunityAutonomousAmount / 100;
-    CAmount nExchangeAmountValue = nSubsidy * nExchangeAmount / 100;
-
-    //Check DEV Amount
-    if (block.vtx[0]->vout[1].nValue != nCommunityAutonomousAmountValue) {
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,  "bad-cb-community-autonomous-amount");
-    }
-
-    //Check Exchange Amount
-    if (block.vtx[0]->vout[2].nValue != nExchangeAmountValue) {
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-Exchange-Fund-amount");
-    }
-
-    //Check DEV Address
-    if (HexStr(block.vtx[0]->vout[1].scriptPubKey) != HexStr(scriptPubKeyCommunityAutonomous)) {
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
-                             "Developer Address Check Failed",
-                             "bad-cb-community-autonomous-address");
-    }
-
-    //Check Exchange Address
-    if (HexStr(block.vtx[0]->vout[2].scriptPubKey) != HexStr(scriptPubKeyExchangeAddress)) {
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
-                             "Exchange Address Check Failed",
-                             "bad-cb-Exchange-Fund-address");
-    }
-
     if (!control.Wait()) {
         LogPrintf("ERROR: %s: CheckQueue failed\n", __func__);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "block-validation-failed");

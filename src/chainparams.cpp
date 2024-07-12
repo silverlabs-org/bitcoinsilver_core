@@ -96,13 +96,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0x000003697dfe9df04c15da2cd4ab42877bb753664e9755cc0469dc7f6081a519");
 
-        // BTCS DEV Fund
-        strCommunityAutonomousAddress = "1LkxSnjnuLqaCm2QKtmU5vA8Xs9iZSKWx9";
-        nCommunityAutonomousAmount = 0;
 
-        // BTCS Exchange Fund
-        strExchangeFundAddress = "123NTPgmMhZp3hYYWWhL8rkuQBm8LtQ8HP";
-        nExchangeFundAmount = 0;
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.

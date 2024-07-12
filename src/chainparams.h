@@ -92,14 +92,6 @@ public:
         return a.SetSpecial(addr) ? GetDefaultPort(a.GetNetwork()) : GetDefaultPort();
     }
 
-    //DEV Address
-    std::string strCommunityAutonomousAddress;
-    CAmount nCommunityAutonomousAmount;
-
-    //Exchange Address
-    std::string strExchangeFundAddress;
-    CAmount nExchangeFundAmount;
-
     const CBlock& GenesisBlock() const { return genesis; }
     /** Default value for -checkmempool and -checkblockindex argument */
     bool DefaultConsistencyChecks() const { return fDefaultConsistencyChecks; }
@@ -124,12 +116,6 @@ public:
     const std::string& Bech32HRP() const { return bech32_hrp; }
     const std::vector<uint8_t>& FixedSeeds() const { return vFixedSeeds; }
     const CCheckpointData& Checkpoints() const { return checkpointData; }
-
-    const std::string& CommunityAutonomousAddress() const { return strCommunityAutonomousAddress; }
-    const CAmount& CommunityAutonomousAmount() const { return nCommunityAutonomousAmount; }
-
-    const std::string& ExchangeFundAddress() const { return strExchangeFundAddress; }
-    const CAmount& ExchangeFundAmount() const { return nExchangeFundAmount; }
 
     //! Get allowed assumeutxo configuration.
     //! @see ChainstateManager
