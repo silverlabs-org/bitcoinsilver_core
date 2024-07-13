@@ -34,6 +34,8 @@ Bitcoin Silver aims to enhance the original Bitcoin network by:
 <tr><td>Algo</td><td>SHA256</td></tr>
 </table>
 
+*Note:* The pre-mine is only for the coin swap of the deprecated coins from the previous blockchain.
+
 ## Getting Started
 
 ### Prerequisites
