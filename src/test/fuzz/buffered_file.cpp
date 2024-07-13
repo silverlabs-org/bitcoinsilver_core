@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2020-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,24 +18,21 @@ FUZZ_TARGET(buffered_file)
 {
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
     FuzzedFileProvider fuzzed_file_provider = ConsumeFile(fuzzed_data_provider);
-    std::optional<CBufferedFile> opt_buffered_file;
-    FILE* fuzzed_file = fuzzed_file_provider.open();
+    std::optional<BufferedFile> opt_buffered_file;
+    CAutoFile fuzzed_file{fuzzed_file_provider.open(), 0};
     try {
-        opt_buffered_file.emplace(fuzzed_file, fuzzed_data_provider.ConsumeIntegralInRange<uint64_t>(0, 4096), fuzzed_data_provider.ConsumeIntegralInRange<uint64_t>(0, 4096), fuzzed_data_provider.ConsumeIntegral<int>(), fuzzed_data_provider.ConsumeIntegral<int>());
+        opt_buffered_file.emplace(fuzzed_file, fuzzed_data_provider.ConsumeIntegralInRange<uint64_t>(0, 4096), fuzzed_data_provider.ConsumeIntegralInRange<uint64_t>(0, 4096));
     } catch (const std::ios_base::failure&) {
-        if (fuzzed_file != nullptr) {
-            fclose(fuzzed_file);
-        }
     }
-    if (opt_buffered_file && fuzzed_file != nullptr) {
+    if (opt_buffered_file && !fuzzed_file.IsNull()) {
         bool setpos_fail = false;
-        while (fuzzed_data_provider.ConsumeBool()) {
+        LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
             CallOneOf(
                 fuzzed_data_provider,
                 [&] {
-                    std::array<uint8_t, 4096> arr{};
+                    std::array<std::byte, 4096> arr{};
                     try {
-                        opt_buffered_file->read((char*)arr.data(), fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, 4096));
+                        opt_buffered_file->read({arr.data(), fuzzed_data_provider.ConsumeIntegralInRange<size_t>(0, 4096)});
                     } catch (const std::ios_base::failure&) {
                     }
                 },
@@ -53,7 +50,7 @@ FUZZ_TARGET(buffered_file)
                         return;
                     }
                     try {
-                        opt_buffered_file->FindByte(fuzzed_data_provider.ConsumeIntegral<char>());
+                        opt_buffered_file->FindByte(std::byte(fuzzed_data_provider.ConsumeIntegral<uint8_t>()));
                     } catch (const std::ios_base::failure&) {
                     }
                 },
@@ -62,7 +59,6 @@ FUZZ_TARGET(buffered_file)
                 });
         }
         opt_buffered_file->GetPos();
-        opt_buffered_file->GetType();
         opt_buffered_file->GetVersion();
     }
 }

@@ -1,34 +1,36 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin_silver-config.h>
+#include <config/bitcoinsilver-config.h>
 #endif
 
 #include <randomenv.h>
 
 #include <clientversion.h>
+#include <compat/compat.h>
 #include <compat/cpuid.h>
 #include <crypto/sha512.h>
 #include <support/cleanse.h>
-#include <util/time.h> // for GetTime()
-#ifdef WIN32
-#include <compat.h> // for Windows API
-#endif
+#include <util/time.h>
 
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
+#include <cstring>
 #include <chrono>
 #include <climits>
 #include <thread>
 #include <vector>
 
-#include <stdint.h>
-#include <string.h>
-#ifndef WIN32
 #include <sys/types.h> // must go before a number of other headers
+
+#ifdef WIN32
+#include <windows.h>
+#include <winreg.h>
+#else
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/resource.h>
@@ -53,12 +55,11 @@
 #include <sys/vmmeter.h>
 #endif
 #endif
-#if defined(HAVE_STRONG_GETAUXVAL) || defined(HAVE_WEAK_GETAUXVAL)
+#if defined(HAVE_STRONG_GETAUXVAL)
 #include <sys/auxv.h>
 #endif
 
-//! Necessary on some platforms
-extern char** environ;
+extern char** environ; // NOLINT(readability-redundant-declaration): Necessary on some platforms
 
 namespace {
 
@@ -251,7 +252,7 @@ void RandAddDynamicEnv(CSHA512& hasher)
     gettimeofday(&tv, nullptr);
     hasher << tv;
 #endif
-    // Probably redundant, but also use all the clocks C++11 provides:
+    // Probably redundant, but also use all the standard library clocks:
     hasher << std::chrono::system_clock::now().time_since_epoch().count();
     hasher << std::chrono::steady_clock::now().time_since_epoch().count();
     hasher << std::chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -323,10 +324,10 @@ void RandAddStaticEnv(CSHA512& hasher)
     hasher.Write((const unsigned char*)COMPILER_VERSION, strlen(COMPILER_VERSION) + 1);
 #endif
 
-    // Bitcoin_Silver client version
+    // BitcoinSilver client version
     hasher << CLIENT_VERSION;
 
-#if defined(HAVE_STRONG_GETAUXVAL) || defined(HAVE_WEAK_GETAUXVAL)
+#if defined(HAVE_STRONG_GETAUXVAL)
     // Information available through getauxval()
 #  ifdef AT_HWCAP
     hasher << getauxval(AT_HWCAP);
@@ -346,7 +347,7 @@ void RandAddStaticEnv(CSHA512& hasher)
     const char* exec_str = (const char*)getauxval(AT_EXECFN);
     if (exec_str) hasher.Write((const unsigned char*)exec_str, strlen(exec_str) + 1);
 #  endif
-#endif // HAVE_STRONG_GETAUXVAL || HAVE_WEAK_GETAUXVAL
+#endif // HAVE_STRONG_GETAUXVAL
 
 #ifdef HAVE_GETCPUID
     AddAllCPUID(hasher);
@@ -363,10 +364,10 @@ void RandAddStaticEnv(CSHA512& hasher)
 
 #if HAVE_DECL_GETIFADDRS && HAVE_DECL_FREEIFADDRS
     // Network interfaces
-    struct ifaddrs *ifad = NULL;
+    struct ifaddrs *ifad = nullptr;
     getifaddrs(&ifad);
     struct ifaddrs *ifit = ifad;
-    while (ifit != NULL) {
+    while (ifit != nullptr) {
         hasher.Write((const unsigned char*)&ifit, sizeof(ifit));
         hasher.Write((const unsigned char*)ifit->ifa_name, strlen(ifit->ifa_name) + 1);
         hasher.Write((const unsigned char*)&ifit->ifa_flags, sizeof(ifit->ifa_flags));

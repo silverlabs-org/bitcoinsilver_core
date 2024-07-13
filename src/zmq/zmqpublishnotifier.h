@@ -1,13 +1,19 @@
-// Copyright (c) 2015-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_ZMQ_ZMQPUBLISHNOTIFIER_H
-#define BITCOIN_SILVER_ZMQ_ZMQPUBLISHNOTIFIER_H
+#ifndef BITCOINSILVER_ZMQ_ZMQPUBLISHNOTIFIER_H
+#define BITCOINSILVER_ZMQ_ZMQPUBLISHNOTIFIER_H
 
 #include <zmq/zmqabstractnotifier.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+
+class CBlock;
 class CBlockIndex;
+class CTransaction;
 
 class CZMQAbstractPublishNotifier : public CZMQAbstractNotifier
 {
@@ -42,7 +48,12 @@ public:
 
 class CZMQPublishRawBlockNotifier : public CZMQAbstractPublishNotifier
 {
+private:
+    const std::function<bool(CBlock&, const CBlockIndex&)> m_get_block_by_index;
+
 public:
+    CZMQPublishRawBlockNotifier(std::function<bool(CBlock&, const CBlockIndex&)> get_block_by_index)
+        : m_get_block_by_index{std::move(get_block_by_index)} {}
     bool NotifyBlock(const CBlockIndex *pindex) override;
 };
 
@@ -61,4 +72,4 @@ public:
     bool NotifyTransactionRemoval(const CTransaction &transaction, uint64_t mempool_sequence) override;
 };
 
-#endif // BITCOIN_SILVER_ZMQ_ZMQPUBLISHNOTIFIER_H
+#endif // BITCOINSILVER_ZMQ_ZMQPUBLISHNOTIFIER_H

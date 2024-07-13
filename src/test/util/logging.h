@@ -1,9 +1,9 @@
-// Copyright (c) 2019-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2019-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_TEST_UTIL_LOGGING_H
-#define BITCOIN_SILVER_TEST_UTIL_LOGGING_H
+#ifndef BITCOINSILVER_TEST_UTIL_LOGGING_H
+#define BITCOINSILVER_TEST_UTIL_LOGGING_H
 
 #include <util/macros.h>
 
@@ -36,6 +36,6 @@ public:
     ~DebugLogHelper() { check_found(); }
 };
 
-#define ASSERT_DEBUG_LOG(message) DebugLogHelper PASTE2(debugloghelper, __COUNTER__)(message)
+#define ASSERT_DEBUG_LOG(message) DebugLogHelper UNIQUE_NAME(debugloghelper)(message)
 
-#endif // BITCOIN_SILVER_TEST_UTIL_LOGGING_H
+#endif // BITCOINSILVER_TEST_UTIL_LOGGING_H

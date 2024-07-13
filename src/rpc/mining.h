@@ -1,11 +1,11 @@
-// Copyright (c) 2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_RPC_MINING_H
-#define BITCOIN_SILVER_RPC_MINING_H
+#ifndef BITCOINSILVER_RPC_MINING_H
+#define BITCOINSILVER_RPC_MINING_H
 
 /** Default max iterations to try in RPC generatetodescriptor, generatetoaddress, and generateblock. */
 static const uint64_t DEFAULT_MAX_TRIES{1000000};
 
-#endif // BITCOIN_SILVER_RPC_MINING_H
+#endif // BITCOINSILVER_RPC_MINING_H

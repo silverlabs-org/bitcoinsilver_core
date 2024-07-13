@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_ASKPASSPHRASEDIALOG_H
-#define BITCOIN_SILVER_QT_ASKPASSPHRASEDIALOG_H
+#ifndef BITCOINSILVER_QT_ASKPASSPHRASEDIALOG_H
+#define BITCOINSILVER_QT_ASKPASSPHRASEDIALOG_H
 
 #include <QDialog>
 
@@ -38,8 +38,8 @@ public:
 private:
     Ui::AskPassphraseDialog *ui;
     Mode mode;
-    WalletModel *model;
-    bool fCapsLock;
+    WalletModel* model{nullptr};
+    bool fCapsLock{false};
     SecureString* m_passphrase_out;
 
 private Q_SLOTS:
@@ -52,4 +52,4 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 };
 
-#endif // BITCOIN_SILVER_QT_ASKPASSPHRASEDIALOG_H
+#endif // BITCOINSILVER_QT_ASKPASSPHRASEDIALOG_H

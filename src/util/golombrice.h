@@ -1,9 +1,11 @@
-// Copyright (c) 2018-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2018-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_UTIL_GOLOMBRICE_H
-#define BITCOIN_SILVER_UTIL_GOLOMBRICE_H
+#ifndef BITCOINSILVER_UTIL_GOLOMBRICE_H
+#define BITCOINSILVER_UTIL_GOLOMBRICE_H
+
+#include <util/fastrange.h>
 
 #include <streams.h>
 
@@ -40,4 +42,4 @@ uint64_t GolombRiceDecode(BitStreamReader<IStream>& bitreader, uint8_t P)
     return (q << P) + r;
 }
 
-#endif // BITCOIN_SILVER_UTIL_GOLOMBRICE_H
+#endif // BITCOINSILVER_UTIL_GOLOMBRICE_H

@@ -1,9 +1,9 @@
-// Copyright (c) 2018-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2018-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_INTERFACES_HANDLER_H
-#define BITCOIN_SILVER_INTERFACES_HANDLER_H
+#ifndef BITCOINSILVER_INTERFACES_HANDLER_H
+#define BITCOINSILVER_INTERFACES_HANDLER_H
 
 #include <functional>
 #include <memory>
@@ -29,11 +29,11 @@ public:
 };
 
 //! Return handler wrapping a boost signal connection.
-std::unique_ptr<Handler> MakeHandler(boost::signals2::connection connection);
+std::unique_ptr<Handler> MakeSignalHandler(boost::signals2::connection connection);
 
 //! Return handler wrapping a cleanup function.
-std::unique_ptr<Handler> MakeHandler(std::function<void()> cleanup);
+std::unique_ptr<Handler> MakeCleanupHandler(std::function<void()> cleanup);
 
 } // namespace interfaces
 
-#endif // BITCOIN_SILVER_INTERFACES_HANDLER_H
+#endif // BITCOINSILVER_INTERFACES_HANDLER_H

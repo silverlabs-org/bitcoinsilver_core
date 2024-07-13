@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_WALLETFRAME_H
-#define BITCOIN_SILVER_QT_WALLETFRAME_H
+#ifndef BITCOINSILVER_QT_WALLETFRAME_H
+#define BITCOINSILVER_QT_WALLETFRAME_H
 
 #include <QFrame>
 #include <QMap>
@@ -20,9 +20,9 @@ QT_END_NAMESPACE
 
 /**
  * A container for embedding all wallet-related
- * controls into Bitcoin_SilverGUI. The purpose of this class is to allow future
+ * controls into BitcoinGUI. The purpose of this class is to allow future
  * refinements of the wallet controls with minimal need for further
- * modifications to Bitcoin_SilverGUI, thus greatly simplifying merges while
+ * modifications to BitcoinGUI, thus greatly simplifying merges while
  * reducing the risk of breaking top-level stuff.
  */
 class WalletFrame : public QFrame
@@ -35,7 +35,7 @@ public:
 
     void setClientModel(ClientModel *clientModel);
 
-    bool addWallet(WalletModel* walletModel, WalletView* walletView);
+    bool addView(WalletView* walletView);
     void setCurrentWallet(WalletModel* wallet_model);
     void removeWallet(WalletModel* wallet_model);
     void removeAllWallets();
@@ -48,6 +48,8 @@ public:
 
 Q_SIGNALS:
     void createWalletButtonClicked();
+    void message(const QString& title, const QString& message, unsigned int style);
+    void currentWalletSet();
 
 private:
     QStackedWidget *walletStack;
@@ -79,7 +81,7 @@ public Q_SLOTS:
     /** Show Sign/Verify Message dialog and switch to verify message tab */
     void gotoVerifyMessageTab(QString addr = "");
 
-    /** Load Partially Signed Bitcoin_Silver Transaction */
+    /** Load Partially Signed BitcoinSilver Transaction */
     void gotoLoadPSBT(bool from_clipboard = false);
 
     /** Encrypt the wallet */
@@ -97,4 +99,4 @@ public Q_SLOTS:
     void usedReceivingAddresses();
 };
 
-#endif // BITCOIN_SILVER_QT_WALLETFRAME_H
+#endif // BITCOINSILVER_QT_WALLETFRAME_H

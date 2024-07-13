@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2020-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 '''
@@ -13,14 +13,23 @@ import unittest
 from utils import determine_wellknown_cmd
 
 def call_symbol_check(cc: List[str], source, executable, options):
-    subprocess.run([*cc,source,'-o',executable] + options, check=True)
-    p = subprocess.run(['./contrib/devtools/symbol-check.py',executable], stdout=subprocess.PIPE, universal_newlines=True)
+    # This should behave the same as AC_TRY_LINK, so arrange well-known flags
+    # in the same order as autoconf would.
+    #
+    # See the definitions for ac_link in autoconf's lib/autoconf/c.m4 file for
+    # reference.
+    env_flags: List[str] = []
+    for var in ['CFLAGS', 'CPPFLAGS', 'LDFLAGS']:
+        env_flags += filter(None, os.environ.get(var, '').split(' '))
+
+    subprocess.run([*cc,source,'-o',executable] + env_flags + options, check=True)
+    p = subprocess.run([os.path.join(os.path.dirname(__file__), 'symbol-check.py'), executable], stdout=subprocess.PIPE, text=True)
     os.remove(source)
     os.remove(executable)
     return (p.returncode, p.stdout.rstrip())
 
 def get_machine(cc: List[str]):
-    p = subprocess.run([*cc,'-dumpmachine'], stdout=subprocess.PIPE, universal_newlines=True)
+    p = subprocess.run([*cc,'-dumpmachine'], stdout=subprocess.PIPE, text=True)
     return p.stdout.rstrip()
 
 class TestSymbolChecks(unittest.TestCase):
@@ -28,31 +37,6 @@ class TestSymbolChecks(unittest.TestCase):
         source = 'test1.c'
         executable = 'test1'
         cc = determine_wellknown_cmd('CC', 'gcc')
-
-        # there's no way to do this test for RISC-V at the moment; we build for
-        # RISC-V in a glibc 2.27 envinonment and we allow all symbols from 2.27.
-        if 'riscv' in get_machine(cc):
-            self.skipTest("test not available for RISC-V")
-
-        # nextup was introduced in GLIBC 2.24, so is newer than our supported
-        # glibc (2.17), and available in our release build environment (2.24).
-        with open(source, 'w', encoding="utf8") as f:
-            f.write('''
-                #define _GNU_SOURCE
-                #include <math.h>
-
-                double nextup(double x);
-
-                int main()
-                {
-                    nextup(3.14);
-                    return 0;
-                }
-        ''')
-
-        self.assertEqual(call_symbol_check(cc, source, executable, ['-lm']),
-                (1, executable + ': symbol nextup from unsupported version GLIBC_2.24\n' +
-                    executable + ': failed IMPORTED_SYMBOLS'))
 
         # -lutil is part of the libc6 package so a safe bet that it's installed
         # it's also out of context enough that it's unlikely to ever become a real dependency
@@ -70,23 +54,24 @@ class TestSymbolChecks(unittest.TestCase):
         ''')
 
         self.assertEqual(call_symbol_check(cc, source, executable, ['-lutil']),
-                (1, executable + ': NEEDED library libutil.so.1 is not allowed\n' +
+                (1, executable + ': libutil.so.1 is not in ALLOWED_LIBRARIES!\n' +
                     executable + ': failed LIBRARY_DEPENDENCIES'))
 
-        # finally, check a conforming file that simply uses a math function
+        # finally, check a simple conforming binary
         source = 'test3.c'
         executable = 'test3'
         with open(source, 'w', encoding="utf8") as f:
             f.write('''
-                #include <math.h>
+                #include <stdio.h>
 
                 int main()
                 {
-                    return (int)pow(2.0, 4.0);
+                    printf("42");
+                    return 0;
                 }
         ''')
 
-        self.assertEqual(call_symbol_check(cc, source, executable, ['-lm']),
+        self.assertEqual(call_symbol_check(cc, source, executable, []),
                 (0, ''))
 
     def test_MACHO(self):
@@ -136,7 +121,7 @@ class TestSymbolChecks(unittest.TestCase):
                 }
         ''')
 
-        self.assertEqual(call_symbol_check(cc, source, executable, ['-Wl,-platform_version','-Wl,macos', '-Wl,10.14', '-Wl,11.4']),
+        self.assertEqual(call_symbol_check(cc, source, executable, ['-Wl,-platform_version','-Wl,macos', '-Wl,11.0', '-Wl,11.4']),
                 (1, f'{executable}: failed SDK'))
 
     def test_PE(self):
@@ -177,7 +162,7 @@ class TestSymbolChecks(unittest.TestCase):
         executable = 'test3.exe'
         with open(source, 'w', encoding="utf8") as f:
             f.write('''
-                #include <windows.h>
+                #include <combaseapi.h>
 
                 int main()
                 {

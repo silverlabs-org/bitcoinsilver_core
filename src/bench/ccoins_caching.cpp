@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2016-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,10 +15,9 @@
 // many times micro-benchmarks of the database showed completely different
 // characteristics than e.g. reindex timings. But that's not a requirement of
 // every benchmark."
-// (https://github.com/bitcoin_silver/bitcoin_silver/issues/7883#issuecomment-224807484)
+// (https://github.com/MrVistos/bitcoinsilver/issues/7883#issuecomment-224807484)
 static void CCoinsCaching(benchmark::Bench& bench)
 {
-    const ECCVerifyHandle verify_handle;
     ECC_Start();
 
     FillableSigningProvider keystore;
@@ -45,10 +44,10 @@ static void CCoinsCaching(benchmark::Bench& bench)
     // Benchmark.
     const CTransaction tx_1(t1);
     bench.run([&] {
-        bool success = AreInputsStandard(tx_1, coins, false);
+        bool success{AreInputsStandard(tx_1, coins)};
         assert(success);
     });
     ECC_Stop();
 }
 
-BENCHMARK(CCoinsCaching);
+BENCHMARK(CCoinsCaching, benchmark::PriorityLevel::HIGH);

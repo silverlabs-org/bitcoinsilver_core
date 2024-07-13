@@ -1,11 +1,11 @@
-// Copyright (c) 2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_UTIL_GETUNIQUEPATH_H
-#define BITCOIN_SILVER_UTIL_GETUNIQUEPATH_H
+#ifndef BITCOINSILVER_UTIL_GETUNIQUEPATH_H
+#define BITCOINSILVER_UTIL_GETUNIQUEPATH_H
 
-#include <fs.h>
+#include <util/fs.h>
 
 /**
  * Helper function for getting a unique path
@@ -16,4 +16,4 @@
  */
 fs::path GetUniquePath(const fs::path& base);
 
-#endif // BITCOIN_SILVER_UTIL_GETUNIQUEPATH_H
+#endif // BITCOINSILVER_UTIL_GETUNIQUEPATH_H

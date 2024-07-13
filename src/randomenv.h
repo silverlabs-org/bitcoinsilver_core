@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_RANDOMENV_H
-#define BITCOIN_SILVER_RANDOMENV_H
+#ifndef BITCOINSILVER_RANDOMENV_H
+#define BITCOINSILVER_RANDOMENV_H
 
 #include <crypto/sha512.h>
 
@@ -14,4 +14,4 @@ void RandAddDynamicEnv(CSHA512& hasher);
 /** Gather non-cryptographic environment data that does not change over time. */
 void RandAddStaticEnv(CSHA512& hasher);
 
-#endif
+#endif // BITCOINSILVER_RANDOMENV_H

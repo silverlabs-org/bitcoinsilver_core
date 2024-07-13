@@ -1,10 +1,11 @@
-// Copyright (c) 2012-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2012-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <bloom.h>
+#include <common/bloom.h>
 
 #include <clientversion.h>
+#include <common/system.h>
 #include <key.h>
 #include <key_io.h>
 #include <merkleblock.h>
@@ -12,10 +13,10 @@
 #include <random.h>
 #include <serialize.h>
 #include <streams.h>
+#include <test/util/random.h>
 #include <test/util/setup_common.h>
 #include <uint256.h>
 #include <util/strencodings.h>
-#include <util/system.h>
 
 #include <vector>
 
@@ -39,12 +40,13 @@ BOOST_AUTO_TEST_CASE(bloom_create_insert_serialize)
     filter.insert(ParseHex("b9300670b4c5366e95b2699e8b18bc75e5f729c5"));
     BOOST_CHECK_MESSAGE(filter.contains(ParseHex("b9300670b4c5366e95b2699e8b18bc75e5f729c5")), "Bloom filter doesn't contain just-inserted object (3)!");
 
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    DataStream stream{};
     stream << filter;
 
     std::vector<uint8_t> expected = ParseHex("03614e9b050000000000000001");
+    auto result{MakeUCharSpan(stream)};
 
-    BOOST_CHECK_EQUAL_COLLECTIONS(stream.begin(), stream.end(), expected.begin(), expected.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(result.begin(), result.end(), expected.begin(), expected.end());
 
     BOOST_CHECK_MESSAGE( filter.contains(ParseHex("99108ad8ed9bb6274d3980bab5a85c048f0950c8")), "Bloom filter doesn't contain just-inserted object!");
 }
@@ -65,12 +67,13 @@ BOOST_AUTO_TEST_CASE(bloom_create_insert_serialize_with_tweak)
     filter.insert(ParseHex("b9300670b4c5366e95b2699e8b18bc75e5f729c5"));
     BOOST_CHECK_MESSAGE(filter.contains(ParseHex("b9300670b4c5366e95b2699e8b18bc75e5f729c5")), "Bloom filter doesn't contain just-inserted object (3)!");
 
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    DataStream stream{};
     stream << filter;
 
     std::vector<uint8_t> expected = ParseHex("03ce4299050000000100008001");
+    auto result{MakeUCharSpan(stream)};
 
-    BOOST_CHECK_EQUAL_COLLECTIONS(stream.begin(), stream.end(), expected.begin(), expected.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(result.begin(), result.end(), expected.begin(), expected.end());
 }
 
 BOOST_AUTO_TEST_CASE(bloom_create_insert_key)
@@ -83,14 +86,15 @@ BOOST_AUTO_TEST_CASE(bloom_create_insert_key)
     CBloomFilter filter(2, 0.001, 0, BLOOM_UPDATE_ALL);
     filter.insert(vchPubKey);
     uint160 hash = pubkey.GetID();
-    filter.insert(std::vector<unsigned char>(hash.begin(), hash.end()));
+    filter.insert(hash);
 
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    DataStream stream{};
     stream << filter;
 
     std::vector<unsigned char> expected = ParseHex("038fc16b080000000000000001");
+    auto result{MakeUCharSpan(stream)};
 
-    BOOST_CHECK_EQUAL_COLLECTIONS(stream.begin(), stream.end(), expected.begin(), expected.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(result.begin(), result.end(), expected.begin(), expected.end());
 }
 
 BOOST_AUTO_TEST_CASE(bloom_match)
@@ -337,12 +341,13 @@ BOOST_AUTO_TEST_CASE(merkle_block_3_and_serialize)
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
 
-    CDataStream merkleStream(SER_NETWORK, PROTOCOL_VERSION);
+    DataStream merkleStream{};
     merkleStream << merkleBlock;
 
     std::vector<uint8_t> expected = ParseHex("0100000079cda856b143d9db2c1caff01d1aecc8630d30625d10e8b4b8b0000000000000b50cc069d6a3e33e3ff84a5c41d9d3febe7c770fdcc96b2c3ff60abe184f196367291b4d4c86041b8fa45d630100000001b50cc069d6a3e33e3ff84a5c41d9d3febe7c770fdcc96b2c3ff60abe184f19630101");
+    auto result{MakeUCharSpan(merkleStream)};
 
-    BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), merkleStream.begin(), merkleStream.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), result.begin(), result.end());
 }
 
 BOOST_AUTO_TEST_CASE(merkle_block_4)

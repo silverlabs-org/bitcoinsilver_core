@@ -1,9 +1,9 @@
-// Copyright (c) 2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_IPC_EXCEPTION_H
-#define BITCOIN_SILVER_IPC_EXCEPTION_H
+#ifndef BITCOINSILVER_IPC_EXCEPTION_H
+#define BITCOINSILVER_IPC_EXCEPTION_H
 
 #include <stdexcept>
 
@@ -17,4 +17,4 @@ public:
 };
 } // namespace ipc
 
-#endif // BITCOIN_SILVER_IPC_EXCEPTION_H
+#endif // BITCOINSILVER_IPC_EXCEPTION_H

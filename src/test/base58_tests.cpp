@@ -1,10 +1,12 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <test/data/base58_encode_decode.json.h>
 
 #include <base58.h>
+#include <test/util/json.h>
+#include <test/util/random.h>
 #include <test/util/setup_common.h>
 #include <util/strencodings.h>
 #include <util/vector.h>
@@ -16,16 +18,14 @@
 
 using namespace std::literals;
 
-UniValue read_json(const std::string& jsondata);
-
 BOOST_FIXTURE_TEST_SUITE(base58_tests, BasicTestingSetup)
 
 // Goal: test low-level base58 encoding functionality
 BOOST_AUTO_TEST_CASE(base58_EncodeBase58)
 {
-    UniValue tests = read_json(std::string(json_tests::base58_encode_decode, json_tests::base58_encode_decode + sizeof(json_tests::base58_encode_decode)));
+    UniValue tests = read_json(json_tests::base58_encode_decode);
     for (unsigned int idx = 0; idx < tests.size(); idx++) {
-        UniValue test = tests[idx];
+        const UniValue& test = tests[idx];
         std::string strTest = test.write();
         if (test.size() < 2) // Allow for extra stuff (useful for comments)
         {
@@ -43,11 +43,11 @@ BOOST_AUTO_TEST_CASE(base58_EncodeBase58)
 // Goal: test low-level base58 decoding functionality
 BOOST_AUTO_TEST_CASE(base58_DecodeBase58)
 {
-    UniValue tests = read_json(std::string(json_tests::base58_encode_decode, json_tests::base58_encode_decode + sizeof(json_tests::base58_encode_decode)));
+    UniValue tests = read_json(json_tests::base58_encode_decode);
     std::vector<unsigned char> result;
 
     for (unsigned int idx = 0; idx < tests.size(); idx++) {
-        UniValue test = tests[idx];
+        const UniValue& test = tests[idx];
         std::string strTest = test.write();
         if (test.size() < 2) // Allow for extra stuff (useful for comments)
         {

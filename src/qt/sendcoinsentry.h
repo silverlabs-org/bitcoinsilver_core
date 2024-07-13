@@ -1,13 +1,13 @@
-// Copyright (c) 2011-2019 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_SENDCOINSENTRY_H
-#define BITCOIN_SILVER_QT_SENDCOINSENTRY_H
+#ifndef BITCOINSILVER_QT_SENDCOINSENTRY_H
+#define BITCOINSILVER_QT_SENDCOINSENTRY_H
 
 #include <qt/sendcoinsrecipient.h>
 
-#include <QStackedWidget>
+#include <QWidget>
 
 class WalletModel;
 class PlatformStyle;
@@ -21,11 +21,9 @@ namespace Ui {
 }
 
 /**
- * A single entry in the dialog for sending bitcoin_silvers.
- * Stacked widget, with different UIs for payment requests
- * with a strong payee identity.
+ * A single entry in the dialog for sending bitcoins.
  */
-class SendCoinsEntry : public QStackedWidget
+class SendCoinsEntry : public QWidget
 {
     Q_OBJECT
 
@@ -75,10 +73,10 @@ protected:
 private:
     SendCoinsRecipient recipient;
     Ui::SendCoinsEntry *ui;
-    WalletModel *model;
+    WalletModel* model{nullptr};
     const PlatformStyle *platformStyle;
 
     bool updateLabel(const QString &address);
 };
 
-#endif // BITCOIN_SILVER_QT_SENDCOINSENTRY_H
+#endif // BITCOINSILVER_QT_SENDCOINSENTRY_H

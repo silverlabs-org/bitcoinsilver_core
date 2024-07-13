@@ -1,23 +1,23 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin_silver-config.h>
+#include <config/bitcoinsilver-config.h>
 #endif
 
 #include <qt/paymentserver.h>
 
-#include <qt/bitcoin_silverunits.h>
+#include <qt/bitcoinsilverunits.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 
 #include <chainparams.h>
+#include <common/args.h>
 #include <interfaces/node.h>
 #include <key_io.h>
-#include <node/ui_interface.h>
+#include <node/interface_ui.h>
 #include <policy/policy.h>
-#include <util/system.h>
 #include <wallet/wallet.h>
 
 #include <cstdlib>
@@ -36,8 +36,8 @@
 #include <QStringList>
 #include <QUrlQuery>
 
-const int BITCOIN_SILVER_IPC_CONNECT_TIMEOUT = 1000; // milliseconds
-const QString BITCOIN_SILVER_IPC_PREFIX("bitcoin_silver:");
+const int BITCOINSILVER_IPC_CONNECT_TIMEOUT = 1000; // milliseconds
+const QString BITCOINSILVER_IPC_PREFIX("bitcoinsilver:");
 
 //
 // Create a name that is unique for:
@@ -46,12 +46,12 @@ const QString BITCOIN_SILVER_IPC_PREFIX("bitcoin_silver:");
 //
 static QString ipcServerName()
 {
-    QString name("Bitcoin_SilverQt");
+    QString name("BitcoinQt");
 
     // Append a simple hash of the datadir
     // Note that gArgs.GetDataDirNet() returns a different path
     // for -testnet versus main net
-    QString ddir(GUIUtil::boostPathToQString(gArgs.GetDataDirNet()));
+    QString ddir(GUIUtil::PathToQString(gArgs.GetDataDirNet()));
     name.append(QString::number(qHash(ddir)));
 
     return name;
@@ -78,32 +78,11 @@ void PaymentServer::ipcParseCommandLine(int argc, char* argv[])
     for (int i = 1; i < argc; i++)
     {
         QString arg(argv[i]);
-        if (arg.startsWith("-"))
-            continue;
+        if (arg.startsWith("-")) continue;
 
-        // If the bitcoin_silver: URI contains a payment request, we are not able to detect the
-        // network as that would require fetching and parsing the payment request.
-        // That means clicking such an URI which contains a testnet payment request
-        // will start a mainnet instance and throw a "wrong network" error.
-        if (arg.startsWith(BITCOIN_SILVER_IPC_PREFIX, Qt::CaseInsensitive)) // bitcoin_silver: URI
+        if (arg.startsWith(BITCOINSILVER_IPC_PREFIX, Qt::CaseInsensitive)) // bitcoinsilver: URI
         {
-            if (savedPaymentRequests.contains(arg)) continue;
             savedPaymentRequests.insert(arg);
-
-            SendCoinsRecipient r;
-            if (GUIUtil::parseBitcoin_SilverURI(arg, &r) && !r.address.isEmpty())
-            {
-                auto tempChainParams = CreateChainParams(gArgs, CBaseChainParams::MAIN);
-
-                if (IsValidDestinationString(r.address.toStdString(), *tempChainParams)) {
-                    SelectParams(CBaseChainParams::MAIN);
-                } else {
-                    tempChainParams = CreateChainParams(gArgs, CBaseChainParams::TESTNET);
-                    if (IsValidDestinationString(r.address.toStdString(), *tempChainParams)) {
-                        SelectParams(CBaseChainParams::TESTNET);
-                    }
-                }
-            }
         }
     }
 }
@@ -121,7 +100,7 @@ bool PaymentServer::ipcSendCommandLine()
     {
         QLocalSocket* socket = new QLocalSocket();
         socket->connectToServer(ipcServerName(), QIODevice::WriteOnly);
-        if (!socket->waitForConnected(BITCOIN_SILVER_IPC_CONNECT_TIMEOUT))
+        if (!socket->waitForConnected(BITCOINSILVER_IPC_CONNECT_TIMEOUT))
         {
             delete socket;
             socket = nullptr;
@@ -136,7 +115,7 @@ bool PaymentServer::ipcSendCommandLine()
 
         socket->write(block);
         socket->flush();
-        socket->waitForBytesWritten(BITCOIN_SILVER_IPC_CONNECT_TIMEOUT);
+        socket->waitForBytesWritten(BITCOINSILVER_IPC_CONNECT_TIMEOUT);
         socket->disconnectFromServer();
 
         delete socket;
@@ -147,14 +126,11 @@ bool PaymentServer::ipcSendCommandLine()
     return fResult;
 }
 
-PaymentServer::PaymentServer(QObject* parent, bool startLocalServer) :
-    QObject(parent),
-    saveURIs(true),
-    uriServer(nullptr),
-    optionsModel(nullptr)
+PaymentServer::PaymentServer(QObject* parent, bool startLocalServer)
+    : QObject(parent)
 {
     // Install global event filter to catch QFileOpenEvents
-    // on Mac: sent when you click bitcoin_silver: links
+    // on Mac: sent when you click bitcoinsilver: links
     // other OSes: helpful when dealing with payment request files
     if (parent)
         parent->installEventFilter(this);
@@ -171,7 +147,7 @@ PaymentServer::PaymentServer(QObject* parent, bool startLocalServer) :
         if (!uriServer->listen(name)) {
             // constructor is called early in init, so don't use "Q_EMIT message()" here
             QMessageBox::critical(nullptr, tr("Payment request error"),
-                tr("Cannot start bitcoin_silver: click-to-pay handler"));
+                tr("Cannot start bitcoinsilver: click-to-pay handler"));
         }
         else {
             connect(uriServer, &QLocalServer::newConnection, this, &PaymentServer::handleURIConnection);
@@ -179,12 +155,10 @@ PaymentServer::PaymentServer(QObject* parent, bool startLocalServer) :
     }
 }
 
-PaymentServer::~PaymentServer()
-{
-}
+PaymentServer::~PaymentServer() = default;
 
 //
-// OSX-specific way of handling bitcoin_silver: URIs
+// OSX-specific way of handling bitcoinsilver: URIs
 //
 bool PaymentServer::eventFilter(QObject *object, QEvent *event)
 {
@@ -219,18 +193,18 @@ void PaymentServer::handleURIOrFile(const QString& s)
         return;
     }
 
-    if (s.startsWith("bitcoin_silver://", Qt::CaseInsensitive))
+    if (s.startsWith("bitcoinsilver://", Qt::CaseInsensitive))
     {
-        Q_EMIT message(tr("URI handling"), tr("'bitcoin_silver://' is not a valid URI. Use 'bitcoin_silver:' instead."),
+        Q_EMIT message(tr("URI handling"), tr("'bitcoinsilver://' is not a valid URI. Use 'bitcoinsilver:' instead."),
             CClientUIInterface::MSG_ERROR);
     }
-    else if (s.startsWith(BITCOIN_SILVER_IPC_PREFIX, Qt::CaseInsensitive)) // bitcoin_silver: URI
+    else if (s.startsWith(BITCOINSILVER_IPC_PREFIX, Qt::CaseInsensitive)) // bitcoinsilver: URI
     {
         QUrlQuery uri((QUrl(s)));
         // normal URI
         {
             SendCoinsRecipient recipient;
-            if (GUIUtil::parseBitcoin_SilverURI(s, &recipient))
+            if (GUIUtil::parseBitcoinURI(s, &recipient))
             {
                 std::string error_msg;
                 const CTxDestination dest = DecodeDestination(recipient.address.toStdString(), error_msg);
@@ -251,7 +225,7 @@ void PaymentServer::handleURIOrFile(const QString& s)
             }
             else
                 Q_EMIT message(tr("URI handling"),
-                    tr("URI cannot be parsed! This can be caused by an invalid Bitcoin_Silver address or malformed URI parameters."),
+                    tr("URI cannot be parsed! This can be caused by an invalid BitcoinSilver address or malformed URI parameters."),
                     CClientUIInterface::ICON_WARNING);
 
             return;

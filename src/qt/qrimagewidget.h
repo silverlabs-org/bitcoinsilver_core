@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_QRIMAGEWIDGET_H
-#define BITCOIN_SILVER_QT_QRIMAGEWIDGET_H
+#ifndef BITCOINSILVER_QT_QRIMAGEWIDGET_H
+#define BITCOINSILVER_QT_QRIMAGEWIDGET_H
 
 #include <QImage>
 #include <QLabel>
@@ -41,7 +41,7 @@ protected:
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
-    QMenu *contextMenu;
+    QMenu* contextMenu{nullptr};
 };
 
-#endif // BITCOIN_SILVER_QT_QRIMAGEWIDGET_H
+#endif // BITCOINSILVER_QT_QRIMAGEWIDGET_H

@@ -1,15 +1,15 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_SENDCOINSRECIPIENT_H
-#define BITCOIN_SILVER_QT_SENDCOINSRECIPIENT_H
+#ifndef BITCOINSILVER_QT_SENDCOINSRECIPIENT_H
+#define BITCOINSILVER_QT_SENDCOINSRECIPIENT_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin_silver-config.h>
+#include <config/bitcoinsilver-config.h>
 #endif
 
-#include <amount.h>
+#include <consensus/amount.h>
 #include <serialize.h>
 
 #include <string>
@@ -62,4 +62,4 @@ public:
     }
 };
 
-#endif // BITCOIN_SILVER_QT_SENDCOINSRECIPIENT_H
+#endif // BITCOINSILVER_QT_SENDCOINSRECIPIENT_H

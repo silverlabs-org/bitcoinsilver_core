@@ -1,8 +1,8 @@
-OSX_MIN_VERSION=10.14
-OSX_SDK_VERSION=10.15.6
-XCODE_VERSION=12.1
-XCODE_BUILD_ID=12A7403
-LD64_VERSION=609
+OSX_MIN_VERSION=11.0
+OSX_SDK_VERSION=11.0
+XCODE_VERSION=12.2
+XCODE_BUILD_ID=12B45b
+LD64_VERSION=711
 
 OSX_SDK=$(SDK_PATH)/Xcode-$(XCODE_VERSION)-$(XCODE_BUILD_ID)-extracted-SDK-with-libcxx-headers
 
@@ -17,8 +17,8 @@ darwin_native_toolchain=native_cctools
 
 clang_prog=$(build_prefix)/bin/clang
 clangxx_prog=$(clang_prog)++
+llvm_config_prog=$(build_prefix)/bin/llvm-config
 
-clang_resource_dir=$(build_prefix)/lib/clang/$(native_clang_version)
 else
 # FORCE_USE_SYSTEM_CLANG is non-empty, so we use the clang from the user's
 # system
@@ -34,11 +34,12 @@ darwin_native_toolchain=
 # Source: https://lists.gnu.org/archive/html/bug-make/2017-11/msg00017.html
 clang_prog=$(shell $(SHELL) $(.SHELLFLAGS) "command -v clang")
 clangxx_prog=$(shell $(SHELL) $(.SHELLFLAGS) "command -v clang++")
+llvm_config_prog=$(shell $(SHELL) $(.SHELLFLAGS) "command -v llvm-config")
 
-clang_resource_dir=$(shell clang -print-resource-dir)
+llvm_lib_dir=$(shell $(llvm_config_prog) --libdir)
 endif
 
-cctools_TOOLS=AR RANLIB STRIP NM LIBTOOL OTOOL INSTALL_NAME_TOOL
+cctools_TOOLS=AR RANLIB STRIP NM LIBTOOL OTOOL INSTALL_NAME_TOOL DSYMUTIL
 
 # Make-only lowercase function
 lc = $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst J,j,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst S,s,$(subst T,t,$(subst U,u,$(subst V,v,$(subst W,w,$(subst X,x,$(subst Y,y,$(subst Z,z,$1))))))))))))))))))))))))))
@@ -53,64 +54,49 @@ $(foreach TOOL,$(cctools_TOOLS),$(eval darwin_$(TOOL) = $$(build_prefix)/bin/$$(
 #     -mlinker-version
 #
 #         Ensures that modern linker features are enabled. See here for more
-#         details: https://github.com/bitcoin_silver/bitcoin_silver/pull/19407.
+#         details: https://github.com/bitcoin/bitcoin/pull/19407.
 #
 #     -B$(build_prefix)/bin
 #
 #         Explicitly point to our binaries (e.g. cctools) so that they are
 #         ensured to be found and preferred over other possibilities.
 #
-#     -stdlib=libc++ -stdlib++-isystem$(OSX_SDK)/usr/include/c++/v1
+#     -isysroot$(OSX_SDK) -nostdlibinc
 #
-#         Forces clang to use the libc++ headers from our SDK and completely
-#         forget about the libc++ headers from the standard directories
+#         Disable default include paths built into the compiler as well as
+#         those normally included for libc and libc++. The only path that
+#         remains implicitly is the clang resource dir.
 #
-#     -Xclang -*system<path_a> \
-#     -Xclang -*system<path_b> \
-#     -Xclang -*system<path_c> ...
+#     -iwithsysroot / -iframeworkwithsysroot
 #
-#         Adds path_a, path_b, and path_c to the bottom of clang's list of
-#         include search paths. This is used to explicitly specify the list of
-#         system include search paths and its ordering, rather than rely on
-#         clang's autodetection routine. This routine has been shown to:
-#             1. Fail to pickup libc++ headers in $SYSROOT/usr/include/c++/v1
-#                when clang was built manually (see: https://github.com/bitcoin_silver/bitcoin_silver/pull/17919#issuecomment-656785034)
-#             2. Fail to pickup C headers in $SYSROOT/usr/include when
-#                C_INCLUDE_DIRS was specified at configure time (see: https://gist.github.com/dongcarl/5cdc6990b7599e8a5bf6d2a9c70e82f9)
+#         Adds the desired paths from the SDK
 #
-#         Talking directly to cc1 with -Xclang here grants us access to specify
-#         more granular categories for these system include search paths, and we
-#         can use the correct categories that these search paths would have been
-#         placed in if the autodetection routine had worked correctly. (see:
-#         https://gist.github.com/dongcarl/5cdc6990b7599e8a5bf6d2a9c70e82f9#the-treatment)
-#
-#         Furthermore, it places these search paths after any "non-Xclang"
-#         specified search paths. This prevents any additional clang options or
-#         environment variables from coming after or in between these system
-#         include search paths, as that would be wrong in general but would also
-#         break #include_next's.
-#
+
 darwin_CC=env -u C_INCLUDE_PATH -u CPLUS_INCLUDE_PATH \
               -u OBJC_INCLUDE_PATH -u OBJCPLUS_INCLUDE_PATH -u CPATH \
               -u LIBRARY_PATH \
             $(clang_prog) --target=$(host) -mmacosx-version-min=$(OSX_MIN_VERSION) \
               -B$(build_prefix)/bin -mlinker-version=$(LD64_VERSION) \
-              -isysroot$(OSX_SDK) \
-              -Xclang -internal-externc-isystem$(clang_resource_dir)/include \
-              -Xclang -internal-externc-isystem$(OSX_SDK)/usr/include
+              -isysroot$(OSX_SDK) -nostdlibinc \
+              -iwithsysroot/usr/include -iframeworkwithsysroot/System/Library/Frameworks
+
 darwin_CXX=env -u C_INCLUDE_PATH -u CPLUS_INCLUDE_PATH \
                -u OBJC_INCLUDE_PATH -u OBJCPLUS_INCLUDE_PATH -u CPATH \
                -u LIBRARY_PATH \
              $(clangxx_prog) --target=$(host) -mmacosx-version-min=$(OSX_MIN_VERSION) \
                -B$(build_prefix)/bin -mlinker-version=$(LD64_VERSION) \
-               -isysroot$(OSX_SDK) \
-               -stdlib=libc++ \
-               -stdlib++-isystem$(OSX_SDK)/usr/include/c++/v1 \
-               -Xclang -internal-externc-isystem$(clang_resource_dir)/include \
-               -Xclang -internal-externc-isystem$(OSX_SDK)/usr/include
+               -isysroot$(OSX_SDK) -nostdlibinc \
+               -iwithsysroot/usr/include/c++/v1 \
+               -iwithsysroot/usr/include -iframeworkwithsysroot/System/Library/Frameworks
 
-darwin_CFLAGS=-pipe
-darwin_CXXFLAGS=$(darwin_CFLAGS)
+darwin_CFLAGS=-pipe -std=$(C_STANDARD)
+darwin_CXXFLAGS=-pipe -std=$(CXX_STANDARD)
+
+ifneq ($(LTO),)
+darwin_CFLAGS += -flto
+darwin_CXXFLAGS += -flto
+darwin_LDFLAGS += -flto
+endif
 
 darwin_release_CFLAGS=-O2
 darwin_release_CXXFLAGS=$(darwin_release_CFLAGS)

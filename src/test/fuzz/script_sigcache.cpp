@@ -1,30 +1,32 @@
-// Copyright (c) 2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2020-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
-#include <chainparamsbase.h>
 #include <key.h>
 #include <pubkey.h>
 #include <script/sigcache.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
+#include <test/util/setup_common.h>
 
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
+namespace {
+const BasicTestingSetup* g_setup;
+} // namespace
+
 void initialize_script_sigcache()
 {
-    static const ECCVerifyHandle ecc_verify_handle;
-    ECC_Start();
-    SelectParams(CBaseChainParams::REGTEST);
-    InitSignatureCache();
+    static const auto testing_setup = MakeNoLogFileContext<>();
+    g_setup = testing_setup.get();
 }
 
-FUZZ_TARGET_INIT(script_sigcache, initialize_script_sigcache)
+FUZZ_TARGET(script_sigcache, .init = initialize_script_sigcache)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
 

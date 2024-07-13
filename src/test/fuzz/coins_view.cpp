@@ -1,16 +1,14 @@
-// Copyright (c) 2020-2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2020-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <amount.h>
 #include <chainparams.h>
-#include <chainparamsbase.h>
 #include <coins.h>
+#include <consensus/amount.h>
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <key.h>
-#include <node/coinstats.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
@@ -43,15 +41,15 @@ void initialize_coins_view()
     g_setup = testing_setup.get();
 }
 
-FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
+FUZZ_TARGET(coins_view, .init = initialize_coins_view)
 {
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
     CCoinsView backend_coins_view;
-    CCoinsViewCache coins_view_cache{&backend_coins_view};
+    CCoinsViewCache coins_view_cache{&backend_coins_view, /*deterministic=*/true};
     COutPoint random_out_point;
     Coin random_coin;
     CMutableTransaction random_mutable_transaction;
-    while (fuzzed_data_provider.ConsumeBool()) {
+    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
         CallOneOf(
             fuzzed_data_provider,
             [&] {
@@ -74,6 +72,9 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
             },
             [&] {
                 (void)coins_view_cache.Flush();
+            },
+            [&] {
+                (void)coins_view_cache.Sync();
             },
             [&] {
                 coins_view_cache.SetBestBlock(ConsumeUInt256(fuzzed_data_provider));
@@ -113,8 +114,9 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                 random_mutable_transaction = *opt_mutable_transaction;
             },
             [&] {
-                CCoinsMap coins_map;
-                while (fuzzed_data_provider.ConsumeBool()) {
+                CCoinsMapMemoryResource resource;
+                CCoinsMap coins_map{0, SaltedOutpointHasher{/*deterministic=*/true}, CCoinsMap::key_equal{}, &resource};
+                LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
                     CCoinsCacheEntry coins_cache_entry;
                     coins_cache_entry.flags = fuzzed_data_provider.ConsumeIntegral<unsigned char>();
                     if (fuzzed_data_provider.ConsumeBool()) {
@@ -153,14 +155,16 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
         }
         assert((exists_using_access_coin && exists_using_have_coin_in_cache && exists_using_have_coin && exists_using_get_coin) ||
                (!exists_using_access_coin && !exists_using_have_coin_in_cache && !exists_using_have_coin && !exists_using_get_coin));
+        // If HaveCoin on the backend is true, it must also be on the cache if the coin wasn't spent.
         const bool exists_using_have_coin_in_backend = backend_coins_view.HaveCoin(random_out_point);
-        if (exists_using_have_coin_in_backend) {
+        if (!coin_using_access_coin.IsSpent() && exists_using_have_coin_in_backend) {
             assert(exists_using_have_coin);
         }
         Coin coin_using_backend_get_coin;
         if (backend_coins_view.GetCoin(random_out_point, coin_using_backend_get_coin)) {
             assert(exists_using_have_coin_in_backend);
-            assert(coin_using_get_coin == coin_using_backend_get_coin);
+            // Note we can't assert that `coin_using_get_coin == coin_using_backend_get_coin` because the coin in
+            // the cache may have been modified but not yet flushed.
         } else {
             assert(!exists_using_have_coin_in_backend);
         }
@@ -207,7 +211,7 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                     return;
                 }
                 bool expected_code_path = false;
-                const int height = fuzzed_data_provider.ConsumeIntegral<int>();
+                const int height{int(fuzzed_data_provider.ConsumeIntegral<uint32_t>() >> 1)};
                 const bool possible_overwrite = fuzzed_data_provider.ConsumeBool();
                 try {
                     AddCoins(coins_view_cache, transaction, height, possible_overwrite);
@@ -221,8 +225,7 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                 assert(expected_code_path);
             },
             [&] {
-                (void)AreInputsStandard(CTransaction{random_mutable_transaction}, coins_view_cache, false);
-                (void)AreInputsStandard(CTransaction{random_mutable_transaction}, coins_view_cache, true);
+                (void)AreInputsStandard(CTransaction{random_mutable_transaction}, coins_view_cache);
             },
             [&] {
                 TxValidationState state;
@@ -258,23 +261,13 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                     // consensus/tx_verify.cpp:130: unsigned int GetP2SHSigOpCount(const CTransaction &, const CCoinsViewCache &): Assertion `!coin.IsSpent()' failed.
                     return;
                 }
-                const int flags = fuzzed_data_provider.ConsumeIntegral<int>();
+                const auto flags{fuzzed_data_provider.ConsumeIntegral<uint32_t>()};
                 if (!transaction.vin.empty() && (flags & SCRIPT_VERIFY_WITNESS) != 0 && (flags & SCRIPT_VERIFY_P2SH) == 0) {
                     // Avoid:
                     // script/interpreter.cpp:1705: size_t CountWitnessSigOps(const CScript &, const CScript &, const CScriptWitness *, unsigned int): Assertion `(flags & SCRIPT_VERIFY_P2SH) != 0' failed.
                     return;
                 }
                 (void)GetTransactionSigOpCost(transaction, coins_view_cache, flags);
-            },
-            [&] {
-                CCoinsStats stats{CoinStatsHashType::HASH_SERIALIZED};
-                bool expected_code_path = false;
-                try {
-                    (void)GetUTXOStats(&coins_view_cache, WITH_LOCK(::cs_main, return std::ref(g_setup->m_node.chainman->m_blockman)), stats);
-                } catch (const std::logic_error&) {
-                    expected_code_path = true;
-                }
-                assert(expected_code_path);
             },
             [&] {
                 (void)IsWitnessStandard(CTransaction{random_mutable_transaction}, coins_view_cache);

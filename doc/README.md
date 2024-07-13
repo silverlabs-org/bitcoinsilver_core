@@ -1,42 +1,42 @@
-Bitcoin_Silver Core
+BitcoinSilver
 =============
 
 Setup
 ---------------------
-Bitcoin_Silver Core is the original Bitcoin_Silver client and it builds the backbone of the network. It downloads and, by default, stores the entire history of Bitcoin_Silver transactions, which requires a few hundred gigabytes of disk space. Depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
+BitcoinSilver is the original BitcoinSilver client and it builds the backbone of the network. It downloads and, by default, stores the entire history of BitcoinSilver transactions, which requires a few hundred gigabytes of disk space. Depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
 
-To download Bitcoin_Silver Core, visit [bitcoin_silvercore.org](https://bitcoin_silvercore.org/en/download/).
+To download BitcoinSilver, visit [getbitcoinsilver.org](https://getbitcoinsilver.org/en/download/).
 
 Running
 ---------------------
-The following are some helpful notes on how to run Bitcoin_Silver Core on your native platform.
+The following are some helpful notes on how to run BitcoinSilver on your native platform.
 
 ### Unix
 
 Unpack the files into a directory and run:
 
-- `bin/bitcoin_silver-qt` (GUI) or
-- `bin/bitcoin_silverd` (headless)
+- `bin/bitcoinsilver-qt` (GUI) or
+- `bin/bitcoinsilverd` (headless)
 
 ### Windows
 
-Unpack the files into a directory, and then run bitcoin_silver-qt.exe.
+Unpack the files into a directory, and then run bitcoinsilver-qt.exe.
 
 ### macOS
 
-Drag Bitcoin_Silver Core to your applications folder, and then run Bitcoin_Silver Core.
+Drag BitcoinSilver to your applications folder, and then run BitcoinSilver.
 
 ### Need Help?
 
-* See the documentation at the [Bitcoin_Silver Wiki](https://en.bitcoin_silver.it/wiki/Main_Page)
+* See the documentation at the [BitcoinSilver Wiki](https://en.bitcoinsilver.it/wiki/Main_Page)
 for help and more information.
-* Ask for help on [Bitcoin_Silver StackExchange](https://bitcoin_silver.stackexchange.com).
-* Ask for help on #bitcoin_silver on Libera Chat. If you don't have an IRC client, you can use [web.libera.chat](https://web.libera.chat/#bitcoin_silver).
-* Ask for help on the [Bitcoin_SilverTalk](https://bitcoin_silvertalk.org/) forums, in the [Technical Support board](https://bitcoin_silvertalk.org/index.php?board=4.0).
+* Ask for help on [BitcoinSilver StackExchange](https://bitcoinsilver.stackexchange.com).
+* Ask for help on #bitcoinsilver on Libera Chat. If you don't have an IRC client, you can use [web.libera.chat](https://web.libera.chat/#bitcoinsilver).
+* Ask for help on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Technical Support board](https://bitcointalk.org/index.php?board=4.0).
 
 Building
 ---------------------
-The following are developer notes on how to build Bitcoin_Silver Core on your native platform. They are not complete guides, but include notes on the necessary libraries, compile flags, etc.
+The following are developer notes on how to build BitcoinSilver on your native platform. They are not complete guides, but include notes on the necessary libraries, compile flags, etc.
 
 - [Dependencies](dependencies.md)
 - [macOS Build Notes](build-osx.md)
@@ -46,17 +46,15 @@ The following are developer notes on how to build Bitcoin_Silver Core on your na
 - [OpenBSD Build Notes](build-openbsd.md)
 - [NetBSD Build Notes](build-netbsd.md)
 - [Android Build Notes](build-android.md)
-- [Gitian Building Guide (External Link)](https://github.com/bitcoin_silver-core/docs/blob/master/gitian-building.md)
 
 Development
 ---------------------
-The Bitcoin_Silver repo's [root README](/README.md) contains relevant information on the development process and automated testing.
+The BitcoinSilver repo's [root README](/README.md) contains relevant information on the development process and automated testing.
 
 - [Developer Notes](developer-notes.md)
 - [Productivity Notes](productivity.md)
-- [Release Notes](release-notes.md)
 - [Release Process](release-process.md)
-- [Source Code Documentation (External Link)](https://doxygen.bitcoin_silvercore.org/)
+- [Source Code Documentation (External Link)](https://doxygen.getbitcoinsilver.org/)
 - [Translation Process](translation_process.md)
 - [Translation Strings Policy](translation_strings_policy.md)
 - [JSON-RPC Interface](JSON-RPC-interface.md)
@@ -65,22 +63,28 @@ The Bitcoin_Silver repo's [root README](/README.md) contains relevant informatio
 - [BIPS](bips.md)
 - [Dnsseed Policy](dnsseed-policy.md)
 - [Benchmarking](benchmarking.md)
+- [Internal Design Docs](design/)
 
 ### Resources
-* Discuss on the [Bitcoin_SilverTalk](https://bitcoin_silvertalk.org/) forums, in the [Development & Technical Discussion board](https://bitcoin_silvertalk.org/index.php?board=6.0).
-* Discuss project-specific development on #bitcoin_silver-core-dev on Libera Chat. If you don't have an IRC client, you can use [web.libera.chat](https://web.libera.chat/#bitcoin_silver-core-dev).
+* Discuss on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Development & Technical Discussion board](https://bitcointalk.org/index.php?board=6.0).
+* Discuss project-specific development on #bitcoinsilver-core-dev on Libera Chat. If you don't have an IRC client, you can use [web.libera.chat](https://web.libera.chat/#bitcoinsilver-core-dev).
 
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)
-- [bitcoin_silver.conf Configuration File](bitcoin_silver-conf.md)
+- [bitcoinsilver.conf Configuration File](bitcoinsilver-conf.md)
+- [CJDNS Support](cjdns.md)
 - [Files](files.md)
 - [Fuzz-testing](fuzzing.md)
 - [I2P Support](i2p.md)
 - [Init Scripts (systemd/upstart/openrc)](init.md)
+- [Managing Wallets](managing-wallets.md)
+- [Multisig Tutorial](multisig-tutorial.md)
+- [P2P bad ports definition and list](p2p-bad-ports.md)
 - [PSBT support](psbt.md)
 - [Reduce Memory](reduce-memory.md)
 - [Reduce Traffic](reduce-traffic.md)
 - [Tor Support](tor.md)
+- [Transaction Relay Policy](policy/README.md)
 - [ZMQ](zmq.md)
 
 License

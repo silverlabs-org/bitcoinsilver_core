@@ -1,9 +1,9 @@
-// Copyright (c) 2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2020-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_PEERTABLESORTPROXY_H
-#define BITCOIN_SILVER_QT_PEERTABLESORTPROXY_H
+#ifndef BITCOINSILVER_QT_PEERTABLESORTPROXY_H
+#define BITCOINSILVER_QT_PEERTABLESORTPROXY_H
 
 #include <QSortFilterProxyModel>
 
@@ -22,4 +22,4 @@ protected:
     bool lessThan(const QModelIndex& left_index, const QModelIndex& right_index) const override;
 };
 
-#endif // BITCOIN_SILVER_QT_PEERTABLESORTPROXY_H
+#endif // BITCOINSILVER_QT_PEERTABLESORTPROXY_H

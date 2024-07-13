@@ -1,14 +1,15 @@
-// Copyright (c) 2009-2019 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_NODE_PSBT_H
-#define BITCOIN_SILVER_NODE_PSBT_H
+#ifndef BITCOINSILVER_NODE_PSBT_H
+#define BITCOINSILVER_NODE_PSBT_H
 
 #include <psbt.h>
 
 #include <optional>
 
+namespace node {
 /**
  * Holds an analysis of one input from a PSBT
  */
@@ -52,5 +53,6 @@ struct PSBTAnalysis {
  * @return A PSBTAnalysis with information about the provided PSBT.
  */
 PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx);
+} // namespace node
 
-#endif // BITCOIN_SILVER_NODE_PSBT_H
+#endif // BITCOINSILVER_NODE_PSBT_H

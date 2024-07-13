@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2019-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,6 +11,7 @@
 #include <pubkey.h>
 #include <streams.h>
 #include <test/fuzz/fuzz.h>
+#include <util/chaintype.h>
 #include <validation.h>
 #include <version.h>
 
@@ -19,11 +20,10 @@
 
 void initialize_block()
 {
-    static const ECCVerifyHandle verify_handle;
-    SelectParams(CBaseChainParams::REGTEST);
+    SelectParams(ChainType::REGTEST);
 }
 
-FUZZ_TARGET_INIT(block, initialize_block)
+FUZZ_TARGET(block, .init = initialize_block)
 {
     CDataStream ds(buffer, SER_NETWORK, INIT_PROTO_VERSION);
     CBlock block;
@@ -58,8 +58,6 @@ FUZZ_TARGET_INIT(block, initialize_block)
     (void)block.ToString();
     (void)BlockMerkleRoot(block);
     if (!block.vtx.empty()) {
-        // TODO: Avoid array index out of bounds error in BlockWitnessMerkleRoot
-        //       when block.vtx.empty().
         (void)BlockWitnessMerkleRoot(block);
     }
     (void)GetBlockWeight(block);

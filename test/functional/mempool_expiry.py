@@ -1,48 +1,48 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2020-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Tests that a mempool transaction expires after a given timeout and that its
 children are removed as well.
 
-Both the default expiry timeout defined by DEFAULT_MEMPOOL_EXPIRY and a user
+Both the default expiry timeout defined by DEFAULT_MEMPOOL_EXPIRY_HOURS and a user
 definable expiry timeout via the '-mempoolexpiry=<n>' command line argument
 (<n> is the timeout in hours) are tested.
 """
 
 from datetime import timedelta
 
-from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.messages import (
+    COIN,
+    DEFAULT_MEMPOOL_EXPIRY_HOURS,
+)
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
 from test_framework.wallet import MiniWallet
 
-DEFAULT_MEMPOOL_EXPIRY = 336  # hours
 CUSTOM_MEMPOOL_EXPIRY = 10  # hours
 
 
-class MempoolExpiryTest(Bitcoin_SilverTestFramework):
+class MempoolExpiryTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
-        self.setup_clean_chain = True
 
     def test_transaction_expiry(self, timeout):
         """Tests that a transaction expires after the expiry timeout and its
         children are removed as well."""
         node = self.nodes[0]
-        self.wallet = MiniWallet(node)
-
-        # Add enough mature utxos to the wallet so that all txs spend confirmed coins.
-        self.wallet.generate(4)
-        node.generate(COINBASE_MATURITY)
 
         # Send a parent transaction that will expire.
         parent_txid = self.wallet.send_self_transfer(from_node=node)['txid']
         parent_utxo = self.wallet.get_utxo(txid=parent_txid)
         independent_utxo = self.wallet.get_utxo()
+
+        # Add prioritisation to this transaction to check that it persists after the expiry
+        node.prioritisetransaction(parent_txid, 0, COIN)
+        assert_equal(node.getprioritisedtransactions()[parent_txid], { "fee_delta" : COIN, "in_mempool" : True})
 
         # Ensure the transactions we send to trigger the mempool check spend utxos that are independent of
         # the transactions being tested for expiration.
@@ -86,6 +86,9 @@ class MempoolExpiryTest(Bitcoin_SilverTestFramework):
         assert_raises_rpc_error(-5, 'Transaction not in mempool',
                                 node.getmempoolentry, parent_txid)
 
+        # Prioritisation does not disappear when transaction expires
+        assert_equal(node.getprioritisedtransactions()[parent_txid], { "fee_delta" : COIN, "in_mempool" : False})
+
         # The child transaction should be removed from the mempool as well.
         self.log.info('Test child tx is evicted as well.')
         assert_raises_rpc_error(-5, 'Transaction not in mempool',
@@ -97,9 +100,11 @@ class MempoolExpiryTest(Bitcoin_SilverTestFramework):
         assert_equal(half_expiry_time, node.getmempoolentry(independent_txid)['time'])
 
     def run_test(self):
+        self.wallet = MiniWallet(self.nodes[0])
+
         self.log.info('Test default mempool expiry timeout of %d hours.' %
-                      DEFAULT_MEMPOOL_EXPIRY)
-        self.test_transaction_expiry(DEFAULT_MEMPOOL_EXPIRY)
+                      DEFAULT_MEMPOOL_EXPIRY_HOURS)
+        self.test_transaction_expiry(DEFAULT_MEMPOOL_EXPIRY_HOURS)
 
         self.log.info('Test custom mempool expiry timeout of %d hours.' %
                       CUSTOM_MEMPOOL_EXPIRY)

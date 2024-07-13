@@ -2,17 +2,18 @@
 
 *.exe
 *.pdb
-src/bitcoin_silver
-src/bitcoin_silverd
-src/bitcoin_silver-cli
-src/bitcoin_silver-gui
-src/bitcoin_silver-node
-src/bitcoin_silver-tx
-src/bitcoin_silver-util
-src/bitcoin_silver-wallet
+src/bitcoinsilver
+src/bitcoinsilverd
+src/bitcoinsilver-cli
+src/bitcoinsilver-gui
+src/bitcoinsilver-node
+src/bitcoinsilver-tx
+src/bitcoinsilver-util
+src/bitcoinsilver-chainstate
+src/bitcoinsilver-wallet
 src/test/fuzz/fuzz
-src/test/test_bitcoin_silver
-src/qt/test/test_bitcoin_silver-qt
+src/test/test_bitcoinsilver
+src/qt/test/test_bitcoinsilver-qt
 
 # autoreconf
 Makefile.in
@@ -36,14 +37,12 @@ config.log
 config.status
 configure
 libtool
-src/config/bitcoin_silver-config.h
-src/config/bitcoin_silver-config.h.in
+src/config/bitcoinsilver-config.h
+src/config/bitcoinsilver-config.h.in
 src/config/stamp-h1
 src/obj
 share/setup.nsi
 share/qt/Info.plist
-
-src/univalue/gen
 
 src/qt/*.moc
 src/qt/moc_*.cpp
@@ -51,11 +50,11 @@ src/qt/forms/ui_*.h
 
 src/qt/test/moc*.cpp
 
-src/qt/bitcoin_silver-qt.config
-src/qt/bitcoin_silver-qt.creator
-src/qt/bitcoin_silver-qt.creator.user
-src/qt/bitcoin_silver-qt.files
-src/qt/bitcoin_silver-qt.includes
+src/qt/bitcoinsilver-qt.config
+src/qt/bitcoinsilver-qt.creator
+src/qt/bitcoinsilver-qt.creator.user
+src/qt/bitcoinsilver-qt.files
+src/qt/bitcoinsilver-qt.includes
 
 .deps
 .dirstamp
@@ -75,14 +74,14 @@ src/qt/bitcoin_silver-qt.includes
 
 *.log
 *.trs
-*.dmg
-*.iso
+*.zip
 
 *.json.h
 *.raw.h
 
 # Only ignore unexpected patches
 *.patch
+!contrib/guix/patches/*.patch
 !depends/patches/**/*.patch
 
 #libtool object files
@@ -93,16 +92,15 @@ src/qt/bitcoin_silver-qt.includes
 *.qm
 Makefile
 !depends/Makefile
-src/qt/bitcoin_silver-qt
-Bitcoin_Silver-Qt.app
-background.tiff*
+src/qt/bitcoinsilver-qt
+BitcoinSilver-Qt.app
 
 # Qt Creator
 Makefile.am.user
 
 # Unit-tests
 Makefile.test
-bitcoin_silver-qt_test
+bitcoinsilver-qt_test
 
 # Resources cpp
 qrc_*.cpp
@@ -118,7 +116,7 @@ releases
 *.gcno
 *.gcda
 /*.info
-test_bitcoin_silver.coverage/
+test_bitcoinsilver.coverage/
 total.coverage/
 fuzz.coverage/
 coverage_percent.txt
@@ -137,7 +135,7 @@ test/.mypy_cache/
 
 /doc/doxygen/
 
-libbitcoin_silverconsensus.pc
+libbitcoinsilverconsensus.pc
 contrib/devtools/split-debug.sh
 
 # Output from running db4 installation
@@ -148,6 +146,7 @@ db4/
 
 osx_volname
 dist/
-*.background.tiff
 
 /guix-build-*
+
+/ci/scratch/

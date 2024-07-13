@@ -1,8 +1,8 @@
-// Copyright (c) 2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2021-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <fs.h>
+#include <common/system.h>
 #include <interfaces/init.h>
 #include <interfaces/ipc.h>
 #include <ipc/capnp/protocol.h>
@@ -10,13 +10,13 @@
 #include <ipc/protocol.h>
 #include <logging.h>
 #include <tinyformat.h>
-#include <util/system.h>
+#include <util/fs.h>
 
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <stdexcept>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <string>
 #include <unistd.h>
@@ -60,6 +60,7 @@ public:
     {
         m_protocol->addCleanup(type, iface, std::move(cleanup));
     }
+    Context& context() override { return m_protocol->context(); }
     const char* m_exe_name;
     const char* m_process_argv0;
     interfaces::Init& m_init;

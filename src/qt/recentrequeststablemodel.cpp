@@ -1,10 +1,10 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/recentrequeststablemodel.h>
 
-#include <qt/bitcoin_silverunits.h>
+#include <qt/bitcoinsilverunits.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 #include <qt/walletmodel.h>
@@ -34,10 +34,7 @@ RecentRequestsTableModel::RecentRequestsTableModel(WalletModel *parent) :
     connect(walletModel->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &RecentRequestsTableModel::updateDisplayUnit);
 }
 
-RecentRequestsTableModel::~RecentRequestsTableModel()
-{
-    /* Intentionally left empty */
-}
+RecentRequestsTableModel::~RecentRequestsTableModel() = default;
 
 int RecentRequestsTableModel::rowCount(const QModelIndex &parent) const
 {
@@ -89,9 +86,9 @@ QVariant RecentRequestsTableModel::data(const QModelIndex &index, int role) cons
             if (rec->recipient.amount == 0 && role == Qt::DisplayRole)
                 return tr("(no amount requested)");
             else if (role == Qt::EditRole)
-                return Bitcoin_SilverUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount, false, Bitcoin_SilverUnits::SeparatorStyle::NEVER);
+                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount, false, BitcoinUnits::SeparatorStyle::NEVER);
             else
-                return Bitcoin_SilverUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount);
+                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount);
         }
     }
     else if (role == Qt::TextAlignmentRole)
@@ -132,7 +129,7 @@ QString RecentRequestsTableModel::getAmountTitle()
     if (!walletModel->getOptionsModel()) return {};
     return tr("Requested") +
            QLatin1String(" (") +
-           Bitcoin_SilverUnits::shortName(this->walletModel->getOptionsModel()->getDisplayUnit()) +
+           BitcoinUnits::shortName(this->walletModel->getOptionsModel()->getDisplayUnit()) +
            QLatin1Char(')');
 }
 
@@ -178,7 +175,7 @@ void RecentRequestsTableModel::addNewRequest(const SendCoinsRecipient &recipient
     newEntry.date = QDateTime::currentDateTime();
     newEntry.recipient = recipient;
 
-    CDataStream ss(SER_DISK, CLIENT_VERSION);
+    DataStream ss{};
     ss << newEntry;
 
     if (!walletModel->wallet().setAddressReceiveRequest(DecodeDestination(recipient.address.toStdString()), ToString(newEntry.id), ss.str()))
@@ -191,7 +188,7 @@ void RecentRequestsTableModel::addNewRequest(const SendCoinsRecipient &recipient
 void RecentRequestsTableModel::addNewRequest(const std::string &recipient)
 {
     std::vector<uint8_t> data(recipient.begin(), recipient.end());
-    CDataStream ss(data, SER_DISK, CLIENT_VERSION);
+    DataStream ss{data};
 
     RecentRequestEntry entry;
     ss >> entry;
@@ -234,7 +231,7 @@ bool RecentRequestEntryLessThan::operator()(const RecentRequestEntry& left, cons
     switch(column)
     {
     case RecentRequestsTableModel::Date:
-        return pLeft->date.toTime_t() < pRight->date.toTime_t();
+        return pLeft->date.toSecsSinceEpoch() < pRight->date.toSecsSinceEpoch();
     case RecentRequestsTableModel::Label:
         return pLeft->recipient.label < pRight->recipient.label;
     case RecentRequestsTableModel::Message:

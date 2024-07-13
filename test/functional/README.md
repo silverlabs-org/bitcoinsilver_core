@@ -23,15 +23,17 @@ don't have test cases for.
 - The oldest supported Python version is specified in [doc/dependencies.md](/doc/dependencies.md).
   Consider using [pyenv](https://github.com/pyenv/pyenv), which checks [.python-version](/.python-version),
   to prevent accidentally introducing modern syntax from an unsupported Python version.
-  The CI linter job also checks this, but [possibly not in all cases](https://github.com/bitcoin_silver/bitcoin_silver/pull/14884#discussion_r239585126).
-- See [the python lint script](/test/lint/lint-python.sh) that checks for violations that
+  The CI linter job also checks this, but [possibly not in all cases](https://github.com/MrVistos/bitcoinsilver/pull/14884#discussion_r239585126).
+- See [the python lint script](/test/lint/lint-python.py) that checks for violations that
   could lead to bugs and issues in the test code.
 - Use [type hints](https://docs.python.org/3/library/typing.html) in your code to improve code readability
   and to detect possible bugs earlier.
-- Avoid wildcard imports
+- Avoid wildcard imports.
+- If more than one name from a module is needed, use lexicographically sorted multi-line imports
+  in order to reduce the possibility of potential merge conflicts.
 - Use a module-level docstring to describe what the test is testing, and how it
   is testing it.
-- When subclassing the Bitcoin_SilverTestFramework, place overrides for the
+- When subclassing the BitcoinTestFramework, place overrides for the
   `set_test_params()`, `add_options()` and `setup_xxxx()` methods at the top of
   the subclass, then locally-defined helper methods, then the `run_test()` method.
 - Use `f'{x}'` for string formatting in preference to `'{}'.format(x)` or `'%s' % x`.
@@ -97,12 +99,12 @@ over the network (`CBlock`, `CTransaction`, etc, along with the network-level
 wrappers for them, `msg_block`, `msg_tx`, etc).
 
 - P2P tests have two threads. One thread handles all network communication
-with the bitcoin_silverd(s) being tested in a callback-based event loop; the other
+with the bitcoinsilverd(s) being tested in a callback-based event loop; the other
 implements the test logic.
 
-- `P2PConnection` is the class used to connect to a bitcoin_silverd.  `P2PInterface`
+- `P2PConnection` is the class used to connect to a bitcoinsilverd.  `P2PInterface`
 contains the higher level logic for processing P2P payloads and connecting to
-the Bitcoin_Silver Core node application logic. For custom behaviour, subclass the
+the BitcoinSilver node application logic. For custom behaviour, subclass the
 P2PInterface object and override the callback methods.
 
 `P2PConnection`s can be used as such:
@@ -125,7 +127,7 @@ More examples can be found in [p2p_unrequested_blocks.py](p2p_unrequested_blocks
 
 #### Prototyping tests
 
-The [`TestShell`](test-shell.md) class exposes the Bitcoin_SilverTestFramework
+The [`TestShell`](test-shell.md) class exposes the BitcoinTestFramework
 functionality to interactive Python3 environments and can be used to prototype
 tests. This may be especially useful in a REPL environment with session logging
 utilities, such as
@@ -138,7 +140,7 @@ The following are useful modules for test developers. They are located in
 [test/functional/test_framework/](test_framework).
 
 #### [authproxy.py](test_framework/authproxy.py)
-Taken from the [python-bitcoin_silverrpc repository](https://github.com/jgarzik/python-bitcoin_silverrpc).
+Taken from the [python-bitcoinrpc repository](https://github.com/jgarzik/python-bitcoinrpc).
 
 #### [test_framework.py](test_framework/test_framework.py)
 Base class for functional tests.
@@ -147,10 +149,10 @@ Base class for functional tests.
 Generally useful functions.
 
 #### [p2p.py](test_framework/p2p.py)
-Test objects for interacting with a bitcoin_silverd node over the p2p interface.
+Test objects for interacting with a bitcoinsilverd node over the p2p interface.
 
 #### [script.py](test_framework/script.py)
-Utilities for manipulating transaction scripts (originally from python-bitcoin_silverlib)
+Utilities for manipulating transaction scripts (originally from python-bitcoinlib)
 
 #### [key.py](test_framework/key.py)
 Test-only secp256k1 elliptic curve implementation
@@ -188,5 +190,5 @@ perf report -i /path/to/datadir/send-big-msgs.perf.data.xxxx --stdio | c++filt |
 #### See also:
 
 - [Installing perf](https://askubuntu.com/q/50145)
-- [Perf examples](http://www.brendangregg.com/perf.html)
+- [Perf examples](https://www.brendangregg.com/perf.html)
 - [Hotspot](https://github.com/KDAB/hotspot): a GUI for perf output analysis

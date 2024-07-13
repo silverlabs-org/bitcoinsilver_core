@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_TRANSACTIONVIEW_H
-#define BITCOIN_SILVER_QT_TRANSACTIONVIEW_H
+#ifndef BITCOINSILVER_QT_TRANSACTIONVIEW_H
+#define BITCOINSILVER_QT_TRANSACTIONVIEW_H
 
 #include <qt/guiutil.h>
 
@@ -13,6 +13,7 @@
 #include <QKeyEvent>
 
 class PlatformStyle;
+class TransactionDescDialog;
 class TransactionFilterProxy;
 class WalletModel;
 
@@ -90,6 +91,8 @@ private:
 
     const PlatformStyle* m_platform_style;
 
+    QList<TransactionDescDialog*> m_opened_dialogs;
+
 private Q_SLOTS:
     void contextualMenu(const QPoint &);
     void dateRangeChanged();
@@ -121,8 +124,9 @@ public Q_SLOTS:
     void changedAmount();
     void changedSearch();
     void exportClicked();
+    void closeOpenedDialogs();
     void focusTransaction(const QModelIndex&);
     void focusTransaction(const uint256& txid);
 };
 
-#endif // BITCOIN_SILVER_QT_TRANSACTIONVIEW_H
+#endif // BITCOINSILVER_QT_TRANSACTIONVIEW_H

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2014-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the importmulti RPC.
@@ -20,7 +20,7 @@ from test_framework.script import (
     CScript,
     OP_NOP,
 )
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.descriptors import descsum_create
 from test_framework.util import (
     assert_equal,
@@ -34,7 +34,10 @@ from test_framework.wallet_util import (
 )
 
 
-class ImportMultiTest(Bitcoin_SilverTestFramework):
+class ImportMultiTest(BitcoinTestFramework):
+    def add_options(self, parser):
+        self.add_wallet_options(parser, descriptors=False)
+
     def set_test_params(self):
         self.num_nodes = 2
         self.extra_args = [["-addresstype=legacy"], ["-addresstype=legacy"]]
@@ -62,10 +65,9 @@ class ImportMultiTest(Bitcoin_SilverTestFramework):
 
     def run_test(self):
         self.log.info("Mining blocks...")
-        self.nodes[0].generate(1)
-        self.nodes[1].generate(1)
+        self.generate(self.nodes[0], 1, sync_fun=self.no_op)
+        self.generate(self.nodes[1], 1, sync_fun=self.no_op)
         timestamp = self.nodes[1].getblock(self.nodes[1].getbestblockhash())['mediantime']
-        self.nodes[1].syncwithvalidationinterfacequeue()  # Sync the timestamp to the wallet, so that importmulti works
 
         node0_address1 = self.nodes[0].getaddressinfo(self.nodes[0].getnewaddress())
 
@@ -82,7 +84,7 @@ class ImportMultiTest(Bitcoin_SilverTestFramework):
 
         # RPC importmulti -----------------------------------------------
 
-        # Bitcoin_Silver Address (implicit non-internal)
+        # BitcoinSilver Address (implicit non-internal)
         self.log.info("Should import an address")
         key = get_key(self.nodes[0])
         self.test_importmulti({"scriptPubKey": {"address": key.p2pkh_addr},
@@ -256,11 +258,10 @@ class ImportMultiTest(Bitcoin_SilverTestFramework):
 
         # P2SH address
         multisig = get_multisig(self.nodes[0])
-        self.nodes[1].generate(COINBASE_MATURITY)
+        self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=self.no_op)
         self.nodes[1].sendtoaddress(multisig.p2sh_addr, 10.00)
-        self.nodes[1].generate(1)
+        self.generate(self.nodes[1], 1, sync_fun=self.no_op)
         timestamp = self.nodes[1].getblock(self.nodes[1].getbestblockhash())['mediantime']
-        self.nodes[1].syncwithvalidationinterfacequeue()
 
         self.log.info("Should import a p2sh")
         self.test_importmulti({"scriptPubKey": {"address": multisig.p2sh_addr},
@@ -277,11 +278,10 @@ class ImportMultiTest(Bitcoin_SilverTestFramework):
 
         # P2SH + Redeem script
         multisig = get_multisig(self.nodes[0])
-        self.nodes[1].generate(COINBASE_MATURITY)
+        self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=self.no_op)
         self.nodes[1].sendtoaddress(multisig.p2sh_addr, 10.00)
-        self.nodes[1].generate(1)
+        self.generate(self.nodes[1], 1, sync_fun=self.no_op)
         timestamp = self.nodes[1].getblock(self.nodes[1].getbestblockhash())['mediantime']
-        self.nodes[1].syncwithvalidationinterfacequeue()
 
         self.log.info("Should import a p2sh with respective redeem script")
         self.test_importmulti({"scriptPubKey": {"address": multisig.p2sh_addr},
@@ -298,11 +298,10 @@ class ImportMultiTest(Bitcoin_SilverTestFramework):
 
         # P2SH + Redeem script + Private Keys + !Watchonly
         multisig = get_multisig(self.nodes[0])
-        self.nodes[1].generate(COINBASE_MATURITY)
+        self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=self.no_op)
         self.nodes[1].sendtoaddress(multisig.p2sh_addr, 10.00)
-        self.nodes[1].generate(1)
+        self.generate(self.nodes[1], 1, sync_fun=self.no_op)
         timestamp = self.nodes[1].getblock(self.nodes[1].getbestblockhash())['mediantime']
-        self.nodes[1].syncwithvalidationinterfacequeue()
 
         self.log.info("Should import a p2sh with respective redeem script and private keys")
         self.test_importmulti({"scriptPubKey": {"address": multisig.p2sh_addr},
@@ -324,11 +323,10 @@ class ImportMultiTest(Bitcoin_SilverTestFramework):
 
         # P2SH + Redeem script + Private Keys + Watchonly
         multisig = get_multisig(self.nodes[0])
-        self.nodes[1].generate(COINBASE_MATURITY)
+        self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=self.no_op)
         self.nodes[1].sendtoaddress(multisig.p2sh_addr, 10.00)
-        self.nodes[1].generate(1)
+        self.generate(self.nodes[1], 1, sync_fun=self.no_op)
         timestamp = self.nodes[1].getblock(self.nodes[1].getbestblockhash())['mediantime']
-        self.nodes[1].syncwithvalidationinterfacequeue()
 
         self.log.info("Should import a p2sh with respective redeem script and private keys")
         self.test_importmulti({"scriptPubKey": {"address": multisig.p2sh_addr},
@@ -878,6 +876,25 @@ class ImportMultiTest(Bitcoin_SilverTestFramework):
         for i in range(0, 5):
             addr = wrpc.getnewaddress('', 'bech32')
             assert_equal(addr, addresses[i])
+
+        # Create wallet with passphrase
+        self.log.info('Test watchonly imports on a wallet with a passphrase, without unlocking')
+        self.nodes[1].createwallet(wallet_name='w1', blank=True, passphrase='pass')
+        wrpc = self.nodes[1].get_wallet_rpc('w1')
+        assert_raises_rpc_error(-13, "Please enter the wallet passphrase with walletpassphrase first.",
+                                wrpc.importmulti, [{
+                                    'desc': descsum_create('wpkh(' + pub1 + ')'),
+                                    "timestamp": "now",
+                                }])
+
+        result = wrpc.importmulti(
+            [{
+                'desc': descsum_create('wpkh(' + pub1 + ')'),
+                "timestamp": "now",
+                "watchonly": True,
+            }]
+        )
+        assert result[0]['success']
 
 
 if __name__ == '__main__':

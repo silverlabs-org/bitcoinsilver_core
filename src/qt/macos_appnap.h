@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2018 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_MACOS_APPNAP_H
-#define BITCOIN_SILVER_QT_MACOS_APPNAP_H
+#ifndef BITCOINSILVER_QT_MACOS_APPNAP_H
+#define BITCOINSILVER_QT_MACOS_APPNAP_H
 
 #include <memory>
 
@@ -21,4 +21,4 @@ private:
     std::unique_ptr<CAppNapImpl> impl;
 };
 
-#endif // BITCOIN_SILVER_QT_MACOS_APPNAP_H
+#endif // BITCOINSILVER_QT_MACOS_APPNAP_H

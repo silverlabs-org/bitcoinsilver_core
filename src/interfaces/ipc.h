@@ -1,13 +1,17 @@
-// Copyright (c) 2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_INTERFACES_IPC_H
-#define BITCOIN_SILVER_INTERFACES_IPC_H
+#ifndef BITCOINSILVER_INTERFACES_IPC_H
+#define BITCOINSILVER_INTERFACES_IPC_H
 
 #include <functional>
 #include <memory>
 #include <typeindex>
+
+namespace ipc {
+struct Context;
+} // namespace ipc
 
 namespace interfaces {
 class Init;
@@ -58,6 +62,9 @@ public:
         addCleanup(typeid(Interface), &iface, std::move(cleanup));
     }
 
+    //! IPC context struct accessor (see struct definition for more description).
+    virtual ipc::Context& context() = 0;
+
 protected:
     //! Internal implementation of public addCleanup method (above) as a
     //! type-erased virtual function, since template functions can't be virtual.
@@ -68,4 +75,4 @@ protected:
 std::unique_ptr<Ipc> MakeIpc(const char* exe_name, const char* process_argv0, Init& init);
 } // namespace interfaces
 
-#endif // BITCOIN_SILVER_INTERFACES_IPC_H
+#endif // BITCOINSILVER_INTERFACES_IPC_H

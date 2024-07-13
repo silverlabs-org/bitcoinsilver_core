@@ -1,11 +1,11 @@
-// Copyright (c) 2017-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2017-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_CONSENSUS_TX_VERIFY_H
-#define BITCOIN_SILVER_CONSENSUS_TX_VERIFY_H
+#ifndef BITCOINSILVER_CONSENSUS_TX_VERIFY_H
+#define BITCOINSILVER_CONSENSUS_TX_VERIFY_H
 
-#include <amount.h>
+#include <consensus/amount.h>
 
 #include <stdint.h>
 #include <vector>
@@ -49,10 +49,10 @@ unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& ma
  * Compute total signature operation cost of a transaction.
  * @param[in] tx     Transaction for which we are computing the cost
  * @param[in] inputs Map of previous transactions that have outputs we're spending
- * @param[out] flags Script verification flags
+ * @param[in] flags Script verification flags
  * @return Total signature operation cost of tx
  */
-int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& inputs, int flags);
+int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& inputs, uint32_t flags);
 
 /**
  * Check if transaction is final and can be included in a block with the
@@ -63,8 +63,8 @@ bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime);
 /**
  * Calculates the block height and previous block's median time past at
  * which the transaction will be considered final in the context of BIP 68.
- * Also removes from the vector of input heights any entries which did not
- * correspond to sequence locked inputs as they do not affect the calculation.
+ * For each input that is not sequence locked, the corresponding entries in
+ * prevHeights are set to 0 as they do not affect the calculation.
  */
 std::pair<int, int64_t> CalculateSequenceLocks(const CTransaction &tx, int flags, std::vector<int>& prevHeights, const CBlockIndex& block);
 
@@ -75,4 +75,4 @@ bool EvaluateSequenceLocks(const CBlockIndex& block, std::pair<int, int64_t> loc
  */
 bool SequenceLocks(const CTransaction &tx, int flags, std::vector<int>& prevHeights, const CBlockIndex& block);
 
-#endif // BITCOIN_SILVER_CONSENSUS_TX_VERIFY_H
+#endif // BITCOINSILVER_CONSENSUS_TX_VERIFY_H

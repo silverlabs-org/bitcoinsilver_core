@@ -1,14 +1,19 @@
-// Copyright (c) 2016-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2016-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_BLOCKENCODINGS_H
-#define BITCOIN_SILVER_BLOCKENCODINGS_H
+#ifndef BITCOINSILVER_BLOCKENCODINGS_H
+#define BITCOINSILVER_BLOCKENCODINGS_H
 
 #include <primitives/block.h>
 
+#include <functional>
 
 class CTxMemPool;
+class BlockValidationState;
+namespace Consensus {
+struct Params;
+};
 
 // Transaction compression schemes for compact block relay can be introduced by writing
 // an actual formatter here.
@@ -104,7 +109,7 @@ public:
     // Dummy for deserialization
     CBlockHeaderAndShortTxIDs() {}
 
-    CBlockHeaderAndShortTxIDs(const CBlock& block, bool fUseWTXID);
+    CBlockHeaderAndShortTxIDs(const CBlock& block);
 
     uint64_t GetShortID(const uint256& txhash) const;
 
@@ -129,6 +134,11 @@ protected:
     const CTxMemPool* pool;
 public:
     CBlockHeader header;
+
+    // Can be overridden for testing
+    using CheckBlockFn = std::function<bool(const CBlock&, BlockValidationState&, const Consensus::Params&, bool, bool)>;
+    CheckBlockFn m_check_block_mock{nullptr};
+
     explicit PartiallyDownloadedBlock(CTxMemPool* poolIn) : pool(poolIn) {}
 
     // extra_txn is a list of extra transactions to look at, in <witness hash, reference> form
@@ -137,4 +147,4 @@ public:
     ReadStatus FillBlock(CBlock& block, const std::vector<CTransactionRef>& vtx_missing);
 };
 
-#endif // BITCOIN_SILVER_BLOCKENCODINGS_H
+#endif // BITCOINSILVER_BLOCKENCODINGS_H

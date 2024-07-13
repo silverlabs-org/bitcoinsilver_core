@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2017-2021 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test various fingerprinting protections.
@@ -20,13 +20,13 @@ from test_framework.p2p import (
     msg_getheaders,
     p2p_lock,
 )
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
 
 
-class P2PFingerprintTest(Bitcoin_SilverTestFramework):
+class P2PFingerprintTest(BitcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
@@ -69,7 +69,7 @@ class P2PFingerprintTest(Bitcoin_SilverTestFramework):
         self.nodes[0].setmocktime(int(time.time()) - 60 * 24 * 60 * 60)
 
         # Generating a chain of 10 blocks
-        block_hashes = self.nodes[0].generatetoaddress(10, self.nodes[0].get_deterministic_priv_key().address)
+        block_hashes = self.generatetoaddress(self.nodes[0], 10, self.nodes[0].get_deterministic_priv_key().address)
 
         # Create longer chain starting 2 blocks before current tip
         height = len(block_hashes) - 2
@@ -98,7 +98,7 @@ class P2PFingerprintTest(Bitcoin_SilverTestFramework):
 
         # Longest chain is extended so stale is much older than chain tip
         self.nodes[0].setmocktime(0)
-        block_hash = int(self.nodes[0].generatetoaddress(1, self.nodes[0].get_deterministic_priv_key().address)[-1], 16)
+        block_hash = int(self.generatetoaddress(self.nodes[0], 1, self.nodes[0].get_deterministic_priv_key().address)[-1], 16)
         assert_equal(self.nodes[0].getblockcount(), 14)
         node0.wait_for_block(block_hash, timeout=3)
 

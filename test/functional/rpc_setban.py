@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2015-2021 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the setban rpc call."""
 
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
-    p2p_port
+    p2p_port,
+    assert_equal,
 )
 
-class SetBanTests(Bitcoin_SilverTestFramework):
+class SetBanTests(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.setup_clean_chain = True
@@ -70,6 +71,11 @@ class SetBanTests(Bitcoin_SilverTestFramework):
         assert not self.is_banned(node, tor_addr)
         assert not self.is_banned(node, ip_addr)
 
+        self.log.info("Test -bantime")
+        self.restart_node(1, ["-bantime=1234"])
+        self.nodes[1].setban("127.0.0.1", "add")
+        banned = self.nodes[1].listbanned()[0]
+        assert_equal(banned['ban_duration'], 1234)
 
 if __name__ == '__main__':
     SetBanTests().main()

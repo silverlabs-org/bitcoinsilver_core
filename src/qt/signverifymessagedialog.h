@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_SIGNVERIFYMESSAGEDIALOG_H
-#define BITCOIN_SILVER_QT_SIGNVERIFYMESSAGEDIALOG_H
+#ifndef BITCOINSILVER_QT_SIGNVERIFYMESSAGEDIALOG_H
+#define BITCOINSILVER_QT_SIGNVERIFYMESSAGEDIALOG_H
 
 #include <QDialog>
 
@@ -35,7 +35,7 @@ protected:
 
 private:
     Ui::SignVerifyMessageDialog *ui;
-    WalletModel *model;
+    WalletModel* model{nullptr};
     const PlatformStyle *platformStyle;
 
 private Q_SLOTS:
@@ -51,4 +51,4 @@ private Q_SLOTS:
     void on_clearButton_VM_clicked();
 };
 
-#endif // BITCOIN_SILVER_QT_SIGNVERIFYMESSAGEDIALOG_H
+#endif // BITCOINSILVER_QT_SIGNVERIFYMESSAGEDIALOG_H

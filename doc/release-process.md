@@ -5,62 +5,82 @@ Release Process
 
 ### Before every release candidate
 
-* Update translations see [translation_process.md](https://github.com/bitcoin_silver/bitcoin_silver/blob/master/doc/translation_process.md#synchronising-translations).
-* Update manpages, see [gen-manpages.sh](https://github.com/bitcoin_silver/bitcoin_silver/blob/master/contrib/devtools/README.md#gen-manpagessh).
+* Update translations see [translation_process.md](https://github.com/MrVistos/bitcoinsilver/blob/master/doc/translation_process.md#synchronising-translations).
 * Update release candidate version in `configure.ac` (`CLIENT_VERSION_RC`).
+* Update manpages (after rebuilding the binaries), see [gen-manpages.py](https://github.com/MrVistos/bitcoinsilver/blob/master/contrib/devtools/README.md#gen-manpagespy).
+* Update bitcoinsilver.conf and commit, see [gen-bitcoinsilver-conf.sh](https://github.com/MrVistos/bitcoinsilver/blob/master/contrib/devtools/README.md#gen-bitcoinsilver-confsh).
 
 ### Before every major and minor release
 
-* Update [bips.md](bips.md) to account for changes since the last release (don't forget to bump the version number on the first line).
+* Update [bips.md](bips.md) to account for changes since the last release.
 * Update version in `configure.ac` (don't forget to set `CLIENT_VERSION_RC` to `0`).
+* Update manpages (see previous section)
 * Write release notes (see "Write the release notes" below).
 
 ### Before every major release
 
 * On both the master branch and the new release branch:
   - update `CLIENT_VERSION_MAJOR` in [`configure.ac`](../configure.ac)
-  - update `CLIENT_VERSION_MAJOR`, `PACKAGE_VERSION`, and `PACKAGE_STRING` in [`build_msvc/bitcoin_silver_config.h`](/build_msvc/bitcoin_silver_config.h)
-* On the new release branch in [`configure.ac`](../configure.ac) and [`build_msvc/bitcoin_silver_config.h`](/build_msvc/bitcoin_silver_config.h) (see [this commit](https://github.com/bitcoin_silver/bitcoin_silver/commit/742f7dd)):
+* On the new release branch in [`configure.ac`](../configure.ac)(see [this commit](https://github.com/MrVistos/bitcoinsilver/commit/742f7dd)):
   - set `CLIENT_VERSION_MINOR` to `0`
   - set `CLIENT_VERSION_BUILD` to `0`
   - set `CLIENT_VERSION_IS_RELEASE` to `true`
 
 #### Before branch-off
 
-* Update hardcoded [seeds](/contrib/seeds/README.md), see [this pull request](https://github.com/bitcoin_silver/bitcoin_silver/pull/7415) for an example.
-* Update [`src/chainparams.cpp`](/src/chainparams.cpp) m_assumed_blockchain_size and m_assumed_chain_state_size with the current size plus some overhead (see [this](#how-to-calculate-assumed-blockchain-and-chain-state-size) for information on how to calculate them).
-* Update [`src/chainparams.cpp`](/src/chainparams.cpp) chainTxData with statistics about the transaction count and rate. Use the output of the `getchaintxstats` RPC, see
-  [this pull request](https://github.com/bitcoin_silver/bitcoin_silver/pull/20263) for an example. Reviewers can verify the results by running `getchaintxstats <window_block_count> <window_final_block_hash>` with the `window_block_count` and `window_final_block_hash` from your output.
-* Update `src/chainparams.cpp` nMinimumChainWork and defaultAssumeValid (and the block height comment) with information from the `getblockheader` (and `getblockhash`) RPCs.
-  - The selected value must not be orphaned so it may be useful to set the value two blocks back from the tip.
-  - Testnet should be set some tens of thousands back from the tip due to reorgs there.
-  - This update should be reviewed with a reindex-chainstate with assumevalid=0 to catch any defect
-     that causes rejection of blocks in the past history.
+* Update hardcoded [seeds](/contrib/seeds/README.md), see [this pull request](https://github.com/MrVistos/bitcoinsilver/pull/27488) for an example.
+* Update the following variables in [`src/kernel/chainparams.cpp`](/src/kernel/chainparams.cpp) for mainnet, testnet, and signet:
+  - `m_assumed_blockchain_size` and `m_assumed_chain_state_size` with the current size plus some overhead (see
+    [this](#how-to-calculate-assumed-blockchain-and-chain-state-size) for information on how to calculate them).
+  - The following updates should be reviewed with `reindex-chainstate` and `assumevalid=0` to catch any defect
+    that causes rejection of blocks in the past history.
+  - `chainTxData` with statistics about the transaction count and rate. Use the output of the `getchaintxstats` RPC with an
+    `nBlocks` of 4096 (28 days) and a `bestblockhash` of RPC `getbestblockhash`; see
+    [this pull request](https://github.com/MrVistos/bitcoinsilver/pull/28591) for an example. Reviewers can verify the results by running
+    `getchaintxstats <window_block_count> <window_final_block_hash>` with the `window_block_count` and `window_final_block_hash` from your output.
+  - `defaultAssumeValid` with the output of RPC `getblockhash` using the `height` of `window_final_block_height` above
+    (and update the block height comment with that height), taking into account the following:
+    - On mainnet, the selected value must not be orphaned, so it may be useful to set the height two blocks back from the tip.
+    - Testnet should be set with a height some tens of thousands back from the tip, due to reorgs there.
+  - `nMinimumChainWork` with the "chainwork" value of RPC `getblockheader` using the same height as that selected for the previous step.
+* Consider updating the headers synchronization tuning parameters to account for the chainparams updates.
+  The optimal values change very slowly, so this isn't strictly necessary every release, but doing so doesn't hurt.
+  - Update configuration variables in [`contrib/devtools/headerssync-params.py`](/contrib/devtools/headerssync-params.py):
+    - Set `TIME` to the software's expected supported lifetime -- after this time, its ability to defend against a high bandwidth timewarp attacker will begin to degrade.
+    - Set `MINCHAINWORK_HEADERS` to the height used for the `nMinimumChainWork` calculation above.
+    - Check that the other variables still look reasonable.
+  - Run the script. It works fine in CPython, but PyPy is much faster (seconds instead of minutes): `pypy3 contrib/devtools/headerssync-params.py`.
+  - Paste the output defining `HEADER_COMMITMENT_PERIOD` and `REDOWNLOAD_BUFFER_SIZE` into the top of [`src/headerssync.cpp`](/src/headerssync.cpp).
 - Clear the release notes and move them to the wiki (see "Write the release notes" below).
-- Translations on Transifex
-    - Create [a new resource](https://www.transifex.com/bitcoin_silver/bitcoin_silver/content/) named after the major version with the slug `[bitcoin_silver.qt-translation-<RRR>x]`, where `RRR` is the major branch number padded with zeros. Use `src/qt/locale/bitcoin_silver_en.xlf` to create it.
-    - In the project workflow settings, ensure that [Translation Memory Fill-up](https://docs.transifex.com/translation-memory/enabling-autofill) is enabled and that [Translation Memory Context Matching](https://docs.transifex.com/translation-memory/translation-memory-with-context) is disabled.
+- Translations on Transifex:
+    - Pull translations from Transifex into the master branch.
+    - Create [a new resource](https://www.transifex.com/bitcoinsilver/bitcoinsilver/content/) named after the major version with the slug `qt-translation-<RRR>x`, where `RRR` is the major branch number padded with zeros. Use `src/qt/locale/bitcoinsilver_en.xlf` to create it.
+    - In the project workflow settings, ensure that [Translation Memory Fill-up](https://help.transifex.com/en/articles/6224817-setting-up-translation-memory-fill-up) is enabled and that [Translation Memory Context Matching](https://help.transifex.com/en/articles/6224753-translation-memory-with-context) is disabled.
     - Update the Transifex slug in [`.tx/config`](/.tx/config) to the slug of the resource created in the first step. This identifies which resource the translations will be synchronized from.
-    - Make an announcement that translators can start translating for the new version. You can use one of the [previous announcements](https://www.transifex.com/bitcoin_silver/bitcoin_silver/announcements/) as a template.
-    - Change the auto-update URL for the resource to `master`, e.g. `https://raw.githubusercontent.com/bitcoin_silver/bitcoin_silver/master/src/qt/locale/bitcoin_silver_en.xlf`. (Do this only after the previous steps, to prevent an auto-update from interfering.)
+    - Make an announcement that translators can start translating for the new version. You can use one of the [previous announcements](https://www.transifex.com/bitcoinsilver/communication/) as a template.
+    - Change the auto-update URL for the resource to `master`, e.g. `https://raw.githubusercontent.com/bitcoinsilver/bitcoinsilver/master/src/qt/locale/bitcoinsilver_en.xlf`. (Do this only after the previous steps, to prevent an auto-update from interfering.)
 
 #### After branch-off (on the major release branch)
 
 - Update the versions.
-- Create a pinned meta-issue for testing the release candidate (see [this issue](https://github.com/bitcoin_silver/bitcoin_silver/issues/17079) for an example) and provide a link to it in the release announcements where useful.
+- Create the draft, named "*version* Release Notes Draft", as a [collaborative wiki](https://github.com/bitcoinsilver-core/bitcoinsilver-devwiki/wiki/_new).
+- Clear the release notes: `cp doc/release-notes-empty-template.md doc/release-notes.md`
+- Create a pinned meta-issue for testing the release candidate (see [this issue](https://github.com/MrVistos/bitcoinsilver/issues/27621) for an example) and provide a link to it in the release announcements where useful.
 - Translations on Transifex
-    - Change the auto-update URL for the new major version's resource away from `master` and to the branch, e.g. `https://raw.githubusercontent.com/bitcoin_silver/bitcoin_silver/<branch>/src/qt/locale/bitcoin_silver_en.xlf`. Do not forget this or it will keep tracking the translations on master instead, drifting away from the specific major release.
+    - Change the auto-update URL for the new major version's resource away from `master` and to the branch, e.g. `https://raw.githubusercontent.com/bitcoinsilver/bitcoinsilver/<branch>/src/qt/locale/bitcoinsilver_en.xlf`. Do not forget this or it will keep tracking the translations on master instead, drifting away from the specific major release.
+- Prune inputs from the qa-assets repo (See [pruning
+  inputs](https://github.com/bitcoinsilver-core/qa-assets#pruning-inputs)).
 
 #### Before final release
 
-- Merge the release notes from the wiki into the branch.
+- Merge the release notes from [the wiki](https://github.com/bitcoinsilver-core/bitcoinsilver-devwiki/wiki/) into the branch.
 - Ensure the "Needs release note" label is removed from all relevant pull requests and issues.
 
 #### Tagging a release (candidate)
 
-To tag the version (or release candidate) in git, use the `make-tag.py` script from [bitcoin_silver-maintainer-tools](https://github.com/bitcoin_silver-core/bitcoin_silver-maintainer-tools). From the root of the repository run:
+To tag the version (or release candidate) in git, use the `make-tag.py` script from [bitcoinsilver-maintainer-tools](https://github.com/bitcoinsilver-core/bitcoinsilver-maintainer-tools). From the root of the repository run:
 
-    ../bitcoin_silver-maintainer-tools/make-tag.py v(new version, e.g. 0.20.0)
+    ../bitcoinsilver-maintainer-tools/make-tag.py v(new version, e.g. 25.0)
 
 This will perform a few last-minute consistency checks in the build system files, and if they pass, create a signed tag.
 
@@ -74,31 +94,29 @@ Install Guix using one of the installation methods detailed in
 Check out the source code in the following directory hierarchy.
 
     cd /path/to/your/toplevel/build
-    git clone https://github.com/bitcoin_silver-core/guix.sigs.git
-    git clone https://github.com/bitcoin_silver-core/bitcoin_silver-detached-sigs.git
-    git clone https://github.com/bitcoin_silver/bitcoin_silver.git
+    git clone https://github.com/bitcoinsilver-core/guix.sigs.git
+    git clone https://github.com/bitcoinsilver-core/bitcoinsilver-detached-sigs.git
+    git clone https://github.com/MrVistos/bitcoinsilver.git
 
 ### Write the release notes
 
-Open a draft of the release notes for collaborative editing at https://github.com/bitcoin_silver-core/bitcoin_silver-devwiki/wiki.
+Open a draft of the release notes for collaborative editing at https://github.com/bitcoinsilver-core/bitcoinsilver-devwiki/wiki.
 
 For the period during which the notes are being edited on the wiki, the version on the branch should be wiped and replaced with a link to the wiki which should be used for all announcements until `-final`.
 
-Generate the change log. As this is a huge amount of work to do manually, there is the `list-pulls` script to do a pre-sorting step based on github PR metadata. See the [documentation in the README.md](https://github.com/bitcoin_silver-core/bitcoin_silver-maintainer-tools/blob/master/README.md#list-pulls).
-
 Generate list of authors:
 
-    git log --format='- %aN' v(current version, e.g. 0.20.0)..v(new version, e.g. 0.20.1) | sort -fiu
+    git log --format='- %aN' v(current version, e.g. 25.0)..v(new version, e.g. 25.1) | grep -v 'merge-script' | sort -fiu
 
 ### Setup and perform Guix builds
 
-Checkout the Bitcoin_Silver Core version you'd like to build:
+Checkout the BitcoinSilver version you'd like to build:
 
 ```sh
-pushd ./bitcoin_silver
+pushd ./bitcoinsilver
 SIGNER='(your builder key, ie bluematt, sipa, etc)'
-VERSION='(new version without v-prefix, e.g. 0.20.0)'
-git fetch "v${VERSION}"
+VERSION='(new version without v-prefix, e.g. 25.0)'
+git fetch origin "v${VERSION}"
 git checkout "v${VERSION}"
 popd
 ```
@@ -110,63 +128,57 @@ against other `guix-attest` signatures.
 git -C ./guix.sigs pull
 ```
 
-### Create the macOS SDK tarball: (first time, or when SDK version changes)
+### Create the macOS SDK tarball (first time, or when SDK version changes)
 
 Create the macOS SDK tarball, see the [macdeploy
-instructions](/contrib/macdeploy/README.md#deterministic-macos-dmg-notes) for
+instructions](/contrib/macdeploy/README.md#deterministic-macos-app-notes) for
 details.
 
-### Build and attest to build outputs:
+### Build and attest to build outputs
 
 Follow the relevant Guix README.md sections:
-- [Performing a build](/contrib/guix/README.md#performing-a-build)
+- [Building](/contrib/guix/README.md#building)
 - [Attesting to build outputs](/contrib/guix/README.md#attesting-to-build-outputs)
 
-### Verify other builders' signatures to your own. (Optional)
+### Verify other builders' signatures to your own (optional)
 
-Add other builders keys to your gpg keyring, and/or refresh keys: See `../bitcoin_silver/contrib/builder-keys/README.md`.
-
-Follow the relevant Guix README.md sections:
 - [Verifying build output attestations](/contrib/guix/README.md#verifying-build-output-attestations)
 
-### Next steps:
-
-Commit your signature to guix.sigs:
+### Commit your non codesigned signature to guix.sigs
 
 ```sh
 pushd ./guix.sigs
 git add "${VERSION}/${SIGNER}"/noncodesigned.SHA256SUMS{,.asc}
-git commit -m "Add ${VERSION} unsigned sigs for ${SIGNER}"
-git push  # Assuming you can push to the guix.sigs tree
+git commit -m "Add attestations by ${SIGNER} for ${VERSION} non-codesigned"
 popd
 ```
 
-Codesigner only: Create Windows/macOS detached signatures:
-- Only one person handles codesigning. Everyone else should skip to the next step.
-- Only once the Windows/macOS builds each have 3 matching signatures may they be signed with their respective release keys.
+Then open a Pull Request to the [guix.sigs repository](https://github.com/bitcoinsilver-core/guix.sigs).
 
-Codesigner only: Sign the macOS binary:
+## Codesigning
 
-    transfer bitcoin_silver-osx-unsigned.tar.gz to macOS for signing
-    tar xf bitcoin_silver-osx-unsigned.tar.gz
-    ./detached-sig-create.sh -s "Key ID"
+### macOS codesigner only: Create detached macOS signatures (assuming [signapple](https://github.com/achow101/signapple/) is installed and up to date with master branch)
+
+    tar xf bitcoinsilver-osx-unsigned.tar.gz
+    ./detached-sig-create.sh /path/to/codesign.p12
     Enter the keychain password and authorize the signature
-    Move signature-osx.tar.gz back to the guix-build host
+    signature-osx.tar.gz will be created
 
-Codesigner only: Sign the windows binaries:
+### Windows codesigner only: Create detached Windows signatures
 
-    tar xf bitcoin_silver-win-unsigned.tar.gz
+    tar xf bitcoinsilver-win-unsigned.tar.gz
     ./detached-sig-create.sh -key /path/to/codesign.key
     Enter the passphrase for the key when prompted
     signature-win.tar.gz will be created
 
-Code-signer only: It is advised to test that the code signature attaches properly prior to tagging by performing the `guix-codesign` step.
-However if this is done, once the release has been tagged in the bitcoin_silver-detached-sigs repo, the `guix-codesign` step must be performed again in order for the guix attestation to be valid when compared against the attestations of non-codesigner builds.
+### Windows and macOS codesigners only: test code signatures
+It is advised to test that the code signature attaches properly prior to tagging by performing the `guix-codesign` step.
+However if this is done, once the release has been tagged in the bitcoinsilver-detached-sigs repo, the `guix-codesign` step must be performed again in order for the guix attestation to be valid when compared against the attestations of non-codesigner builds.
 
-Codesigner only: Commit the detached codesign payloads:
+### Windows and macOS codesigners only: Commit the detached codesign payloads
 
 ```sh
-pushd ./bitcoin_silver-detached-sigs
+pushd ./bitcoinsilver-detached-sigs
 # checkout the appropriate branch for this release series
 rm -rf ./*
 tar xf signature-osx.tar.gz
@@ -178,26 +190,31 @@ git push the current branch and new tag
 popd
 ```
 
-Non-codesigners: wait for Windows/macOS detached signatures:
+### Non-codesigners: wait for Windows and macOS detached signatures
 
-- Once the Windows/macOS builds each have 3 matching signatures, they will be signed with their respective release keys.
-- Detached signatures will then be committed to the [bitcoin_silver-detached-sigs](https://github.com/bitcoin_silver-core/bitcoin_silver-detached-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
+- Once the Windows and macOS builds each have 3 matching signatures, they will be signed with their respective release keys.
+- Detached signatures will then be committed to the [bitcoinsilver-detached-sigs](https://github.com/bitcoinsilver-core/bitcoinsilver-detached-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
 
-Create (and optionally verify) the codesigned outputs:
+### Create the codesigned build outputs
 
-- [Codesigning](/contrib/guix/README.md#codesigning)
+- [Codesigning build outputs](/contrib/guix/README.md#codesigning-build-outputs)
 
-Commit your signature for the signed macOS/Windows binaries:
+### Verify other builders' signatures to your own (optional)
+
+- [Verifying build output attestations](/contrib/guix/README.md#verifying-build-output-attestations)
+
+### Commit your codesigned signature to guix.sigs (for the signed macOS/Windows binaries)
 
 ```sh
 pushd ./guix.sigs
 git add "${VERSION}/${SIGNER}"/all.SHA256SUMS{,.asc}
-git commit -m "Add ${SIGNER} ${VERSION} signed binaries signatures"
-git push  # Assuming you can push to the guix.sigs tree
+git commit -m "Add attestations by ${SIGNER} for ${VERSION} codesigned"
 popd
 ```
 
-### After 3 or more people have guix-built and their results match:
+Then open a Pull Request to the [guix.sigs repository](https://github.com/bitcoinsilver-core/guix.sigs).
+
+## After 3 or more people have guix-built and their results match
 
 Combine the `all.SHA256SUMS.asc` file from all signers into `SHA256SUMS.asc`:
 
@@ -206,8 +223,8 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 ```
 
 
-- Upload to the bitcoin_silvercore.org server (`/var/www/bin/bitcoin_silver-core-${VERSION}/`):
-    1. The contents of each `./bitcoin_silver/guix-build-${VERSION}/output/${HOST}/` directory, except for
+- Upload to the getbitcoinsilver.org server (`/var/www/bin/bitcoinsilver-core-${VERSION}/`):
+    1. The contents of each `./bitcoinsilver/guix-build-${VERSION}/output/${HOST}/` directory, except for
        `*-debug*` files.
 
        Guix will output all of the results into host subdirectories, but the SHA256SUMS
@@ -219,21 +236,21 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
        for troubleshooting by developers. It is assumed that anyone that is
        interested in debugging can run guix to generate the files for
        themselves. To avoid end-user confusion about which file to pick, as well
-       as save storage space *do not upload these to the bitcoin_silvercore.org server,
+       as save storage space *do not upload these to the getbitcoinsilver.org server,
        nor put them in the torrent*.
 
        ```sh
-       find guix-build-${VERSION}/output/ -maxdepth 2 -type f -not -name "SHA256SUMS.part" -and -not -name "*debug*" -exec scp {} user@bitcoin_silvercore.org:/var/www/bin/bitcoin_silver-core-${VERSION} \;
+       find guix-build-${VERSION}/output/ -maxdepth 2 -type f -not -name "SHA256SUMS.part" -and -not -name "*debug*" -exec scp {} user@getbitcoinsilver.org:/var/www/bin/bitcoinsilver-core-${VERSION} \;
        ```
 
     2. The `SHA256SUMS` file
 
     3. The `SHA256SUMS.asc` combined signature file you just created
 
-- Create a torrent of the `/var/www/bin/bitcoin_silver-core-${VERSION}` directory such
-  that at the top level there is only one file: the `bitcoin_silver-core-${VERSION}`
+- Create a torrent of the `/var/www/bin/bitcoinsilver-core-${VERSION}` directory such
+  that at the top level there is only one file: the `bitcoinsilver-core-${VERSION}`
   directory containing everything else. Name the torrent
-  `bitcoin_silver-${VERSION}.torrent` (note that there is no `-core-` in this name).
+  `bitcoinsilver-${VERSION}.torrent` (note that there is no `-core-` in this name).
 
   Optionally help seed this torrent. To get the `magnet:` URI use:
 
@@ -242,69 +259,44 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
   ```
 
   Insert the magnet URI into the announcement sent to mailing lists. This permits
-  people without access to `bitcoin_silvercore.org` to download the binary distribution.
+  people without access to `getbitcoinsilver.org` to download the binary distribution.
   Also put it into the `optional_magnetlink:` slot in the YAML file for
-  bitcoin_silvercore.org.
+  getbitcoinsilver.org.
 
 - Update other repositories and websites for new version
 
-  - bitcoin_silvercore.org blog post
+  - getbitcoinsilver.org blog post
 
-  - bitcoin_silvercore.org maintained versions update:
-    [table](https://github.com/bitcoin_silver-core/bitcoin_silvercore.org/commits/master/_includes/posts/maintenance-table.md)
+  - getbitcoinsilver.org maintained versions update:
+    [table](https://github.com/bitcoinsilver-core/getbitcoinsilver.org/commits/master/_includes/posts/maintenance-table.md)
 
-  - bitcoin_silvercore.org RPC documentation update
+  - Delete post-EOL [release branches](https://github.com/MrVistos/bitcoinsilver/branches/all) and create a tag `v${branch_name}-final`.
 
-      - Install [golang](https://golang.org/doc/install)
+  - Delete ["Needs backport" labels](https://github.com/MrVistos/bitcoinsilver/labels?q=backport) for non-existing branches.
 
-      - Install the new Bitcoin_Silver Core release
+  - getbitcoinsilver.org RPC documentation update
 
-      - Run bitcoin_silverd on regtest
-
-      - Clone the [bitcoin_silvercore.org repository](https://github.com/bitcoin_silver-core/bitcoin_silvercore.org)
-
-      - Run: `go run generate.go` while being in `contrib/doc-gen` folder, and with bitcoin_silver-cli in PATH
-
-      - Add the generated files to git
+      - See https://github.com/bitcoinsilver-core/getbitcoinsilver.org/blob/master/contrib/doc-gen/
 
   - Update packaging repo
 
-      - Push the flatpak to flathub, e.g. https://github.com/flathub/org.bitcoin_silvercore.bitcoin_silver-qt/pull/2
+      - Push the flatpak to flathub, e.g. https://github.com/flathub/org.bitcoincore.bitcoinsilver-qt/pull/2
 
-      - Push the latest version to master (if applicable), e.g. https://github.com/bitcoin_silver-core/packaging/pull/32
-
-      - Create a new branch for the major release "0.xx" from master (used to build the snap package) and request the
-        track (if applicable), e.g. https://forum.snapcraft.io/t/track-request-for-bitcoin_silver-core-snap/10112/7
-
-      - Notify MarcoFalke so that he can start building the snap package
-
-        - https://code.launchpad.net/~bitcoin_silver-core/bitcoin_silver-core-snap/+git/packaging (Click "Import Now" to fetch the branch)
-        - https://code.launchpad.net/~bitcoin_silver-core/bitcoin_silver-core-snap/+git/packaging/+ref/0.xx (Click "Create snap package")
-        - Name it "bitcoin_silver-core-snap-0.xx"
-        - Leave owner and series as-is
-        - Select architectures that are compiled via guix
-        - Leave "automatically build when branch changes" unticked
-        - Tick "automatically upload to store"
-        - Put "bitcoin_silver-core" in the registered store package name field
-        - Tick the "edge" box
-        - Put "0.xx" in the track field
-        - Click "create snap package"
-        - Click "Request builds" for every new release on this branch (after updating the snapcraft.yml in the branch to reflect the latest guix results)
-        - Promote release on https://snapcraft.io/bitcoin_silver-core/releases if it passes sanity checks
+      - Push the snap, see https://github.com/bitcoinsilver-core/packaging/blob/main/snap/local/build.md
 
   - This repo
 
       - Archive the release notes for the new version to `doc/release-notes/` (branch `master` and branch of the release)
 
-      - Create a [new GitHub release](https://github.com/bitcoin_silver/bitcoin_silver/releases/new) with a link to the archived release notes
+      - Create a [new GitHub release](https://github.com/MrVistos/bitcoinsilver/releases/new) with a link to the archived release notes
 
 - Announce the release:
 
-  - bitcoin_silver-dev and bitcoin_silver-core-dev mailing list
+  - bitcoinsilver-dev and bitcoinsilver-core-dev mailing list
 
-  - Bitcoin_Silver Core announcements list https://bitcoin_silvercore.org/en/list/announcements/join/
+  - BitcoinSilver announcements list https://getbitcoinsilver.org/en/list/announcements/join/
 
-  - Bitcoin_Silver Core Twitter https://twitter.com/bitcoin_silvercoreorg
+  - BitcoinSilver Twitter https://twitter.com/bitcoincoreorg
 
   - Celebrate
 
@@ -315,15 +307,16 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 Both variables are used as a guideline for how much space the user needs on their drive in total, not just strictly for the blockchain.
 Note that all values should be taken from a **fully synced** node and have an overhead of 5-10% added on top of its base value.
 
-To calculate `m_assumed_blockchain_size`:
-- For `mainnet` -> Take the size of the data directory, excluding `/regtest` and `/testnet3` directories.
-- For `testnet` -> Take the size of the `/testnet3` directory.
+To calculate `m_assumed_blockchain_size`, take the size in GiB of these directories:
+- For `mainnet` -> the data directory, excluding the `/testnet3`, `/signet`, and `/regtest` directories and any overly large files, e.g. a huge `debug.log`
+- For `testnet` -> `/testnet3`
+- For `signet` -> `/signet`
 
-
-To calculate `m_assumed_chain_state_size`:
-- For `mainnet` -> Take the size of the `/chainstate` directory.
-- For `testnet` -> Take the size of the `/testnet3/chainstate` directory.
+To calculate `m_assumed_chain_state_size`, take the size in GiB of these directories:
+- For `mainnet` -> `/chainstate`
+- For `testnet` -> `/testnet3/chainstate`
+- For `signet` -> `/signet/chainstate`
 
 Notes:
 - When taking the size for `m_assumed_blockchain_size`, there's no need to exclude the `/chainstate` directory since it's a guideline value and an overhead will be added anyway.
-- The expected overhead for growth may change over time, so it may not be the same value as last release; pay attention to that when changing the variables.
+- The expected overhead for growth may change over time. Consider whether the percentage needs to be changed in response; if so, update it here in this section.

@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_OVERVIEWPAGE_H
-#define BITCOIN_SILVER_QT_OVERVIEWPAGE_H
+#ifndef BITCOINSILVER_QT_OVERVIEWPAGE_H
+#define BITCOINSILVER_QT_OVERVIEWPAGE_H
 
 #include <interfaces/wallet.h>
 
@@ -50,9 +50,8 @@ protected:
 
 private:
     Ui::OverviewPage *ui;
-    ClientModel *clientModel;
-    WalletModel *walletModel;
-    interfaces::WalletBalances m_balances;
+    ClientModel* clientModel{nullptr};
+    WalletModel* walletModel{nullptr};
     bool m_privacy{false};
 
     const PlatformStyle* m_platform_style;
@@ -61,6 +60,7 @@ private:
     std::unique_ptr<TransactionFilterProxy> filter;
 
 private Q_SLOTS:
+    void LimitTransactionRows();
     void updateDisplayUnit();
     void handleTransactionClicked(const QModelIndex &index);
     void updateAlerts(const QString &warnings);
@@ -68,4 +68,4 @@ private Q_SLOTS:
     void setMonospacedFont(bool use_embedded_font);
 };
 
-#endif // BITCOIN_SILVER_QT_OVERVIEWPAGE_H
+#endif // BITCOINSILVER_QT_OVERVIEWPAGE_H

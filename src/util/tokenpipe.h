@@ -1,9 +1,9 @@
-// Copyright (c) 2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_UTIL_TOKENPIPE_H
-#define BITCOIN_SILVER_UTIL_TOKENPIPE_H
+#ifndef BITCOINSILVER_UTIL_TOKENPIPE_H
+#define BITCOINSILVER_UTIL_TOKENPIPE_H
 
 #ifndef WIN32
 
@@ -124,4 +124,4 @@ public:
 
 #endif // WIN32
 
-#endif // BITCOIN_SILVER_UTIL_TOKENPIPE_H
+#endif // BITCOINSILVER_UTIL_TOKENPIPE_H

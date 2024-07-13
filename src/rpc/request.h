@@ -1,10 +1,10 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_RPC_REQUEST_H
-#define BITCOIN_SILVER_RPC_REQUEST_H
+#ifndef BITCOINSILVER_RPC_REQUEST_H
+#define BITCOINSILVER_RPC_REQUEST_H
 
 #include <any>
 #include <string>
@@ -40,4 +40,4 @@ public:
     void parse(const UniValue& valRequest);
 };
 
-#endif // BITCOIN_SILVER_RPC_REQUEST_H
+#endif // BITCOINSILVER_RPC_REQUEST_H

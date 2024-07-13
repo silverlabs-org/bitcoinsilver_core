@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2015-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test p2p permission message.
@@ -7,30 +7,26 @@
 Test that permissions are correctly calculated and applied
 """
 
-from test_framework.address import ADDRESS_BCRT1_P2WSH_OP_TRUE
 from test_framework.messages import (
-    CTxInWitness,
-    tx_from_hex,
+    SEQUENCE_FINAL,
 )
 from test_framework.p2p import P2PDataStore
-from test_framework.script import (
-    CScript,
-    OP_TRUE,
-)
 from test_framework.test_node import ErrorMatch
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     p2p_port,
 )
+from test_framework.wallet import MiniWallet
 
 
-class P2PPermissionsTests(Bitcoin_SilverTestFramework):
+class P2PPermissionsTests(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
-        self.setup_clean_chain = True
 
     def run_test(self):
+        self.wallet = MiniWallet(self.nodes[0])
+
         self.check_tx_relay()
 
         self.checkpermission(
@@ -60,12 +56,12 @@ class P2PPermissionsTests(Bitcoin_SilverTestFramework):
         # For this, we need to use whitebind instead of bind
         # by modifying the configuration file.
         ip_port = "127.0.0.1:{}".format(p2p_port(1))
-        self.replaceinconfig(1, "bind=127.0.0.1", "whitebind=bloomfilter,forcerelay@" + ip_port)
+        self.nodes[1].replace_in_config([("bind=127.0.0.1", "whitebind=bloomfilter,forcerelay@" + ip_port)])
         self.checkpermission(
             ["-whitelist=noban@127.0.0.1"],
             # Check parameter interaction forcerelay should activate relay
             ["noban", "bloomfilter", "forcerelay", "relay", "download"])
-        self.replaceinconfig(1, "whitebind=bloomfilter,forcerelay@" + ip_port, "bind=127.0.0.1")
+        self.nodes[1].replace_in_config([("whitebind=bloomfilter,forcerelay@" + ip_port, "bind=127.0.0.1")])
 
         self.checkpermission(
             # legacy whitelistrelay should be ignored
@@ -91,11 +87,9 @@ class P2PPermissionsTests(Bitcoin_SilverTestFramework):
         self.nodes[1].assert_start_raises_init_error(["-whitelist=oopsie@127.0.0.1"], "Invalid P2P permission", match=ErrorMatch.PARTIAL_REGEX)
         self.nodes[1].assert_start_raises_init_error(["-whitelist=noban@127.0.0.1:230"], "Invalid netmask specified in", match=ErrorMatch.PARTIAL_REGEX)
         self.nodes[1].assert_start_raises_init_error(["-whitebind=noban@127.0.0.1/10"], "Cannot resolve -whitebind address", match=ErrorMatch.PARTIAL_REGEX)
+        self.nodes[1].assert_start_raises_init_error(["-whitebind=noban@127.0.0.1", "-bind=127.0.0.1", "-listen=0"], "Cannot set -bind or -whitebind together with -listen=0", match=ErrorMatch.PARTIAL_REGEX)
 
     def check_tx_relay(self):
-        block_op_true = self.nodes[0].getblock(self.nodes[0].generatetoaddress(100, ADDRESS_BCRT1_P2WSH_OP_TRUE)[0])
-        self.sync_all()
-
         self.log.debug("Create a connection from a forcerelay peer that rebroadcasts raw txs")
         # A test framework p2p connection is needed to send the raw transaction directly. If a full node was used, it could only
         # rebroadcast via the inv-getdata mechanism. However, even for forcerelay connections, a full node would
@@ -104,17 +98,7 @@ class P2PPermissionsTests(Bitcoin_SilverTestFramework):
         p2p_rebroadcast_wallet = self.nodes[1].add_p2p_connection(P2PDataStore())
 
         self.log.debug("Send a tx from the wallet initially")
-        tx = tx_from_hex(
-            self.nodes[0].createrawtransaction(
-                inputs=[{
-                    'txid': block_op_true['tx'][0],
-                    'vout': 0,
-                }], outputs=[{
-                    ADDRESS_BCRT1_P2WSH_OP_TRUE: 5,
-                }]),
-        )
-        tx.wit.vtxinwit = [CTxInWitness()]
-        tx.wit.vtxinwit[0].scriptWitness.stack = [CScript([OP_TRUE])]
+        tx = self.wallet.create_self_transfer(sequence=SEQUENCE_FINAL)['tx']
         txid = tx.rehash()
 
         self.log.debug("Wait until tx is in node[1]'s mempool")
@@ -122,7 +106,7 @@ class P2PPermissionsTests(Bitcoin_SilverTestFramework):
 
         self.log.debug("Check that node[1] will send the tx to node[0] even though it is already in the mempool")
         self.connect_nodes(1, 0)
-        with self.nodes[1].assert_debug_log(["Force relaying tx {} from peer=0".format(txid)]):
+        with self.nodes[1].assert_debug_log(["Force relaying tx {} (wtxid={}) from peer=0".format(txid, tx.getwtxid())]):
             p2p_rebroadcast_wallet.send_txs_and_test([tx], self.nodes[1])
             self.wait_until(lambda: txid in self.nodes[0].getrawmempool())
 
@@ -130,19 +114,19 @@ class P2PPermissionsTests(Bitcoin_SilverTestFramework):
         tx.vout[0].nValue += 1
         txid = tx.rehash()
         # Send the transaction twice. The first time, it'll be rejected by ATMP because it conflicts
-        # with a mempool transaction. The second time, it'll be in the recentRejects filter.
+        # with a mempool transaction. The second time, it'll be in the m_recent_rejects filter.
         p2p_rebroadcast_wallet.send_txs_and_test(
             [tx],
             self.nodes[1],
             success=False,
-            reject_reason='{} from peer=0 was not accepted: txn-mempool-conflict'.format(txid)
+            reject_reason='{} (wtxid={}) from peer=0 was not accepted: txn-mempool-conflict'.format(txid, tx.getwtxid())
         )
 
         p2p_rebroadcast_wallet.send_txs_and_test(
             [tx],
             self.nodes[1],
             success=False,
-            reject_reason='Not relaying non-mempool transaction {} from forcerelay peer=0'.format(txid)
+            reject_reason='Not relaying non-mempool transaction {} (wtxid={}) from forcerelay peer=0'.format(txid, tx.getwtxid())
         )
 
     def checkpermission(self, args, expectedPermissions):
@@ -153,12 +137,6 @@ class P2PPermissionsTests(Bitcoin_SilverTestFramework):
         for p in expectedPermissions:
             if p not in peerinfo['permissions']:
                 raise AssertionError("Expected permissions %r is not granted." % p)
-
-    def replaceinconfig(self, nodeid, old, new):
-        with open(self.nodes[nodeid].bitcoin_silverconf, encoding="utf8") as f:
-            newText = f.read().replace(old, new)
-        with open(self.nodes[nodeid].bitcoin_silverconf, 'w', encoding="utf8") as f:
-            f.write(newText)
 
 
 if __name__ == '__main__':

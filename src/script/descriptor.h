@@ -1,9 +1,9 @@
-// Copyright (c) 2018-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2018-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_SCRIPT_DESCRIPTOR_H
-#define BITCOIN_SILVER_SCRIPT_DESCRIPTOR_H
+#ifndef BITCOINSILVER_SCRIPT_DESCRIPTOR_H
+#define BITCOINSILVER_SCRIPT_DESCRIPTOR_H
 
 #include <outputtype.h>
 #include <script/script.h>
@@ -35,7 +35,7 @@ public:
     /** Retrieve a cached parent xpub
      *
      * @param[in] key_exp_pos Position of the key expression within the descriptor
-     * @param[in] xpub The CExtPubKey to get from cache
+     * @param[out] xpub The CExtPubKey to get from cache
      */
     bool GetCachedParentExtPubKey(uint32_t key_exp_pos, CExtPubKey& xpub) const;
     /** Cache an xpub derived at an index
@@ -49,7 +49,7 @@ public:
      *
      * @param[in] key_exp_pos Position of the key expression within the descriptor
      * @param[in] der_index Derivation index of the xpub
-     * @param[in] xpub The CExtPubKey to get from cache
+     * @param[out] xpub The CExtPubKey to get from cache
      */
     bool GetCachedDerivedExtPubKey(uint32_t key_exp_pos, uint32_t der_index, CExtPubKey& xpub) const;
     /** Cache a last hardened xpub
@@ -61,16 +61,16 @@ public:
     /** Retrieve a cached last hardened xpub
      *
      * @param[in] key_exp_pos Position of the key expression within the descriptor
-     * @param[in] xpub The CExtPubKey to get from cache
+     * @param[out] xpub The CExtPubKey to get from cache
      */
     bool GetCachedLastHardenedExtPubKey(uint32_t key_exp_pos, CExtPubKey& xpub) const;
 
     /** Retrieve all cached parent xpubs */
-    const ExtPubKeyMap GetCachedParentExtPubKeys() const;
+    ExtPubKeyMap GetCachedParentExtPubKeys() const;
     /** Retrieve all cached derived xpubs */
-    const std::unordered_map<uint32_t, ExtPubKeyMap> GetCachedDerivedExtPubKeys() const;
+    std::unordered_map<uint32_t, ExtPubKeyMap> GetCachedDerivedExtPubKeys() const;
     /** Retrieve all cached last hardened xpubs */
-    const ExtPubKeyMap GetCachedLastHardenedExtPubKeys() const;
+    ExtPubKeyMap GetCachedLastHardenedExtPubKeys() const;
 
     /** Combine another DescriptorCache into this one.
      * Returns a cache containing the items from the other cache unknown to current cache
@@ -106,7 +106,7 @@ struct Descriptor {
     virtual bool IsSolvable() const = 0;
 
     /** Convert the descriptor back to a string, undoing parsing. */
-    virtual std::string ToString() const = 0;
+    virtual std::string ToString(bool compat_format=false) const = 0;
 
     /** Whether this descriptor will return one scriptPubKey or multiple (aka is or is not combo) */
     virtual bool IsSingleType() const = 0;
@@ -146,6 +146,18 @@ struct Descriptor {
 
     /** @return The OutputType of the scriptPubKey(s) produced by this descriptor. Or nullopt if indeterminate (multiple or none) */
     virtual std::optional<OutputType> GetOutputType() const = 0;
+
+    /** Get the size of the scriptPubKey for this descriptor. */
+    virtual std::optional<int64_t> ScriptSize() const = 0;
+
+    /** Get the maximum size of a satisfaction for this descriptor, in weight units.
+     *
+     * @param use_max_sig Whether to assume ECDSA signatures will have a high-r.
+     */
+    virtual std::optional<int64_t> MaxSatisfactionWeight(bool use_max_sig) const = 0;
+
+    /** Get the maximum size number of stack elements for satisfying this descriptor. */
+    virtual std::optional<int64_t> MaxSatisfactionElems() const = 0;
 };
 
 /** Parse a `descriptor` string. Included private keys are put in `out`.
@@ -182,4 +194,9 @@ std::string GetDescriptorChecksum(const std::string& descriptor);
  */
 std::unique_ptr<Descriptor> InferDescriptor(const CScript& script, const SigningProvider& provider);
 
-#endif // BITCOIN_SILVER_SCRIPT_DESCRIPTOR_H
+/** Unique identifier that may not change over time, unless explicitly marked as not backwards compatible.
+*   This is not part of BIP 380, not guaranteed to be interoperable and should not be exposed to the user.
+*/
+uint256 DescriptorID(const Descriptor& desc);
+
+#endif // BITCOINSILVER_SCRIPT_DESCRIPTOR_H

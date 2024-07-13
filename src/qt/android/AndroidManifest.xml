@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<manifest package="org.bitcoin_silvercore.qt" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="1.0" android:versionCode="1" android:installLocation="auto">
+<manifest package="org.getbitcoinsilver.qt" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="1.0" android:versionCode="1" android:installLocation="auto">
     <uses-sdk android:targetSdkVersion="24"/>
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -10,11 +10,11 @@
 
     <supports-screens android:largeScreens="true" android:normalScreens="true" android:anyDensity="true" android:smallScreens="true"/>
 
-    <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="Bitcoin_Silver Core">
+    <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="BitcoinSilver">
         <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density"
-                  android:name="org.bitcoin_silvercore.qt.Bitcoin_SilverQtActivity"
-                  android:label="Bitcoin_Silver Core"
-                  android:icon="@drawable/bitcoin_silver"
+                  android:name="org.getbitcoinsilver.qt.BitcoinQtActivity"
+                  android:label="BitcoinSilver"
+                  android:icon="@drawable/bitcoinsilver"
                   android:screenOrientation="unspecified"
                   android:launchMode="singleTop">
             <intent-filter>
@@ -23,7 +23,7 @@
             </intent-filter>
 
             <meta-data android:name="android.app.arguments" android:value="-testnet"/>
-            <meta-data android:name="android.app.lib_name" android:value="bitcoin_silver-qt"/>
+            <meta-data android:name="android.app.lib_name" android:value="bitcoinsilver-qt"/>
             <meta-data android:name="android.app.repository" android:value="default"/>
             <meta-data android:name="android.app.bundle_local_qt_libs" android:value="1"/>
             <meta-data android:name="android.app.use_local_qt_libs" android:value="1"/>
@@ -32,7 +32,8 @@
             <meta-data android:name="android.app.background_running" android:value="true"/>
             <meta-data android:name="android.app.auto_screen_scale_factor" android:value="true"/>
             <meta-data android:name="android.app.extract_android_style" android:value="default"/>
-    </activity>
+            <meta-data android:name="android.app.load_local_libs_resource_id" android:resource="@array/load_local_libs"/>
+        </activity>
 
     </application>
 </manifest>

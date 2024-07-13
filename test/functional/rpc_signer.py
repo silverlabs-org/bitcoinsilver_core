@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2018 The Bitcoin_Silver Core developers
+# Copyright (c) 2017-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test external signer.
 
-Verify that a bitcoin_silverd node can use an external signer command.
+Verify that a bitcoinsilverd node can use an external signer command.
 See also wallet_signer.py for tests that require wallet context.
 """
 import os
 import platform
 
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
 
 
-class RPCSignerTest(Bitcoin_SilverTestFramework):
+class RPCSignerTest(BitcoinTestFramework):
     def mock_signer_path(self):
         path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'mocks', 'signer.py')
         if platform.system() == "Windows":
-            return "py " + path
+            return "py -3 " + path
         else:
             return path
 
@@ -48,13 +48,17 @@ class RPCSignerTest(Bitcoin_SilverTestFramework):
     def run_test(self):
         self.log.debug(f"-signer={self.mock_signer_path()}")
 
-        assert_raises_rpc_error(-1, 'Error: restart bitcoin_silverd with -signer=<cmd>',
+        assert_raises_rpc_error(-1, 'Error: restart bitcoinsilverd with -signer=<cmd>',
             self.nodes[0].enumeratesigners
         )
 
         # Handle script missing:
-        assert_raises_rpc_error(-1, 'execve failed: No such file or directory',
-            self.nodes[3].enumeratesigners
+        assert_raises_rpc_error(
+            -1,
+            "CreateProcess failed: The system cannot find the file specified."
+            if platform.system() == "Windows"
+            else "execve failed: No such file or directory",
+            self.nodes[3].enumeratesigners,
         )
 
         # Handle error thrown by script
@@ -70,10 +74,7 @@ class RPCSignerTest(Bitcoin_SilverTestFramework):
         )
         self.clear_mock_result(self.nodes[1])
 
-        result = self.nodes[1].enumeratesigners()
-        assert_equal(len(result['signers']), 2)
-        assert_equal(result['signers'][0]["fingerprint"], "00000001")
-        assert_equal(result['signers'][0]["name"], "trezor_t")
+        assert_equal({'fingerprint': '00000001', 'name': 'trezor_t'} in self.nodes[1].enumeratesigners()['signers'], True)
 
 if __name__ == '__main__':
     RPCSignerTest().main()

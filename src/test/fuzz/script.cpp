@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2019-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,12 +16,13 @@
 #include <script/script_error.h>
 #include <script/sign.h>
 #include <script/signingprovider.h>
-#include <script/standard.h>
+#include <script/solver.h>
 #include <streams.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
 #include <univalue.h>
+#include <util/chaintype.h>
 
 #include <algorithm>
 #include <cassert>
@@ -32,18 +33,13 @@
 
 void initialize_script()
 {
-    // Fuzzers using pubkey must hold an ECCVerifyHandle.
-    static const ECCVerifyHandle verify_handle;
-
-    SelectParams(CBaseChainParams::REGTEST);
+    SelectParams(ChainType::REGTEST);
 }
 
-FUZZ_TARGET_INIT(script, initialize_script)
+FUZZ_TARGET(script, .init = initialize_script)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
-    const std::optional<CScript> script_opt = ConsumeDeserializable<CScript>(fuzzed_data_provider);
-    if (!script_opt) return;
-    const CScript script{*script_opt};
+    const CScript script{ConsumeScript(fuzzed_data_provider)};
 
     CompressedScript compressed;
     if (CompressScript(script, compressed)) {
@@ -56,46 +52,8 @@ FUZZ_TARGET_INIT(script, initialize_script)
         assert(script == decompressed_script);
     }
 
-    CTxDestination address;
-    TxoutType type_ret;
-    std::vector<CTxDestination> addresses;
-    int required_ret;
-    bool extract_destinations_ret = ExtractDestinations(script, type_ret, addresses, required_ret);
-    bool extract_destination_ret = ExtractDestination(script, address);
-    if (!extract_destinations_ret) {
-        assert(!extract_destination_ret);
-        if (type_ret == TxoutType::MULTISIG) {
-            assert(addresses.empty() && required_ret == 0);
-        } else {
-            assert(type_ret == TxoutType::PUBKEY ||
-                   type_ret == TxoutType::NONSTANDARD ||
-                   type_ret == TxoutType::NULL_DATA);
-        }
-    } else {
-        assert(required_ret >= 1 && required_ret <= 16);
-        assert((unsigned long)required_ret == addresses.size());
-        assert(type_ret == TxoutType::MULTISIG || required_ret == 1);
-    }
-    if (type_ret == TxoutType::NONSTANDARD || type_ret == TxoutType::NULL_DATA) {
-        assert(!extract_destinations_ret);
-    }
-    if (!extract_destination_ret) {
-        assert(type_ret == TxoutType::PUBKEY ||
-               type_ret == TxoutType::NONSTANDARD ||
-               type_ret == TxoutType::NULL_DATA ||
-               type_ret == TxoutType::MULTISIG);
-    } else {
-        assert(address == addresses[0]);
-    }
-    if (type_ret == TxoutType::NONSTANDARD ||
-        type_ret == TxoutType::NULL_DATA ||
-        type_ret == TxoutType::MULTISIG) {
-        assert(!extract_destination_ret);
-    }
-
     TxoutType which_type;
-    bool is_standard_ret = IsStandard(script, which_type);
-    assert(type_ret == which_type);
+    bool is_standard_ret = IsStandard(script, std::nullopt, which_type);
     if (!is_standard_ret) {
         assert(which_type == TxoutType::NONSTANDARD ||
                which_type == TxoutType::NULL_DATA ||
@@ -112,10 +70,23 @@ FUZZ_TARGET_INIT(script, initialize_script)
                which_type == TxoutType::NONSTANDARD);
     }
 
+    CTxDestination address;
+    bool extract_destination_ret = ExtractDestination(script, address);
+    if (!extract_destination_ret) {
+        assert(which_type == TxoutType::PUBKEY ||
+               which_type == TxoutType::NONSTANDARD ||
+               which_type == TxoutType::NULL_DATA ||
+               which_type == TxoutType::MULTISIG);
+    }
+    if (which_type == TxoutType::NONSTANDARD ||
+        which_type == TxoutType::NULL_DATA ||
+        which_type == TxoutType::MULTISIG) {
+        assert(!extract_destination_ret);
+    }
+
     const FlatSigningProvider signing_provider;
     (void)InferDescriptor(script, signing_provider);
     (void)IsSegWitOutput(signing_provider, script);
-    (void)IsSolvable(signing_provider, script);
 
     (void)RecursiveDynamicUsage(script);
 
@@ -127,21 +98,6 @@ FUZZ_TARGET_INIT(script, initialize_script)
     (void)script.IsPayToWitnessScriptHash();
     (void)script.IsPushOnly();
     (void)script.GetSigOpCount(/* fAccurate= */ false);
-
-    (void)FormatScript(script);
-    (void)ScriptToAsmStr(script, false);
-    (void)ScriptToAsmStr(script, true);
-
-    UniValue o1(UniValue::VOBJ);
-    ScriptPubKeyToUniv(script, o1, true, true);
-    ScriptPubKeyToUniv(script, o1, true, false);
-    UniValue o2(UniValue::VOBJ);
-    ScriptPubKeyToUniv(script, o2, false, true);
-    ScriptPubKeyToUniv(script, o2, false, false);
-    UniValue o3(UniValue::VOBJ);
-    ScriptToUniv(script, o3, true);
-    UniValue o4(UniValue::VOBJ);
-    ScriptToUniv(script, o4, false);
 
     {
         const std::vector<uint8_t> bytes = ConsumeRandomLengthByteVector(fuzzed_data_provider);
@@ -193,13 +149,16 @@ FUZZ_TARGET_INIT(script, initialize_script)
         const CTxDestination tx_destination_2{ConsumeTxDestination(fuzzed_data_provider)};
         const std::string encoded_dest{EncodeDestination(tx_destination_1)};
         const UniValue json_dest{DescribeAddress(tx_destination_1)};
-        Assert(tx_destination_1 == DecodeDestination(encoded_dest));
-        (void)GetKeyForDestination(/* store */ {}, tx_destination_1);
+        (void)GetKeyForDestination(/*store=*/{}, tx_destination_1);
         const CScript dest{GetScriptForDestination(tx_destination_1)};
         const bool valid{IsValidDestination(tx_destination_1)};
-        Assert(dest.empty() != valid);
 
-        Assert(valid == IsValidDestinationString(encoded_dest));
+        if (!std::get_if<PubKeyDestination>(&tx_destination_1)) {
+            // Only try to round trip non-pubkey destinations since PubKeyDestination has no encoding
+            Assert(dest.empty() != valid);
+            Assert(tx_destination_1 == DecodeDestination(encoded_dest));
+            Assert(valid == IsValidDestinationString(encoded_dest));
+        }
 
         (void)(tx_destination_1 < tx_destination_2);
         if (tx_destination_1 == tx_destination_2) {

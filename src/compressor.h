@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_COMPRESSOR_H
-#define BITCOIN_SILVER_COMPRESSOR_H
+#ifndef BITCOINSILVER_COMPRESSOR_H
+#define BITCOINSILVER_COMPRESSOR_H
 
 #include <prevector.h>
 #include <primitives/transaction.h>
@@ -65,12 +65,12 @@ struct ScriptCompression
     void Ser(Stream &s, const CScript& script) {
         CompressedScript compr;
         if (CompressScript(script, compr)) {
-            s << MakeSpan(compr);
+            s << Span{compr};
             return;
         }
         unsigned int nSize = script.size() + nSpecialScripts;
         s << VARINT(nSize);
-        s << MakeSpan(script);
+        s << Span{script};
     }
 
     template<typename Stream>
@@ -79,7 +79,7 @@ struct ScriptCompression
         s >> VARINT(nSize);
         if (nSize < nSpecialScripts) {
             CompressedScript vch(GetSpecialScriptSize(nSize), 0x00);
-            s >> MakeSpan(vch);
+            s >> Span{vch};
             DecompressScript(script, nSize, vch);
             return;
         }
@@ -90,7 +90,7 @@ struct ScriptCompression
             s.ignore(nSize);
         } else {
             script.resize(nSize);
-            s >> MakeSpan(script);
+            s >> Span{script};
         }
     }
 };
@@ -115,4 +115,4 @@ struct TxOutCompression
     FORMATTER_METHODS(CTxOut, obj) { READWRITE(Using<AmountCompression>(obj.nValue), Using<ScriptCompression>(obj.scriptPubKey)); }
 };
 
-#endif // BITCOIN_SILVER_COMPRESSOR_H
+#endif // BITCOINSILVER_COMPRESSOR_H

@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016 The Bitcoin_Silver Core developers
+# Copyright (c) 2013-2016 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,16 +6,17 @@ if ENABLE_FUZZ_BINARY
 noinst_PROGRAMS += test/fuzz/fuzz
 endif
 
-if !ENABLE_FUZZ
-bin_PROGRAMS += test/test_bitcoin_silver
+if ENABLE_TESTS
+bin_PROGRAMS += test/test_bitcoinsilver
 endif
 
 TEST_SRCDIR = test
-TEST_BINARY=test/test_bitcoin_silver$(EXEEXT)
+TEST_BINARY=test/test_bitcoinsilver$(EXEEXT)
 FUZZ_BINARY=test/fuzz/fuzz$(EXEEXT)
 
 JSON_TEST_FILES = \
   test/data/script_tests.json \
+  test/data/bip341_wallet_vectors.json \
   test/data/base58_encode_decode.json \
   test/data/blockfilters.json \
   test/data/key_io_valid.json \
@@ -30,26 +31,25 @@ RAW_TEST_FILES = \
 
 GENERATED_TEST_FILES = $(JSON_TEST_FILES:.json=.json.h) $(RAW_TEST_FILES:.raw=.raw.h)
 
-BITCOIN_SILVER_TEST_SUITE = \
+BITCOINSILVER_TEST_SUITE = \
   test/main.cpp \
   $(TEST_UTIL_H)
 
 FUZZ_SUITE_LD_COMMON = \
  $(LIBTEST_UTIL) \
  $(LIBTEST_FUZZ) \
- $(LIBBITCOIN_SERVER) \
- $(LIBBITCOIN_WALLET) \
- $(LIBBITCOIN_COMMON) \
- $(LIBBITCOIN_UTIL) \
- $(LIBBITCOIN_CONSENSUS) \
- $(LIBBITCOIN_CRYPTO) \
- $(LIBBITCOIN_CLI) \
+ $(LIBBITCOINSILVER_NODE) \
+ $(LIBBITCOINSILVER_WALLET) \
+ $(LIBBITCOINSILVER_COMMON) \
+ $(LIBBITCOINSILVER_UTIL) \
+ $(LIBBITCOINSILVER_CONSENSUS) \
+ $(LIBBITCOINSILVER_CRYPTO) \
+ $(LIBBITCOINSILVER_CLI) \
  $(LIBUNIVALUE) \
  $(LIBLEVELDB) \
- $(LIBLEVELDB_SSE42) \
- $(BOOST_LIBS) \
  $(LIBMEMENV) \
  $(LIBSECP256K1) \
+ $(MINISKETCH_LIBS) \
  $(EVENT_LIBS) \
  $(EVENT_PTHREADS_LIBS)
 
@@ -61,22 +61,25 @@ if USE_NATPMP
 FUZZ_SUITE_LD_COMMON += $(NATPMP_LIBS)
 endif
 
-# test_bitcoin_silver binary #
-BITCOIN_SILVER_TESTS =\
-  test/arith_uint256_tests.cpp \
-  test/scriptnum10.h \
+# test_bitcoin binary #
+BITCOINSILVER_TESTS =\
   test/addrman_tests.cpp \
-  test/amount_tests.cpp \
   test/allocator_tests.cpp \
+  test/amount_tests.cpp \
+  test/argsman_tests.cpp \
+  test/arith_uint256_tests.cpp \
+  test/banman_tests.cpp \
   test/base32_tests.cpp \
   test/base58_tests.cpp \
   test/base64_tests.cpp \
   test/bech32_tests.cpp \
   test/bip32_tests.cpp \
+  test/bip324_tests.cpp \
   test/blockchain_tests.cpp \
   test/blockencodings_tests.cpp \
-  test/blockfilter_tests.cpp \
   test/blockfilter_index_tests.cpp \
+  test/blockfilter_tests.cpp \
+  test/blockmanager_tests.cpp \
   test/bloom_tests.cpp \
   test/bswap_tests.cpp \
   test/checkqueue_tests.cpp \
@@ -86,41 +89,53 @@ BITCOIN_SILVER_TESTS =\
   test/compress_tests.cpp \
   test/crypto_tests.cpp \
   test/cuckoocache_tests.cpp \
+  test/dbwrapper_tests.cpp \
   test/denialofservice_tests.cpp \
   test/descriptor_tests.cpp \
   test/flatfile_tests.cpp \
   test/fs_tests.cpp \
   test/getarg_tests.cpp \
   test/hash_tests.cpp \
+  test/headers_sync_chainwork_tests.cpp \
+  test/httpserver_tests.cpp \
   test/i2p_tests.cpp \
   test/interfaces_tests.cpp \
   test/key_io_tests.cpp \
   test/key_tests.cpp \
   test/logging_tests.cpp \
-  test/dbwrapper_tests.cpp \
-  test/validation_tests.cpp \
   test/mempool_tests.cpp \
   test/merkle_tests.cpp \
   test/merkleblock_tests.cpp \
   test/miner_tests.cpp \
+  test/miniminer_tests.cpp \
+  test/miniscript_tests.cpp \
+  test/minisketch_tests.cpp \
   test/multisig_tests.cpp \
   test/net_peer_eviction_tests.cpp \
   test/net_tests.cpp \
   test/netbase_tests.cpp \
+  test/orphanage_tests.cpp \
   test/pmt_tests.cpp \
   test/policy_fee_tests.cpp \
   test/policyestimator_tests.cpp \
+  test/pool_tests.cpp \
   test/pow_tests.cpp \
   test/prevector_tests.cpp \
   test/raii_event_tests.cpp \
   test/random_tests.cpp \
+  test/rbf_tests.cpp \
+  test/rest_tests.cpp \
+  test/result_tests.cpp \
   test/reverselock_tests.cpp \
   test/rpc_tests.cpp \
   test/sanity_tests.cpp \
   test/scheduler_tests.cpp \
   test/script_p2sh_tests.cpp \
-  test/script_tests.cpp \
+  test/script_parse_tests.cpp \
+  test/script_segwit_tests.cpp \
   test/script_standard_tests.cpp \
+  test/script_tests.cpp \
+  test/scriptnum10.h \
   test/scriptnum_tests.cpp \
   test/serfloat_tests.cpp \
   test/serialize_tests.cpp \
@@ -132,79 +147,99 @@ BITCOIN_SILVER_TESTS =\
   test/streams_tests.cpp \
   test/sync_tests.cpp \
   test/system_tests.cpp \
-  test/util_threadnames_tests.cpp \
   test/timedata_tests.cpp \
   test/torcontrol_tests.cpp \
   test/transaction_tests.cpp \
+  test/translation_tests.cpp \
   test/txindex_tests.cpp \
+  test/txpackage_tests.cpp \
+  test/txreconciliation_tests.cpp \
   test/txrequest_tests.cpp \
   test/txvalidation_tests.cpp \
   test/txvalidationcache_tests.cpp \
   test/uint256_tests.cpp \
   test/util_tests.cpp \
+  test/util_threadnames_tests.cpp \
   test/validation_block_tests.cpp \
   test/validation_chainstate_tests.cpp \
   test/validation_chainstatemanager_tests.cpp \
   test/validation_flush_tests.cpp \
+  test/validation_tests.cpp \
   test/validationinterface_tests.cpp \
-  test/versionbits_tests.cpp
+  test/versionbits_tests.cpp \
+  test/xoroshiro128plusplus_tests.cpp
 
 if ENABLE_WALLET
-BITCOIN_SILVER_TESTS += \
+BITCOINSILVER_TESTS += \
+  wallet/test/feebumper_tests.cpp \
   wallet/test/psbt_wallet_tests.cpp \
+  wallet/test/spend_tests.cpp \
   wallet/test/wallet_tests.cpp \
   wallet/test/walletdb_tests.cpp \
   wallet/test/wallet_crypto_tests.cpp \
+  wallet/test/wallet_transaction_tests.cpp \
   wallet/test/coinselector_tests.cpp \
   wallet/test/init_tests.cpp \
   wallet/test/ismine_tests.cpp \
-  wallet/test/scriptpubkeyman_tests.cpp
+  wallet/test/rpc_util_tests.cpp \
+  wallet/test/scriptpubkeyman_tests.cpp \
+  wallet/test/walletload_tests.cpp \
+  wallet/test/group_outputs_tests.cpp
 
 FUZZ_SUITE_LD_COMMON +=\
  $(SQLITE_LIBS) \
  $(BDB_LIBS)
 
 if USE_BDB
-BITCOIN_SILVER_TESTS += wallet/test/db_tests.cpp
+BITCOINSILVER_TESTS += wallet/test/db_tests.cpp
 endif
 
+FUZZ_WALLET_SRC = \
+ wallet/test/fuzz/coincontrol.cpp \
+ wallet/test/fuzz/coinselection.cpp \
+ wallet/test/fuzz/fees.cpp \
+ wallet/test/fuzz/parse_iso8601.cpp
 
-BITCOIN_SILVER_TEST_SUITE += \
+if USE_SQLITE
+FUZZ_WALLET_SRC += \
+ wallet/test/fuzz/notifications.cpp
+endif # USE_SQLITE
+
+BITCOINSILVER_TEST_SUITE += \
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h \
   wallet/test/init_test_fixture.cpp \
   wallet/test/init_test_fixture.h
-endif
+endif # ENABLE_WALLET
 
-test_test_bitcoin_silver_SOURCES = $(BITCOIN_SILVER_TEST_SUITE) $(BITCOIN_SILVER_TESTS) $(JSON_TEST_FILES) $(RAW_TEST_FILES)
-test_test_bitcoin_silver_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES) $(TESTDEFS) $(EVENT_CFLAGS)
-test_test_bitcoin_silver_LDADD = $(LIBTEST_UTIL)
+test_test_bitcoinsilver_SOURCES = $(BITCOINSILVER_TEST_SUITE) $(BITCOINSILVER_TESTS) $(JSON_TEST_FILES) $(RAW_TEST_FILES)
+test_test_bitcoinsilver_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES) $(TESTDEFS) $(BOOST_CPPFLAGS) $(EVENT_CFLAGS)
+test_test_bitcoinsilver_LDADD = $(LIBTEST_UTIL)
 if ENABLE_WALLET
-test_test_bitcoin_silver_LDADD += $(LIBBITCOIN_WALLET)
+test_test_bitcoinsilver_LDADD += $(LIBBITCOINSILVER_WALLET)
+test_test_bitcoinsilver_CPPFLAGS += $(BDB_CPPFLAGS)
 endif
 
-test_test_bitcoin_silver_LDADD += $(LIBBITCOIN_SERVER) $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBBITCOIN_CONSENSUS) $(LIBBITCOIN_CRYPTO) $(LIBUNIVALUE) \
-  $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) $(BOOST_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIB) $(LIBSECP256K1) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS)
-test_test_bitcoin_silver_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+test_test_bitcoinsilver_LDADD += $(LIBBITCOINSILVER_NODE) $(LIBBITCOINSILVER_CLI) $(LIBBITCOINSILVER_COMMON) $(LIBBITCOINSILVER_UTIL) $(LIBBITCOINSILVER_CONSENSUS) $(LIBBITCOINSILVER_CRYPTO) $(LIBUNIVALUE) \
+  $(LIBLEVELDB) $(LIBMEMENV) $(LIBSECP256K1) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS) $(MINISKETCH_LIBS)
+test_test_bitcoinsilver_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
-test_test_bitcoin_silver_LDADD += $(BDB_LIBS) $(MINIUPNPC_LIBS) $(NATPMP_LIBS) $(SQLITE_LIBS)
-test_test_bitcoin_silver_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS) -static
+test_test_bitcoinsilver_LDADD += $(BDB_LIBS) $(MINIUPNPC_LIBS) $(NATPMP_LIBS) $(SQLITE_LIBS)
+test_test_bitcoinsilver_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS) -static
 
 if ENABLE_ZMQ
-test_test_bitcoin_silver_LDADD += $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
-FUZZ_SUITE_LD_COMMON += $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
+test_test_bitcoinsilver_LDADD += $(LIBBITCOINSILVER_ZMQ) $(ZMQ_LIBS)
+FUZZ_SUITE_LD_COMMON += $(LIBBITCOINSILVER_ZMQ) $(ZMQ_LIBS)
 endif
 
-FUZZ_SUITE_LDFLAGS_COMMON = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
-
 if ENABLE_FUZZ_BINARY
-test_fuzz_fuzz_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
+test_fuzz_fuzz_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES) $(BOOST_CPPFLAGS)
 test_fuzz_fuzz_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 test_fuzz_fuzz_LDADD = $(FUZZ_SUITE_LD_COMMON)
-test_fuzz_fuzz_LDFLAGS = $(FUZZ_SUITE_LDFLAGS_COMMON)
+test_fuzz_fuzz_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS) $(RUNTIME_LDFLAGS)
 test_fuzz_fuzz_SOURCES = \
+ $(FUZZ_WALLET_SRC) \
  test/fuzz/addition_overflow.cpp \
- test/fuzz/addrdb.cpp \
  test/fuzz/addrman.cpp \
  test/fuzz/asmap.cpp \
  test/fuzz/asmap_direct.cpp \
@@ -212,6 +247,8 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/banman.cpp \
  test/fuzz/base_encode_decode.cpp \
  test/fuzz/bech32.cpp \
+ test/fuzz/bip324.cpp \
+ test/fuzz/bitdeque.cpp \
  test/fuzz/block.cpp \
  test/fuzz/block_header.cpp \
  test/fuzz/blockfilter.cpp \
@@ -220,17 +257,17 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/chain.cpp \
  test/fuzz/checkqueue.cpp \
  test/fuzz/coins_view.cpp \
+ test/fuzz/coinscache_sim.cpp \
  test/fuzz/connman.cpp \
  test/fuzz/crypto.cpp \
  test/fuzz/crypto_aes256.cpp \
  test/fuzz/crypto_aes256cbc.cpp \
  test/fuzz/crypto_chacha20.cpp \
- test/fuzz/crypto_chacha20_poly1305_aead.cpp \
  test/fuzz/crypto_common.cpp \
+ test/fuzz/crypto_diff_fuzz_chacha20.cpp \
  test/fuzz/crypto_hkdf_hmac_sha256_l32.cpp \
  test/fuzz/crypto_poly1305.cpp \
  test/fuzz/cuckoocache.cpp \
- test/fuzz/data_stream.cpp \
  test/fuzz/decode_tx.cpp \
  test/fuzz/descriptor_parse.cpp \
  test/fuzz/deserialize.cpp \
@@ -240,9 +277,9 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/flatfile.cpp \
  test/fuzz/float.cpp \
  test/fuzz/golomb_rice.cpp \
+ test/fuzz/headerssync.cpp \
  test/fuzz/hex.cpp \
  test/fuzz/http_request.cpp \
- test/fuzz/i2p.cpp \
  test/fuzz/integer.cpp \
  test/fuzz/key.cpp \
  test/fuzz/key_io.cpp \
@@ -251,6 +288,9 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/locale.cpp \
  test/fuzz/merkleblock.cpp \
  test/fuzz/message.cpp \
+ test/fuzz/miniscript.cpp \
+ test/fuzz/minisketch.cpp \
+ test/fuzz/mini_miner.cpp \
  test/fuzz/muhash.cpp \
  test/fuzz/multiplication_overflow.cpp \
  test/fuzz/net.cpp \
@@ -259,13 +299,15 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/netbase_dns_lookup.cpp \
  test/fuzz/node_eviction.cpp \
  test/fuzz/p2p_transport_serialization.cpp \
+ test/fuzz/package_eval.cpp \
  test/fuzz/parse_hd_keypath.cpp \
- test/fuzz/parse_iso8601.cpp \
  test/fuzz/parse_numbers.cpp \
  test/fuzz/parse_script.cpp \
  test/fuzz/parse_univalue.cpp \
+ test/fuzz/partially_downloaded_block.cpp \
  test/fuzz/policy_estimator.cpp \
  test/fuzz/policy_estimator_io.cpp \
+ test/fuzz/poolresource.cpp \
  test/fuzz/pow.cpp \
  test/fuzz/prevector.cpp \
  test/fuzz/primitives_transaction.cpp \
@@ -279,9 +321,10 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/rpc.cpp \
  test/fuzz/script.cpp \
  test/fuzz/script_assets_test_minimizer.cpp \
- test/fuzz/script_bitcoin_silver_consensus.cpp \
+ test/fuzz/script_bitcoinsilver_consensus.cpp \
  test/fuzz/script_descriptor_cache.cpp \
  test/fuzz/script_flags.cpp \
+ test/fuzz/script_format.cpp \
  test/fuzz/script_interpreter.cpp \
  test/fuzz/script_ops.cpp \
  test/fuzz/script_sigcache.cpp \
@@ -303,74 +346,91 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/tx_in.cpp \
  test/fuzz/tx_out.cpp \
  test/fuzz/tx_pool.cpp \
+ test/fuzz/txorphan.cpp \
  test/fuzz/txrequest.cpp \
  test/fuzz/utxo_snapshot.cpp \
+ test/fuzz/utxo_total_supply.cpp \
  test/fuzz/validation_load_mempool.cpp \
  test/fuzz/versionbits.cpp
 endif # ENABLE_FUZZ_BINARY
 
-nodist_test_test_bitcoin_silver_SOURCES = $(GENERATED_TEST_FILES)
+nodist_test_test_bitcoinsilver_SOURCES = $(GENERATED_TEST_FILES)
 
-$(BITCOIN_SILVER_TESTS): $(GENERATED_TEST_FILES)
+$(BITCOINSILVER_TESTS): $(GENERATED_TEST_FILES)
 
-CLEAN_BITCOIN_SILVER_TEST = test/*.gcda test/*.gcno test/fuzz/*.gcda test/fuzz/*.gcno test/util/*.gcda test/util/*.gcno $(GENERATED_TEST_FILES) $(BITCOIN_SILVER_TESTS:=.log)
+CLEAN_BITCOINSILVER_TEST = test/*.gcda test/*.gcno test/fuzz/*.gcda test/fuzz/*.gcno test/util/*.gcda test/util/*.gcno $(GENERATED_TEST_FILES) $(addsuffix .log,$(basename $(BITCOINSILVER_TESTS)))
 
-CLEANFILES += $(CLEAN_BITCOIN_SILVER_TEST)
+CLEANFILES += $(CLEAN_BITCOINSILVER_TEST)
 
 if TARGET_WINDOWS
-bitcoin_silver_test: $(TEST_BINARY)
+bitcoinsilver_test: $(TEST_BINARY)
 else
 if ENABLE_BENCH
-bitcoin_silver_test: $(TEST_BINARY) $(BENCH_BINARY)
+bitcoinsilver_test: $(TEST_BINARY) $(BENCH_BINARY)
 else
-bitcoin_silver_test: $(TEST_BINARY)
+bitcoinsilver_test: $(TEST_BINARY)
 endif
 endif
 
-bitcoin_silver_test_check: $(TEST_BINARY) FORCE
+bitcoinsilver_test_check: $(TEST_BINARY) FORCE
 	$(MAKE) check-TESTS TESTS=$^
 
-bitcoin_silver_test_clean : FORCE
-	rm -f $(CLEAN_BITCOIN_SILVER_TEST) $(test_test_bitcoin_silver_OBJECTS) $(TEST_BINARY)
+bitcoinsilver_test_clean : FORCE
+	rm -f $(CLEAN_BITCOINSILVER_TEST) $(test_test_bitcoinsilver_OBJECTS) $(TEST_BINARY)
 
-check-local: $(BITCOIN_SILVER_TESTS:.cpp=.cpp.test)
-if BUILD_BITCOIN_SILVER_TX
-	@echo "Running test/util/bitcoin_silver-util-test.py..."
-	$(PYTHON) $(top_builddir)/test/util/bitcoin_silver-util-test.py
+check-local: $(BITCOINSILVER_TESTS:.cpp=.cpp.test)
+if BUILD_BITCOINSILVER_TX
+	@echo "Running test/util/test_runner.py..."
+	$(PYTHON) $(top_builddir)/test/util/test_runner.py
 endif
 	@echo "Running test/util/rpcauth-test.py..."
 	$(PYTHON) $(top_builddir)/test/util/rpcauth-test.py
 if TARGET_WINDOWS
 else
 if ENABLE_BENCH
-	@echo "Running bench/bench_bitcoin_silver ..."
-	$(BENCH_BINARY) > /dev/null
+	@echo "Running bench/bench_bitcoin (one iteration sanity check, only high priority)..."
+	$(BENCH_BINARY) -sanity-check -priority-level=high
 endif
 endif
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C secp256k1 check
-if EMBEDDED_UNIVALUE
-	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C univalue check
+
+if ENABLE_TESTS
+UNIVALUE_TESTS = univalue/test/object univalue/test/unitester
+noinst_PROGRAMS += $(UNIVALUE_TESTS)
+TESTS += $(UNIVALUE_TESTS)
+
+univalue_test_unitester_SOURCES = $(UNIVALUE_TEST_UNITESTER_INT)
+univalue_test_unitester_LDADD = $(LIBUNIVALUE)
+univalue_test_unitester_CPPFLAGS = -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT) -DJSON_TEST_SRC=\"$(srcdir)/$(UNIVALUE_TEST_DATA_DIR_INT)\"
+univalue_test_unitester_LDFLAGS = -static $(LIBTOOL_APP_LDFLAGS)
+
+univalue_test_object_SOURCES = $(UNIVALUE_TEST_OBJECT_INT)
+univalue_test_object_LDADD = $(LIBUNIVALUE)
+univalue_test_object_CPPFLAGS = -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT)
+univalue_test_object_LDFLAGS = -static $(LIBTOOL_APP_LDFLAGS)
 endif
 
 %.cpp.test: %.cpp
-	@echo Running tests: `cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1` from $<
-	$(AM_V_at)$(TEST_BINARY) --catch_system_errors=no -l test_suite -t "`cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`" -- DEBUG_LOG_OUT > $<.log 2>&1 || (cat $<.log && false)
+	@echo Running tests: $$(\
+	  cat $< | \
+	  grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | \
+	  cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1\
+	) from $<
+	$(AM_V_at)export TEST_LOGFILE=$(abs_builddir)/$$(\
+	  echo $< | grep -E -o "(wallet/test/.*\.cpp|test/.*\.cpp)" | $(SED) -e s/\.cpp/.log/ \
+	) && \
+	$(TEST_BINARY) --catch_system_errors=no -l test_suite -t "$$(\
+	  cat $< | \
+	  grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | \
+	  cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1\
+	)" -- DEBUG_LOG_OUT > "$$TEST_LOGFILE" 2>&1 || (cat "$$TEST_LOGFILE" && false)
 
 %.json.h: %.json
 	@$(MKDIR_P) $(@D)
-	@{ \
+	$(AM_V_GEN) { \
+	 echo "#include <string>" && \
 	 echo "namespace json_tests{" && \
-	 echo "static unsigned const char $(*F)[] = {" && \
+	 echo "static const std::string $(*F){" && \
 	 $(HEXDUMP) -v -e '8/1 "0x%02x, "' -e '"\n"' $< | $(SED) -e 's/0x  ,//g' && \
 	 echo "};};"; \
 	} > "$@.new" && mv -f "$@.new" "$@"
-	@echo "Generated $@"
-
-%.raw.h: %.raw
-	@$(MKDIR_P) $(@D)
-	@{ \
-	 echo "static unsigned const char $(*F)_raw[] = {" && \
-	 $(HEXDUMP) -v -e '8/1 "0x%02x, "' -e '"\n"' $< | $(SED) -e 's/0x  ,//g' && \
-	 echo "};"; \
-	} > "$@.new" && mv -f "$@.new" "$@"
-	@echo "Generated $@"

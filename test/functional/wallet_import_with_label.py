@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2018-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the behavior of RPC importprivkey on set and unset labels of
@@ -10,11 +10,14 @@ with or without a label and then its private key is imported with importprivkey
 with and without a label.
 """
 
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.wallet_util import test_address
 
 
-class ImportWithLabel(Bitcoin_SilverTestFramework):
+class ImportWithLabel(BitcoinTestFramework):
+    def add_options(self, parser):
+        self.add_wallet_options(parser, descriptors=False)
+
     def set_test_params(self):
         self.num_nodes = 2
         self.setup_clean_chain = True

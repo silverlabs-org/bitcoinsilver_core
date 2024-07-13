@@ -1,9 +1,9 @@
-// Copyright (c) 2019-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2019-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_SIGNET_H
-#define BITCOIN_SILVER_SIGNET_H
+#ifndef BITCOINSILVER_SIGNET_H
+#define BITCOINSILVER_SIGNET_H
 
 #include <consensus/params.h>
 #include <primitives/block.h>
@@ -34,4 +34,4 @@ public:
     const CTransaction m_to_sign;
 };
 
-#endif // BITCOIN_SILVER_SIGNET_H
+#endif // BITCOINSILVER_SIGNET_H

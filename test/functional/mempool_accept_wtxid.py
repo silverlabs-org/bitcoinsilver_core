@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-# Copyright (c) 2021 The Bitcoin_Silver Core developers
+# Copyright (c) 2021 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
 Test mempool acceptance in case of an already known transaction
-with identical non-witness data different witness.
+with identical non-witness data but different witness.
 """
 
+from copy import deepcopy
 from test_framework.messages import (
     COIN,
     COutPoint,
@@ -28,12 +29,12 @@ from test_framework.script import (
     OP_TRUE,
     hash160,
 )
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
 
-class MempoolWtxidTest(Bitcoin_SilverTestFramework):
+class MempoolWtxidTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
@@ -43,7 +44,7 @@ class MempoolWtxidTest(Bitcoin_SilverTestFramework):
 
         self.log.info('Start with empty mempool and 101 blocks')
         # The last 100 coinbase transactions are premature
-        blockhash = node.generate(101)[0]
+        blockhash = self.generate(node, 101)[0]
         txid = node.getblock(blockhash=blockhash, verbosity=2)["tx"][0]["txid"]
         assert_equal(node.getmempoolinfo()['size'], 0)
 
@@ -61,7 +62,7 @@ class MempoolWtxidTest(Bitcoin_SilverTestFramework):
         privkeys = [node.get_deterministic_priv_key().key]
         raw_parent = node.signrawtransactionwithkey(hexstring=parent.serialize().hex(), privkeys=privkeys)['hex']
         parent_txid = node.sendrawtransaction(hexstring=raw_parent, maxfeerate=0)
-        node.generate(1)
+        self.generate(node, 1)
 
         peer_wtxid_relay = node.add_p2p_connection(P2PTxInvStore())
 
@@ -79,10 +80,7 @@ class MempoolWtxidTest(Bitcoin_SilverTestFramework):
         child_one_txid = child_one.rehash()
 
         # Create another identical transaction with witness solving second branch
-        child_two = CTransaction()
-        child_two.vin.append(CTxIn(COutPoint(int(parent_txid, 16), 0), b""))
-        child_two.vout.append(CTxOut(int(9.99996 * COIN), child_script_pubkey))
-        child_two.wit.vtxinwit.append(CTxInWitness())
+        child_two = deepcopy(child_one)
         child_two.wit.vtxinwit[0].scriptWitness.stack = [b'', witness_script]
         child_two_wtxid = child_two.getwtxid()
         child_two_txid = child_two.rehash()
@@ -92,7 +90,7 @@ class MempoolWtxidTest(Bitcoin_SilverTestFramework):
 
         self.log.info("Submit child_one to the mempool")
         txid_submitted = node.sendrawtransaction(child_one.serialize().hex())
-        assert_equal(node.getrawmempool(True)[txid_submitted]['wtxid'], child_one_wtxid)
+        assert_equal(node.getmempoolentry(txid_submitted)['wtxid'], child_one_wtxid)
 
         peer_wtxid_relay.wait_for_broadcast([child_one_wtxid])
         assert_equal(node.getmempoolinfo()["unbroadcastcount"], 0)
@@ -104,8 +102,7 @@ class MempoolWtxidTest(Bitcoin_SilverTestFramework):
             "allowed": False,
             "reject-reason": "txn-already-in-mempool"
         }])
-        testres_child_two = node.testmempoolaccept([child_two.serialize().hex()])[0]
-        assert_equal(testres_child_two, {
+        assert_equal(node.testmempoolaccept([child_two.serialize().hex()])[0], {
             "txid": child_two_txid,
             "wtxid": child_two_wtxid,
             "allowed": False,

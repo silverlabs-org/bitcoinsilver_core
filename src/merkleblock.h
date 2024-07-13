@@ -1,15 +1,15 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_MERKLEBLOCK_H
-#define BITCOIN_SILVER_MERKLEBLOCK_H
+#ifndef BITCOINSILVER_MERKLEBLOCK_H
+#define BITCOINSILVER_MERKLEBLOCK_H
 
+#include <common/bloom.h>
+#include <primitives/block.h>
 #include <serialize.h>
 #include <uint256.h>
-#include <primitives/block.h>
-#include <bloom.h>
 
 #include <vector>
 
@@ -155,4 +155,4 @@ private:
     CMerkleBlock(const CBlock& block, CBloomFilter* filter, const std::set<uint256>* txids);
 };
 
-#endif // BITCOIN_SILVER_MERKLEBLOCK_H
+#endif // BITCOINSILVER_MERKLEBLOCK_H

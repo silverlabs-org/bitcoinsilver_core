@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,7 +13,7 @@
 - (NSString *)__bundleIdentifier
 {
     if (self == [NSBundle mainBundle]) {
-        return @"org.bitcoin_silverfoundation.Bitcoin_Silver-Qt";
+        return @"org.bitcoinfoundation.BitcoinSilver-Qt";
     } else {
         return [self __bundleIdentifier];
     }

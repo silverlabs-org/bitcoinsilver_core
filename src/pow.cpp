@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,6 +14,11 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 {
     assert(pindexLast != nullptr);
     unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
+
+
+
+    if (pindexLast->nHeight > 1)
+        return LwmaCalculateNextWorkRequired(pindexLast, params);
 
     // Only change once per difficulty adjustment interval
     if ((pindexLast->nHeight+1) % params.DifficultyAdjustmentInterval() != 0)
@@ -46,6 +51,46 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     return CalculateNextWorkRequired(pindexLast, pindexFirst->GetBlockTime(), params);
 }
 
+
+unsigned int LwmaCalculateNextWorkRequired(const CBlockIndex* pindexLast, const Consensus::Params& params)
+{
+    const int64_t T = params.nPowTargetSpacing;
+    const int64_t N = 96;
+    const int64_t k = N * (N + 1) * T / 2;
+    const int64_t height = pindexLast->nHeight;
+    const arith_uint256 powLimit = UintToArith256(params.powLimit);
+
+    if (height < N) { return powLimit.GetCompact(); }
+
+    arith_uint256 sumTarget, nextTarget;
+    int64_t thisTimestamp, previousTimestamp;
+    int64_t t = 0, j = 0;
+
+    const CBlockIndex* blockPreviousTimestamp = pindexLast->GetAncestor(height - N);
+    previousTimestamp = blockPreviousTimestamp->GetBlockTime();
+
+    // Loop through N most recent blocks. 
+    for (int64_t i = height - N + 1; i <= height; i++) {
+        const CBlockIndex* block = pindexLast->GetAncestor(i);
+        thisTimestamp = (block->GetBlockTime() > previousTimestamp) ? 
+                            block->GetBlockTime() : previousTimestamp + 1;
+
+        int64_t solvetime = std::min(6 * T, thisTimestamp - previousTimestamp);
+        previousTimestamp = thisTimestamp;
+
+        j++;
+        t += solvetime * j; // Weighted solvetime sum.
+        arith_uint256 target;
+        target.SetCompact(block->nBits);
+        sumTarget += target / (k * N);
+    }
+    nextTarget = t * sumTarget;
+
+    if (nextTarget > powLimit) { nextTarget = powLimit; }
+
+    return nextTarget.GetCompact();
+}
+
 unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime, const Consensus::Params& params)
 {
     if (params.fPowNoRetargeting)
@@ -69,6 +114,57 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
         bnNew = bnPowLimit;
 
     return bnNew.GetCompact();
+}
+
+// Check that on difficulty adjustments, the new difficulty does not increase
+// or decrease beyond the permitted limits.
+bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t height, uint32_t old_nbits, uint32_t new_nbits)
+{
+    if (params.fPowAllowMinDifficultyBlocks) return true;
+
+    if (height % params.DifficultyAdjustmentInterval() == 0) {
+        int64_t smallest_timespan = params.nPowTargetTimespan/4;
+        int64_t largest_timespan = params.nPowTargetTimespan*4;
+
+        const arith_uint256 pow_limit = UintToArith256(params.powLimit);
+        arith_uint256 observed_new_target;
+        observed_new_target.SetCompact(new_nbits);
+
+        // Calculate the largest difficulty value possible:
+        arith_uint256 largest_difficulty_target;
+        largest_difficulty_target.SetCompact(old_nbits);
+        largest_difficulty_target *= largest_timespan;
+        largest_difficulty_target /= params.nPowTargetTimespan;
+
+        if (largest_difficulty_target > pow_limit) {
+            largest_difficulty_target = pow_limit;
+        }
+
+        // Round and then compare this new calculated value to what is
+        // observed.
+        arith_uint256 maximum_new_target;
+        maximum_new_target.SetCompact(largest_difficulty_target.GetCompact());
+        if (maximum_new_target < observed_new_target) return false;
+
+        // Calculate the smallest difficulty value possible:
+        arith_uint256 smallest_difficulty_target;
+        smallest_difficulty_target.SetCompact(old_nbits);
+        smallest_difficulty_target *= smallest_timespan;
+        smallest_difficulty_target /= params.nPowTargetTimespan;
+
+        if (smallest_difficulty_target > pow_limit) {
+            smallest_difficulty_target = pow_limit;
+        }
+
+        // Round and then compare this new calculated value to what is
+        // observed.
+        arith_uint256 minimum_new_target;
+        minimum_new_target.SetCompact(smallest_difficulty_target.GetCompact());
+        if (minimum_new_target > observed_new_target) return false;
+    } else if (old_nbits != new_nbits) {
+        return false;
+    }
+    return true;
 }
 
 bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)

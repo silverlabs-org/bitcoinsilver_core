@@ -1,11 +1,12 @@
-// Copyright (c) 2018 The Bitcoin_Silver Core developers
+// Copyright (c) 2018-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_UTIL_BYTEVECTORHASH_H
-#define BITCOIN_SILVER_UTIL_BYTEVECTORHASH_H
+#ifndef BITCOINSILVER_UTIL_BYTEVECTORHASH_H
+#define BITCOINSILVER_UTIL_BYTEVECTORHASH_H
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstddef>
 #include <vector>
 
 /**
@@ -23,4 +24,4 @@ public:
     size_t operator()(const std::vector<unsigned char>& input) const;
 };
 
-#endif // BITCOIN_SILVER_UTIL_BYTEVECTORHASH_H
+#endif // BITCOINSILVER_UTIL_BYTEVECTORHASH_H

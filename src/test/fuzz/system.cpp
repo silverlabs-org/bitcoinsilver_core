@@ -1,17 +1,23 @@
-// Copyright (c) 2020-2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2020-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <common/args.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
-#include <util/system.h>
+#include <test/util/setup_common.h>
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
 namespace {
+void initialize_system()
+{
+    static const auto testing_setup = MakeNoLogFileContext<>();
+}
+
 std::string GetArgumentName(const std::string& name)
 {
     size_t idx = name.find('=');
@@ -20,9 +26,8 @@ std::string GetArgumentName(const std::string& name)
     }
     return name.substr(0, idx);
 }
-} // namespace
 
-FUZZ_TARGET(system)
+FUZZ_TARGET(system, .init = initialize_system)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     ArgsManager args_manager{};
@@ -31,7 +36,8 @@ FUZZ_TARGET(system)
         SetupHelpOptions(args_manager);
     }
 
-    while (fuzzed_data_provider.ConsumeBool()) {
+    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 3000)
+    {
         CallOneOf(
             fuzzed_data_provider,
             [&] {
@@ -49,7 +55,7 @@ FUZZ_TARGET(system)
             [&] {
                 const OptionsCategory options_category = fuzzed_data_provider.PickValueInArray<OptionsCategory>({OptionsCategory::OPTIONS, OptionsCategory::CONNECTION, OptionsCategory::WALLET, OptionsCategory::WALLET_DEBUG_TEST, OptionsCategory::ZMQ, OptionsCategory::DEBUG_TEST, OptionsCategory::CHAINPARAMS, OptionsCategory::NODE_RELAY, OptionsCategory::BLOCK_CREATION, OptionsCategory::RPC, OptionsCategory::GUI, OptionsCategory::COMMANDS, OptionsCategory::REGISTER_COMMANDS, OptionsCategory::HIDDEN});
                 // Avoid hitting:
-                // util/system.cpp:425: void ArgsManager::AddArg(const std::string &, const std::string &, unsigned int, const OptionsCategory &): Assertion `ret.second' failed.
+                // common/args.cpp:563: void ArgsManager::AddArg(const std::string &, const std::string &, unsigned int, const OptionsCategory &): Assertion `ret.second' failed.
                 const std::string argument_name = GetArgumentName(fuzzed_data_provider.ConsumeRandomLengthString(16));
                 if (args_manager.GetArgFlags(argument_name) != std::nullopt) {
                     return;
@@ -58,7 +64,7 @@ FUZZ_TARGET(system)
             },
             [&] {
                 // Avoid hitting:
-                // util/system.cpp:425: void ArgsManager::AddArg(const std::string &, const std::string &, unsigned int, const OptionsCategory &): Assertion `ret.second' failed.
+                // common/args.cpp:563: void ArgsManager::AddArg(const std::string &, const std::string &, unsigned int, const OptionsCategory &): Assertion `ret.second' failed.
                 const std::vector<std::string> names = ConsumeRandomLengthStringVector(fuzzed_data_provider);
                 std::vector<std::string> hidden_arguments;
                 for (const std::string& name : names) {
@@ -96,13 +102,13 @@ FUZZ_TARGET(system)
     const int64_t i64 = fuzzed_data_provider.ConsumeIntegral<int64_t>();
     const bool b = fuzzed_data_provider.ConsumeBool();
 
-    (void)args_manager.GetArg(s1, i64);
+    (void)args_manager.GetIntArg(s1, i64);
     (void)args_manager.GetArg(s1, s2);
     (void)args_manager.GetArgFlags(s1);
     (void)args_manager.GetArgs(s1);
     (void)args_manager.GetBoolArg(s1, b);
     try {
-        (void)args_manager.GetChainName();
+        (void)args_manager.GetChainTypeString();
     } catch (const std::runtime_error&) {
     }
     (void)args_manager.GetHelpMessage();
@@ -113,3 +119,4 @@ FUZZ_TARGET(system)
 
     (void)HelpRequested(args_manager);
 }
+} // namespace

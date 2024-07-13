@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
-# Copyright (c) 2019 The Bitcoin_Silver Core developers
+# Copyright (c) 2019-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 
 class TestShell:
-    """Wrapper Class for Bitcoin_SilverTestFramework.
+    """Wrapper Class for BitcoinTestFramework.
 
-    The TestShell class extends the Bitcoin_SilverTestFramework
+    The TestShell class extends the BitcoinTestFramework
     rpc & daemon process management functionality to external
     python environments.
 
     It is a singleton class, which ensures that users only
     start a single TestShell at a time."""
 
-    class __TestShell(Bitcoin_SilverTestFramework):
+    class __TestShell(BitcoinTestFramework):
+        def add_options(self, parser):
+            self.add_wallet_options(parser)
+
         def set_test_params(self):
             pass
 
@@ -28,7 +31,7 @@ class TestShell:
                 return
 
             # Num_nodes parameter must be set
-            # by Bitcoin_SilverTestFramework child class.
+            # by BitcoinTestFramework child class.
             self.num_nodes = 1
 
             # User parameters override default values.

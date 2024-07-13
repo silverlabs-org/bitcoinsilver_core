@@ -1,11 +1,11 @@
-// Copyright (c) 2015-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2015-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_UTIL_READWRITEFILE_H
-#define BITCOIN_SILVER_UTIL_READWRITEFILE_H
+#ifndef BITCOINSILVER_UTIL_READWRITEFILE_H
+#define BITCOINSILVER_UTIL_READWRITEFILE_H
 
-#include <fs.h>
+#include <util/fs.h>
 
 #include <limits>
 #include <string>
@@ -25,4 +25,4 @@ std::pair<bool,std::string> ReadBinaryFile(const fs::path &filename, size_t maxs
  */
 bool WriteBinaryFile(const fs::path &filename, const std::string &data);
 
-#endif /* BITCOIN_SILVER_UTIL_READWRITEFILE_H */
+#endif // BITCOINSILVER_UTIL_READWRITEFILE_H

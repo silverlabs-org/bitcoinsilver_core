@@ -1,11 +1,11 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/receiverequestdialog.h>
 #include <qt/forms/ui_receiverequestdialog.h>
 
-#include <qt/bitcoin_silverunits.h>
+#include <qt/bitcoinsilverunits.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 #include <qt/qrimagewidget.h>
@@ -15,13 +15,12 @@
 #include <QString>
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin_silver-config.h> /* for USE_QRCODE */
+#include <config/bitcoinsilver-config.h> /* for USE_QRCODE */
 #endif
 
-ReceiveRequestDialog::ReceiveRequestDialog(QWidget *parent) :
-    QDialog(parent, GUIUtil::dialog_flags),
-    ui(new Ui::ReceiveRequestDialog),
-    model(nullptr)
+ReceiveRequestDialog::ReceiveRequestDialog(QWidget* parent)
+    : QDialog(parent, GUIUtil::dialog_flags),
+      ui(new Ui::ReceiveRequestDialog)
 {
     ui->setupUi(this);
     GUIUtil::handleCloseWindowShortcut(this);
@@ -47,7 +46,7 @@ void ReceiveRequestDialog::setInfo(const SendCoinsRecipient &_info)
 {
     this->info = _info;
     setWindowTitle(tr("Request payment to %1").arg(info.label.isEmpty() ? info.address : info.label));
-    QString uri = GUIUtil::formatBitcoin_SilverURI(info);
+    QString uri = GUIUtil::formatBitcoinURI(info);
 
 #ifdef USE_QRCODE
     if (ui->qr_code->setQR(uri, info.address)) {
@@ -100,12 +99,12 @@ void ReceiveRequestDialog::setInfo(const SendCoinsRecipient &_info)
 void ReceiveRequestDialog::updateDisplayUnit()
 {
     if (!model) return;
-    ui->amount_content->setText(Bitcoin_SilverUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), info.amount));
+    ui->amount_content->setText(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), info.amount));
 }
 
 void ReceiveRequestDialog::on_btnCopyURI_clicked()
 {
-    GUIUtil::setClipboard(GUIUtil::formatBitcoin_SilverURI(info));
+    GUIUtil::setClipboard(GUIUtil::formatBitcoinURI(info));
 }
 
 void ReceiveRequestDialog::on_btnCopyAddress_clicked()

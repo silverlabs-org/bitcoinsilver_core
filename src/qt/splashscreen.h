@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_SPLASHSCREEN_H
-#define BITCOIN_SILVER_QT_SPLASHSCREEN_H
+#ifndef BITCOINSILVER_QT_SPLASHSCREEN_H
+#define BITCOINSILVER_QT_SPLASHSCREEN_H
 
 #include <QWidget>
 
@@ -19,7 +19,7 @@ class Wallet;
 
 /** Class for the splashscreen with information of the running client.
  *
- * @note this is intentionally not a QSplashScreen. Bitcoin_Silver Core initialization
+ * @note this is intentionally not a QSplashScreen. BitcoinSilver initialization
  * can take a long time, and in that case a progress window that cannot be
  * moved around and minimized has turned out to be frustrating to the user.
  */
@@ -37,9 +37,6 @@ protected:
     void closeEvent(QCloseEvent *event) override;
 
 public Q_SLOTS:
-    /** Hide the splash screen window and schedule the splash screen object for deletion */
-    void finish();
-
     /** Show message and progress */
     void showMessage(const QString &message, int alignment, const QColor &color);
 
@@ -60,15 +57,16 @@ private:
     QPixmap pixmap;
     QString curMessage;
     QColor curColor;
-    int curAlignment;
+    int curAlignment{0};
 
     interfaces::Node* m_node = nullptr;
     bool m_shutdown = false;
     std::unique_ptr<interfaces::Handler> m_handler_init_message;
     std::unique_ptr<interfaces::Handler> m_handler_show_progress;
+    std::unique_ptr<interfaces::Handler> m_handler_init_wallet;
     std::unique_ptr<interfaces::Handler> m_handler_load_wallet;
     std::list<std::unique_ptr<interfaces::Wallet>> m_connected_wallets;
     std::list<std::unique_ptr<interfaces::Handler>> m_connected_wallet_handlers;
 };
 
-#endif // BITCOIN_SILVER_QT_SPLASHSCREEN_H
+#endif // BITCOINSILVER_QT_SPLASHSCREEN_H

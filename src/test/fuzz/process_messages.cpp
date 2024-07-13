@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2020-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,11 +9,11 @@
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
+#include <test/fuzz/util/net.h>
 #include <test/util/mining.h>
 #include <test/util/net.h>
 #include <test/util/setup_common.h>
 #include <test/util/validation.h>
-#include <txorphanage.h>
 #include <validation.h>
 #include <validationinterface.h>
 
@@ -23,7 +23,9 @@ const TestingSetup* g_setup;
 
 void initialize_process_messages()
 {
-    static const auto testing_setup = MakeNoLogFileContext<const TestingSetup>();
+    static const auto testing_setup = MakeNoLogFileContext<const TestingSetup>(
+            /*chain_type=*/ChainType::REGTEST,
+            /*extra_args=*/{"-txreconciliation"});
     g_setup = testing_setup.get();
     for (int i = 0; i < 2 * COINBASE_MATURITY; i++) {
         MineBlock(g_setup->m_node, CScript() << OP_TRUE);
@@ -31,14 +33,16 @@ void initialize_process_messages()
     SyncWithValidationInterfaceQueue();
 }
 
-FUZZ_TARGET_INIT(process_messages, initialize_process_messages)
+FUZZ_TARGET(process_messages, .init = initialize_process_messages)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
 
     ConnmanTestMsg& connman = *static_cast<ConnmanTestMsg*>(g_setup->m_node.connman.get());
-    TestChainState& chainstate = *static_cast<TestChainState*>(&g_setup->m_node.chainman->ActiveChainstate());
+    auto& chainman = static_cast<TestChainstateManager&>(*g_setup->m_node.chainman);
     SetMockTime(1610000000); // any time to successfully reset ibd
-    chainstate.ResetIbd();
+    chainman.ResetIbd();
+
+    LOCK(NetEventsInterface::g_msgproc_mutex);
 
     std::vector<CNode*> peers;
     const auto num_peers_to_add = fuzzed_data_provider.ConsumeIntegralInRange(1, 3);
@@ -46,16 +50,12 @@ FUZZ_TARGET_INIT(process_messages, initialize_process_messages)
         peers.push_back(ConsumeNodeAsUniquePtr(fuzzed_data_provider, i).release());
         CNode& p2p_node = *peers.back();
 
-        const bool successfully_connected{fuzzed_data_provider.ConsumeBool()};
-        p2p_node.fSuccessfullyConnected = successfully_connected;
-        p2p_node.fPauseSend = false;
-        g_setup->m_node.peerman->InitializeNode(&p2p_node);
-        FillNode(fuzzed_data_provider, p2p_node, /* init_version */ successfully_connected);
+        FillNode(fuzzed_data_provider, connman, p2p_node);
 
         connman.AddTestNode(p2p_node);
     }
 
-    while (fuzzed_data_provider.ConsumeBool()) {
+    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
         const std::string random_message_type{fuzzed_data_provider.ConsumeBytesAsString(CMessageHeader::COMMAND_SIZE).c_str()};
 
         const auto mock_time = ConsumeTime(fuzzed_data_provider);
@@ -67,17 +67,15 @@ FUZZ_TARGET_INIT(process_messages, initialize_process_messages)
 
         CNode& random_node = *PickValue(fuzzed_data_provider, peers);
 
-        (void)connman.ReceiveMsgFrom(random_node, net_msg);
+        connman.FlushSendBuffer(random_node);
+        (void)connman.ReceiveMsgFrom(random_node, std::move(net_msg));
         random_node.fPauseSend = false;
 
         try {
             connman.ProcessMessagesOnce(random_node);
         } catch (const std::ios_base::failure&) {
         }
-        {
-            LOCK(random_node.cs_sendProcessing);
-            g_setup->m_node.peerman->SendMessages(&random_node);
-        }
+        g_setup->m_node.peerman->SendMessages(&random_node);
     }
     SyncWithValidationInterfaceQueue();
     g_setup->m_node.connman->StopNodes();

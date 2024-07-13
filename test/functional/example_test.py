@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2017-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """An example functional test
@@ -14,15 +14,22 @@ is testing and *how* it's being tested
 from collections import defaultdict
 
 # Avoid wildcard * imports
-from test_framework.blocktools import (create_block, create_coinbase)
-from test_framework.messages import CInv, MSG_BLOCK
+# Use lexicographically sorted multi-line imports
+from test_framework.blocktools import (
+    create_block,
+    create_coinbase,
+)
+from test_framework.messages import (
+    CInv,
+    MSG_BLOCK,
+)
 from test_framework.p2p import (
     P2PInterface,
     msg_block,
     msg_getdata,
     p2p_lock,
 )
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
@@ -62,15 +69,18 @@ def custom_function():
 
     If this function is more generally useful for other tests, consider
     moving it to a module in test_framework."""
-    # self.log.info("running custom_function")  # Oops! Can't run self.log outside the Bitcoin_SilverTestFramework
+    # self.log.info("running custom_function")  # Oops! Can't run self.log outside the BitcoinTestFramework
     pass
 
 
-class ExampleTest(Bitcoin_SilverTestFramework):
-    # Each functional test is a subclass of the Bitcoin_SilverTestFramework class.
+class ExampleTest(BitcoinTestFramework):
+    # Each functional test is a subclass of the BitcoinTestFramework class.
 
     # Override the set_test_params(), skip_test_if_missing_module(), add_options(), setup_chain(), setup_network()
     # and setup_nodes() methods to customize the test setup as required.
+
+    def add_options(self, parser):
+        self.add_wallet_options(parser)
 
     def set_test_params(self):
         """Override test parameters for your individual test.
@@ -130,7 +140,7 @@ class ExampleTest(Bitcoin_SilverTestFramework):
 
         Define it in a method here because you're going to use it repeatedly.
         If you think it's useful in general, consider moving it to the base
-        Bitcoin_SilverTestFramework class so other tests can use it."""
+        BitcoinTestFramework class so other tests can use it."""
 
         self.log.info("Running custom_method")
 
@@ -141,8 +151,7 @@ class ExampleTest(Bitcoin_SilverTestFramework):
         peer_messaging = self.nodes[0].add_p2p_connection(BaseNode())
 
         # Generating a block on one of the nodes will get us out of IBD
-        blocks = [int(self.nodes[0].generate(nblocks=1)[0], 16)]
-        self.sync_all(self.nodes[0:2])
+        blocks = [int(self.generate(self.nodes[0], sync_fun=lambda: self.sync_all(self.nodes[0:2]), nblocks=1)[0], 16)]
 
         # Notice above how we called an RPC by calling a method with the same
         # name on the node object. Notice also how we used a keyword argument

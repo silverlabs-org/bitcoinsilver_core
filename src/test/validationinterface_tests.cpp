@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,9 +8,12 @@
 #include <scheduler.h>
 #include <test/util/setup_common.h>
 #include <util/check.h>
+#include <kernel/chain.h>
 #include <validationinterface.h>
 
-BOOST_FIXTURE_TEST_SUITE(validationinterface_tests, TestingSetup)
+#include <atomic>
+
+BOOST_FIXTURE_TEST_SUITE(validationinterface_tests, ChainTestingSetup)
 
 struct TestSubscriberNoop final : public CValidationInterface {
     void BlockChecked(const CBlock&, const BlockValidationState&) override {}
@@ -73,7 +76,7 @@ public:
 
 // Regression test to ensure UnregisterAllValidationInterfaces calls don't
 // destroy a validation interface while it is being called. Bug:
-// https://github.com/bitcoin_silver/bitcoin_silver/pull/18551
+// https://github.com/MrVistos/bitcoinsilver/pull/18551
 BOOST_AUTO_TEST_CASE(unregister_all_during_call)
 {
     bool destroyed = false;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2018-2021 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Useful util functions for testing the wallet"""
@@ -15,19 +15,13 @@ from test_framework.address import (
     script_to_p2wsh,
 )
 from test_framework.key import ECKey
-from test_framework.script import (
-    CScript,
-    OP_2,
-    OP_3,
-    OP_CHECKMULTISIG,
-)
 from test_framework.script_util import (
     key_to_p2pkh_script,
     key_to_p2wpkh_script,
+    keys_to_multisig_script,
     script_to_p2sh_script,
     script_to_p2wsh_script,
 )
-from test_framework.util import hex_str_to_bytes
 
 Key = namedtuple('Key', ['privkey',
                          'pubkey',
@@ -69,12 +63,9 @@ def get_generate_key():
     """Generate a fresh key
 
     Returns a named tuple of privkey, pubkey and all address and scripts."""
-    eckey = ECKey()
-    eckey.generate()
-    privkey = bytes_to_wif(eckey.get_bytes())
-    pubkey = eckey.get_pubkey().get_bytes().hex()
+    privkey, pubkey = generate_keypair(wif=True)
     return Key(privkey=privkey,
-               pubkey=pubkey,
+               pubkey=pubkey.hex(),
                p2pkh_script=key_to_p2pkh_script(pubkey).hex(),
                p2pkh_addr=key_to_p2pkh(pubkey),
                p2wpkh_script=key_to_p2wpkh_script(pubkey).hex(),
@@ -93,7 +84,7 @@ def get_multisig(node):
         addr = node.getaddressinfo(node.getnewaddress())
         addrs.append(addr['address'])
         pubkeys.append(addr['pubkey'])
-    script_code = CScript([OP_2] + [hex_str_to_bytes(pubkey) for pubkey in pubkeys] + [OP_3, OP_CHECKMULTISIG])
+    script_code = keys_to_multisig_script(pubkeys, k=2)
     witness_script = script_to_p2wsh_script(script_code)
     return Multisig(privkeys=[node.dumpprivkey(addr) for addr in addrs],
                     pubkeys=pubkeys,
@@ -120,8 +111,33 @@ def bytes_to_wif(b, compressed=True):
         b += b'\x01'
     return byte_to_base58(b, 239)
 
-def generate_wif_key():
-    # Makes a WIF privkey for imports
-    k = ECKey()
-    k.generate()
-    return bytes_to_wif(k.get_bytes(), k.is_compressed)
+def generate_keypair(compressed=True, wif=False):
+    """Generate a new random keypair and return the corresponding ECKey /
+    bytes objects. The private key can also be provided as WIF (wallet
+    import format) string instead, which is often useful for wallet RPC
+    interaction."""
+    privkey = ECKey()
+    privkey.generate(compressed)
+    pubkey = privkey.get_pubkey().get_bytes()
+    if wif:
+        privkey = bytes_to_wif(privkey.get_bytes(), compressed)
+    return privkey, pubkey
+
+class WalletUnlock():
+    """
+    A context manager for unlocking a wallet with a passphrase and automatically locking it afterward.
+    """
+
+    MAXIMUM_TIMEOUT = 999000
+
+    def __init__(self, wallet, passphrase, timeout=MAXIMUM_TIMEOUT):
+        self.wallet = wallet
+        self.passphrase = passphrase
+        self.timeout = timeout
+
+    def __enter__(self):
+        self.wallet.walletpassphrase(self.passphrase, self.timeout)
+
+    def __exit__(self, *args):
+        _ = args
+        self.wallet.walletlock()

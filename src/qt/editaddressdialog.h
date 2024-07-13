@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_EDITADDRESSDIALOG_H
-#define BITCOIN_SILVER_QT_EDITADDRESSDIALOG_H
+#ifndef BITCOINSILVER_QT_EDITADDRESSDIALOG_H
+#define BITCOINSILVER_QT_EDITADDRESSDIALOG_H
 
 #include <QDialog>
 
@@ -49,11 +49,11 @@ private:
     QString getDuplicateAddressWarning() const;
 
     Ui::EditAddressDialog *ui;
-    QDataWidgetMapper *mapper;
+    QDataWidgetMapper* mapper{nullptr};
     Mode mode;
-    AddressTableModel *model;
+    AddressTableModel* model{nullptr};
 
     QString address;
 };
 
-#endif // BITCOIN_SILVER_QT_EDITADDRESSDIALOG_H
+#endif // BITCOINSILVER_QT_EDITADDRESSDIALOG_H

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2018-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """upgradewallet RPC functional test
@@ -19,7 +19,7 @@ from io import BytesIO
 from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.bdb import dump_bdb_kv
 from test_framework.messages import deser_compact_size, deser_string
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_is_hex_string,
@@ -44,7 +44,10 @@ def deser_keymeta(f):
         has_key_orig = bool(f.read(1))
     return ver, create_time, kp_str, seed_id, fpr, path_len, path, has_key_orig
 
-class UpgradeWalletTest(Bitcoin_SilverTestFramework):
+class UpgradeWalletTest(BitcoinTestFramework):
+    def add_options(self, parser):
+        self.add_wallet_options(parser, descriptors=False)
+
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
@@ -80,7 +83,7 @@ class UpgradeWalletTest(Bitcoin_SilverTestFramework):
         v0.15.2 is only being used to test for version upgrade
         and master hash key presence.
         v0.16.3 is being used to test for version upgrade and balances.
-        Further info: https://github.com/bitcoin_silver/bitcoin_silver/pull/18774#discussion_r416967844
+        Further info: https://github.com/MrVistos/bitcoinsilver/pull/18774#discussion_r416967844
         """
         node_from = self.nodes[0]
         v16_3_node = self.nodes[1]
@@ -119,8 +122,7 @@ class UpgradeWalletTest(Bitcoin_SilverTestFramework):
         assert_equal(wallet.getwalletinfo()["walletversion"], previous_version)
 
     def run_test(self):
-        self.nodes[0].generatetoaddress(COINBASE_MATURITY + 1, self.nodes[0].getnewaddress())
-        self.dumb_sync_blocks()
+        self.generatetoaddress(self.nodes[0], COINBASE_MATURITY + 1, self.nodes[0].getnewaddress(), sync_fun=lambda: self.dumb_sync_blocks())
         # # Sanity check the test framework:
         res = self.nodes[0].getblockchaininfo()
         assert_equal(res['blocks'], COINBASE_MATURITY + 1)
@@ -131,17 +133,16 @@ class UpgradeWalletTest(Bitcoin_SilverTestFramework):
         # Send coins to old wallets for later conversion checks.
         v16_3_wallet  = v16_3_node.get_wallet_rpc('wallet.dat')
         v16_3_address = v16_3_wallet.getnewaddress()
-        node_master.generatetoaddress(COINBASE_MATURITY + 1, v16_3_address)
-        self.dumb_sync_blocks()
+        self.generatetoaddress(node_master, COINBASE_MATURITY + 1, v16_3_address, sync_fun=lambda: self.dumb_sync_blocks())
         v16_3_balance = v16_3_wallet.getbalance()
 
         self.log.info("Test upgradewallet RPC...")
         # Prepare for copying of the older wallet
-        node_master_wallet_dir = os.path.join(node_master.datadir, "regtest/wallets", self.default_wallet_name)
-        node_master_wallet = os.path.join(node_master_wallet_dir, self.default_wallet_name, self.wallet_data_filename)
-        v16_3_wallet       = os.path.join(v16_3_node.datadir, "regtest/wallets/wallet.dat")
-        v15_2_wallet       = os.path.join(v15_2_node.datadir, "regtest/wallet.dat")
-        split_hd_wallet    = os.path.join(v15_2_node.datadir, "regtest/splithd")
+        node_master_wallet_dir = node_master.wallets_path / self.default_wallet_name
+        node_master_wallet = node_master_wallet_dir / self.default_wallet_name / self.wallet_data_filename
+        v16_3_wallet = v16_3_node.wallets_path / "wallet.dat"
+        v15_2_wallet = v15_2_node.chain_path / "wallet.dat"
+        split_hd_wallet = v15_2_node.chain_path / "splithd"
         self.stop_nodes()
 
         # Make split hd wallet
@@ -150,7 +151,7 @@ class UpgradeWalletTest(Bitcoin_SilverTestFramework):
 
         def copy_v16():
             node_master.get_wallet_rpc(self.default_wallet_name).unloadwallet()
-            # Copy the 0.16.3 wallet to the last Bitcoin_Silver Core version and open it:
+            # Copy the 0.16.3 wallet to the last BitcoinSilver version and open it:
             shutil.rmtree(node_master_wallet_dir)
             os.mkdir(node_master_wallet_dir)
             shutil.copy(
@@ -161,7 +162,7 @@ class UpgradeWalletTest(Bitcoin_SilverTestFramework):
 
         def copy_non_hd():
             node_master.get_wallet_rpc(self.default_wallet_name).unloadwallet()
-            # Copy the 0.15.2 non hd wallet to the last Bitcoin_Silver Core version and open it:
+            # Copy the 0.15.2 non hd wallet to the last BitcoinSilver version and open it:
             shutil.rmtree(node_master_wallet_dir)
             os.mkdir(node_master_wallet_dir)
             shutil.copy(
@@ -172,7 +173,7 @@ class UpgradeWalletTest(Bitcoin_SilverTestFramework):
 
         def copy_split_hd():
             node_master.get_wallet_rpc(self.default_wallet_name).unloadwallet()
-            # Copy the 0.15.2 split hd wallet to the last Bitcoin_Silver Core version and open it:
+            # Copy the 0.15.2 split hd wallet to the last BitcoinSilver version and open it:
             shutil.rmtree(node_master_wallet_dir)
             os.mkdir(node_master_wallet_dir)
             shutil.copy(
@@ -234,18 +235,13 @@ class UpgradeWalletTest(Bitcoin_SilverTestFramework):
         assert_equal(1, hd_chain_version)
         seed_id = bytearray(seed_id)
         seed_id.reverse()
-        old_kvs = new_kvs
-        # First 2 keys should still be non-HD
-        for i in range(0, 2):
-            info = wallet.getaddressinfo(wallet.getnewaddress())
-            assert 'hdkeypath' not in info
-            assert 'hdseedid' not in info
-        # Next key should be HD
+
+        # New keys (including change) should be HD (the two old keys have been flushed)
         info = wallet.getaddressinfo(wallet.getnewaddress())
         assert_equal(seed_id.hex(), info['hdseedid'])
         assert_equal('m/0\'/0\'/0\'', info['hdkeypath'])
         prev_seed_id = info['hdseedid']
-        # Change key should be the same keypool
+        # Change key should be HD and from the same keypool
         info = wallet.getaddressinfo(wallet.getrawchangeaddress())
         assert_equal(prev_seed_id, info['hdseedid'])
         assert_equal('m/0\'/0\'/1\'', info['hdkeypath'])
@@ -291,14 +287,7 @@ class UpgradeWalletTest(Bitcoin_SilverTestFramework):
         hd_chain_version, external_counter, seed_id, internal_counter = struct.unpack('<iI20sI', hd_chain)
         assert_equal(2, hd_chain_version)
         assert_equal(2, internal_counter)
-        # Drain the keypool by fetching one external key and one change key. Should still be the same keypool
-        info = wallet.getaddressinfo(wallet.getnewaddress())
-        assert 'hdseedid' not in info
-        assert 'hdkeypath' not in info
-        info = wallet.getaddressinfo(wallet.getrawchangeaddress())
-        assert 'hdseedid' not in info
-        assert 'hdkeypath' not in info
-        # The next addresses are HD and should be on different HD chains
+        # The next addresses are HD and should be on different HD chains (the one remaining key in each pool should have been flushed)
         info = wallet.getaddressinfo(wallet.getnewaddress())
         ext_id = info['hdseedid']
         assert_equal('m/0\'/0\'/0\'', info['hdkeypath'])
@@ -358,6 +347,17 @@ class UpgradeWalletTest(Bitcoin_SilverTestFramework):
             self.nodes[0].createwallet(wallet_name="desc_upgrade", descriptors=True)
             desc_wallet = self.nodes[0].get_wallet_rpc("desc_upgrade")
             self.test_upgradewallet(desc_wallet, previous_version=169900, expected_version=169900)
+
+            self.log.info("Checking that descriptor wallets without privkeys do nothing, successfully")
+            self.nodes[0].createwallet(wallet_name="desc_upgrade_nopriv", descriptors=True, disable_private_keys=True)
+            desc_wallet = self.nodes[0].get_wallet_rpc("desc_upgrade_nopriv")
+            self.test_upgradewallet(desc_wallet, previous_version=169900, expected_version=169900)
+
+        if self.is_bdb_compiled():
+            self.log.info("Upgrading a wallet with private keys disabled")
+            self.nodes[0].createwallet(wallet_name="privkeys_disabled_upgrade", disable_private_keys=True, descriptors=False)
+            disabled_wallet = self.nodes[0].get_wallet_rpc("privkeys_disabled_upgrade")
+            self.test_upgradewallet(disabled_wallet, previous_version=169900, expected_version=169900)
 
 if __name__ == '__main__':
     UpgradeWalletTest().main()

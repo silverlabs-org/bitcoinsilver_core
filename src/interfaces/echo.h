@@ -1,9 +1,9 @@
-// Copyright (c) 2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_INTERFACES_ECHO_H
-#define BITCOIN_SILVER_INTERFACES_ECHO_H
+#ifndef BITCOINSILVER_INTERFACES_ECHO_H
+#define BITCOINSILVER_INTERFACES_ECHO_H
 
 #include <memory>
 #include <string>
@@ -23,4 +23,4 @@ public:
 std::unique_ptr<Echo> MakeEcho();
 } // namespace interfaces
 
-#endif // BITCOIN_SILVER_INTERFACES_ECHO_H
+#endif // BITCOINSILVER_INTERFACES_ECHO_H

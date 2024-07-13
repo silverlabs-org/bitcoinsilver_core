@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2019 The Bitcoin_Silver Core developers
+# Copyright (c) 2017-2021 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Combine logs from multiple bitcoin_silver nodes as well as the test_framework log.
+"""Combine logs from multiple bitcoinsilver nodes as well as the test_framework log.
 
 This streams the combined log output to stdout. Use combine_logs.py > outputfile
 to write to an outputfile.
@@ -23,7 +23,7 @@ import tempfile
 # without the parent module installed.
 
 # Should match same symbol in `test_framework.test_framework`.
-TMPDIR_PREFIX = "bitcoin_silver_func_test_"
+TMPDIR_PREFIX = "bitcoinsilver_func_test_"
 
 # Matches on the date format at the start of the log event
 TIMESTAMP_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?Z")
@@ -188,7 +188,7 @@ def print_logs_plain(log_events, colors):
 def print_logs_html(log_events):
     """Renders the iterator of log events into html."""
     try:
-        import jinja2
+        import jinja2 #type:ignore
     except ImportError:
         print("jinja2 not found. Try `pip install jinja2`")
         sys.exit(1)

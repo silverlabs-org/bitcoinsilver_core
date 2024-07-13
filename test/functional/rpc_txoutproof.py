@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2014-2021 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test gettxoutproof and verifytxoutproof RPCs."""
 
-from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.messages import (
     CMerkleBlock,
     from_hex,
 )
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -17,10 +16,9 @@ from test_framework.util import (
 from test_framework.wallet import MiniWallet
 
 
-class MerkleBlockTest(Bitcoin_SilverTestFramework):
+class MerkleBlockTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
-        self.setup_clean_chain = True
         self.extra_args = [
             [],
             ["-txindex"],
@@ -28,22 +26,17 @@ class MerkleBlockTest(Bitcoin_SilverTestFramework):
 
     def run_test(self):
         miniwallet = MiniWallet(self.nodes[0])
-        # Add enough mature utxos to the wallet, so that all txs spend confirmed coins
-        miniwallet.generate(5)
-        self.nodes[0].generate(COINBASE_MATURITY)
-        self.sync_all()
 
         chain_height = self.nodes[1].getblockcount()
-        assert_equal(chain_height, 105)
+        assert_equal(chain_height, 200)
 
         txid1 = miniwallet.send_self_transfer(from_node=self.nodes[0])['txid']
         txid2 = miniwallet.send_self_transfer(from_node=self.nodes[0])['txid']
         # This will raise an exception because the transaction is not yet in a block
         assert_raises_rpc_error(-5, "Transaction not yet in block", self.nodes[0].gettxoutproof, [txid1])
 
-        self.nodes[0].generate(1)
+        self.generate(self.nodes[0], 1)
         blockhash = self.nodes[0].getblockhash(chain_height + 1)
-        self.sync_all()
 
         txlist = []
         blocktxn = self.nodes[0].getblock(blockhash, True)["tx"]
@@ -54,11 +47,10 @@ class MerkleBlockTest(Bitcoin_SilverTestFramework):
         assert_equal(self.nodes[0].verifytxoutproof(self.nodes[0].gettxoutproof([txid1, txid2])), txlist)
         assert_equal(self.nodes[0].verifytxoutproof(self.nodes[0].gettxoutproof([txid1, txid2], blockhash)), txlist)
 
-        txin_spent = miniwallet.get_utxo()  # Get the change from txid2
+        txin_spent = miniwallet.get_utxo(txid=txid2)  # Get the change from txid2
         tx3 = miniwallet.send_self_transfer(from_node=self.nodes[0], utxo_to_spend=txin_spent)
         txid3 = tx3['txid']
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate(self.nodes[0], 1)
 
         txid_spent = txin_spent["txid"]
         txid_unspent = txid1  # Input was change from txid2, so txid1 should be unspent

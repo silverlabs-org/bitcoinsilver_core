@@ -1,27 +1,19 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: Bitcoin_Silver
+Upstream-Name: BitcoinSilver
 Upstream-Contact: Satoshi Nakamoto <satoshin@gmx.com>
- irc://#bitcoin_silver-core-dev@libera.chat
-Source: https://github.com/bitcoin_silver/bitcoin_silver
+ irc://#bitcoinsilver-core-dev@libera.chat
+Source: https://github.com/MrVistos/bitcoinsilver
 
 Files: *
-Copyright: 2009-2021, Bitcoin_Silver Core Developers
+Copyright: 2009-2023, Bitcoin Core Developers
 License: Expat
-Comment: The Bitcoin_Silver Core Developers encompasses the current developers listed on bitcoin_silver.org,
-         as well as the numerous contributors to the project.
+Comment: The Bitcoin Core Developers encompasses all contributors to the
+         project, listed in the release notes or the git log.
 
 Files: debian/*
 Copyright: 2010-2011, Jonas Smedegaard <dr@jones.dk>
            2011, Matt Corallo <matt@bluematt.me>
 License: GPL-2+
-
-Files: src/secp256k1/build-aux/m4/ax_jni_include_dir.m4
-Copyright: 2008 Don Anderson <dda@sleepycat.com>
-License: GNU-All-permissive-License
-
-Files: src/secp256k1/build-aux/m4/ax_prog_cc_for_build.m4
-Copyright: 2008 Paolo Bonzini <bonzini@gnu.org>
-License: GNU-All-permissive-License
 
 Files: src/qt/res/icons/add.png
        src/qt/res/icons/address-book.png
@@ -75,12 +67,12 @@ Copyright: Stephen Hutchings, Jonas Schnelli
 License: Expat
 Comment: Modifications of Stephen Hutchings' Typicons
 
-Files: src/qt/res/icons/bitcoin_silver.*
-       share/pixmaps/bitcoin_silver*
-       src/qt/res/src/bitcoin_silver.svg
+Files: src/qt/res/icons/bitcoinsilver.*
+       share/pixmaps/bitcoinsilver*
+       src/qt/res/src/bitcoinsilver.svg
 Copyright: Bitboy, Jonas Schnelli
 License: public-domain
-Comment: Site: https://bitcoin_silvertalk.org/?topic=1756.0
+Comment: Site: https://bitcointalk.org/?topic=1756.0
 
 Files: src/qt/res/icons/proxy.png
        src/qt/res/src/proxy.svg
@@ -111,12 +103,6 @@ License: Expat
  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-License: GNU-All-permissive-License
- Copying and distribution of this file, with or without modification, are
- permitted in any medium without royalty provided the copyright notice
- and this notice are preserved. This file is offered as-is, without any
- warranty.
 
 License: GPL-2+
  This program is free software; you can redistribute it and/or modify it

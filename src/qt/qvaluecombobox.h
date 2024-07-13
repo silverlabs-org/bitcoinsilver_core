@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_QVALUECOMBOBOX_H
-#define BITCOIN_SILVER_QT_QVALUECOMBOBOX_H
+#ifndef BITCOINSILVER_QT_QVALUECOMBOBOX_H
+#define BITCOINSILVER_QT_QVALUECOMBOBOX_H
 
 #include <QComboBox>
 #include <QVariant>
@@ -28,10 +28,10 @@ Q_SIGNALS:
     void valueChanged();
 
 private:
-    int role;
+    int role{Qt::UserRole};
 
 private Q_SLOTS:
     void handleSelectionChanged(int idx);
 };
 
-#endif // BITCOIN_SILVER_QT_QVALUECOMBOBOX_H
+#endif // BITCOINSILVER_QT_QVALUECOMBOBOX_H

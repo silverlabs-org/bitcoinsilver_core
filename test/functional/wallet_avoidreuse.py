@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2018-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the avoid_reuse and setwalletflag features."""
 
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.address import address_to_scriptpubkey
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_approx,
     assert_equal,
@@ -62,7 +63,9 @@ def assert_balances(node, mine, margin=0.001):
     for k,v in mine.items():
         assert_approx(got[k], v, margin)
 
-class AvoidReuseTest(Bitcoin_SilverTestFramework):
+class AvoidReuseTest(BitcoinTestFramework):
+    def add_options(self, parser):
+        self.add_wallet_options(parser)
 
     def set_test_params(self):
         self.num_nodes = 2
@@ -79,8 +82,7 @@ class AvoidReuseTest(Bitcoin_SilverTestFramework):
         self.test_persistence()
         self.test_immutable()
 
-        self.nodes[0].generate(110)
-        self.sync_all()
+        self.generate(self.nodes[0], 110)
         self.test_change_remains_change(self.nodes[1])
         reset_balance(self.nodes[1], self.nodes[0].getnewaddress())
         self.test_sending_from_reused_address_without_avoid_reuse()
@@ -118,6 +120,19 @@ class AvoidReuseTest(Bitcoin_SilverTestFramework):
         # Attempting to set flag to its current state should throw
         assert_raises_rpc_error(-8, "Wallet flag is already set to false", self.nodes[0].setwalletflag, 'avoid_reuse', False)
         assert_raises_rpc_error(-8, "Wallet flag is already set to true", self.nodes[1].setwalletflag, 'avoid_reuse', True)
+
+        assert_raises_rpc_error(-8, "Unknown wallet flag: abc", self.nodes[0].setwalletflag, 'abc', True)
+
+        # Create a wallet with avoid reuse, and test that disabling it afterwards persists
+        self.nodes[1].createwallet(wallet_name="avoid_reuse_persist", avoid_reuse=True)
+        w = self.nodes[1].get_wallet_rpc("avoid_reuse_persist")
+        assert_equal(w.getwalletinfo()["avoid_reuse"], True)
+        w.setwalletflag("avoid_reuse", False)
+        assert_equal(w.getwalletinfo()["avoid_reuse"], False)
+        w.unloadwallet()
+        self.nodes[1].loadwallet("avoid_reuse_persist")
+        assert_equal(w.getwalletinfo()["avoid_reuse"], False)
+        w.unloadwallet()
 
     def test_immutable(self):
         '''Test immutable wallet flags'''
@@ -174,42 +189,39 @@ class AvoidReuseTest(Bitcoin_SilverTestFramework):
         retaddr = self.nodes[0].getnewaddress()
 
         self.nodes[0].sendtoaddress(fundaddr, 10)
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate(self.nodes[0], 1)
 
-        # listunspent should show 1 single, unused 10 btcs output
+        # listunspent should show 1 single, unused 10 btc output
         assert_unspent(self.nodes[1], total_count=1, total_sum=10, reused_supported=True, reused_count=0)
-        # getbalances should show no used, 10 btcs trusted
+        # getbalances should show no used, 10 btc trusted
         assert_balances(self.nodes[1], mine={"used": 0, "trusted": 10})
         # node 0 should not show a used entry, as it does not enable avoid_reuse
-        assert("used" not in self.nodes[0].getbalances()["mine"])
+        assert "used" not in self.nodes[0].getbalances()["mine"]
 
         self.nodes[1].sendtoaddress(retaddr, 5)
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate(self.nodes[0], 1)
 
-        # listunspent should show 1 single, unused 5 btcs output
+        # listunspent should show 1 single, unused 5 btc output
         assert_unspent(self.nodes[1], total_count=1, total_sum=5, reused_supported=True, reused_count=0)
-        # getbalances should show no used, 5 btcs trusted
+        # getbalances should show no used, 5 btc trusted
         assert_balances(self.nodes[1], mine={"used": 0, "trusted": 5})
 
         self.nodes[0].sendtoaddress(fundaddr, 10)
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate(self.nodes[0], 1)
 
-        # listunspent should show 2 total outputs (5, 10 btcs), one unused (5), one reused (10)
+        # listunspent should show 2 total outputs (5, 10 btc), one unused (5), one reused (10)
         assert_unspent(self.nodes[1], total_count=2, total_sum=15, reused_count=1, reused_sum=10)
-        # getbalances should show 10 used, 5 btcs trusted
+        # getbalances should show 10 used, 5 btc trusted
         assert_balances(self.nodes[1], mine={"used": 10, "trusted": 5})
 
         self.nodes[1].sendtoaddress(address=retaddr, amount=10, avoid_reuse=False)
 
-        # listunspent should show 1 total outputs (5 btcs), unused
+        # listunspent should show 1 total outputs (5 btc), unused
         assert_unspent(self.nodes[1], total_count=1, total_sum=5, reused_count=0)
-        # getbalances should show no used, 5 btcs trusted
+        # getbalances should show no used, 5 btc trusted
         assert_balances(self.nodes[1], mine={"used": 0, "trusted": 5})
 
-        # node 1 should now have about 5 btcs left (for both cases)
+        # node 1 should now have about 5 btc left (for both cases)
         assert_approx(self.nodes[1].getbalance(), 5, 0.001)
         assert_approx(self.nodes[1].getbalance(avoid_reuse=False), 5, 0.001)
 
@@ -228,27 +240,25 @@ class AvoidReuseTest(Bitcoin_SilverTestFramework):
         retaddr = self.nodes[0].getnewaddress()
 
         self.nodes[0].sendtoaddress(fundaddr, 10)
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate(self.nodes[0], 1)
 
-        # listunspent should show 1 single, unused 10 btcs output
+        # listunspent should show 1 single, unused 10 btc output
         assert_unspent(self.nodes[1], total_count=1, total_sum=10, reused_supported=True, reused_count=0)
-        # getbalances should show no used, 10 btcs trusted
+        # getbalances should show no used, 10 btc trusted
         assert_balances(self.nodes[1], mine={"used": 0, "trusted": 10})
 
         self.nodes[1].sendtoaddress(retaddr, 5)
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate(self.nodes[0], 1)
 
-        # listunspent should show 1 single, unused 5 btcs output
+        # listunspent should show 1 single, unused 5 btc output
         assert_unspent(self.nodes[1], total_count=1, total_sum=5, reused_supported=True, reused_count=0)
-        # getbalances should show no used, 5 btcs trusted
+        # getbalances should show no used, 5 btc trusted
         assert_balances(self.nodes[1], mine={"used": 0, "trusted": 5})
 
         if not self.options.descriptors:
             # For the second send, we transmute it to a related single-key address
             # to make sure it's also detected as re-use
-            fund_spk = self.nodes[0].getaddressinfo(fundaddr)["scriptPubKey"]
+            fund_spk = address_to_scriptpubkey(fundaddr).hex()
             fund_decoded = self.nodes[0].decodescript(fund_spk)
             if second_addr_type == "p2sh-segwit":
                 new_fundaddr = fund_decoded["segwit"]["p2sh-segwit"]
@@ -259,12 +269,11 @@ class AvoidReuseTest(Bitcoin_SilverTestFramework):
                 assert_equal(second_addr_type, "legacy")
 
             self.nodes[0].sendtoaddress(new_fundaddr, 10)
-            self.nodes[0].generate(1)
-            self.sync_all()
+            self.generate(self.nodes[0], 1)
 
-            # listunspent should show 2 total outputs (5, 10 btcs), one unused (5), one reused (10)
+            # listunspent should show 2 total outputs (5, 10 btc), one unused (5), one reused (10)
             assert_unspent(self.nodes[1], total_count=2, total_sum=15, reused_count=1, reused_sum=10)
-            # getbalances should show 10 used, 5 btcs trusted
+            # getbalances should show 10 used, 5 btc trusted
             assert_balances(self.nodes[1], mine={"used": 10, "trusted": 5})
 
             # node 1 should now have a balance of 5 (no dirty) or 15 (including dirty)
@@ -275,12 +284,12 @@ class AvoidReuseTest(Bitcoin_SilverTestFramework):
 
             self.nodes[1].sendtoaddress(retaddr, 4)
 
-            # listunspent should show 2 total outputs (1, 10 btcs), one unused (1), one reused (10)
+            # listunspent should show 2 total outputs (1, 10 btc), one unused (1), one reused (10)
             assert_unspent(self.nodes[1], total_count=2, total_sum=11, reused_count=1, reused_sum=10)
-            # getbalances should show 10 used, 1 btcs trusted
+            # getbalances should show 10 used, 1 btc trusted
             assert_balances(self.nodes[1], mine={"used": 10, "trusted": 1})
 
-            # node 1 should now have about 1 btcs left (no dirty) and 11 (including dirty)
+            # node 1 should now have about 1 btc left (no dirty) and 11 (including dirty)
             assert_approx(self.nodes[1].getbalance(), 1, 0.001)
             assert_approx(self.nodes[1].getbalance(avoid_reuse=False), 11, 0.001)
 
@@ -302,8 +311,7 @@ class AvoidReuseTest(Bitcoin_SilverTestFramework):
         for _ in range(101):
             self.nodes[0].sendtoaddress(new_addr, 1)
 
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate(self.nodes[0], 1)
 
         # send transaction that should not use all the available outputs
         # per the current coin selection algorithm
@@ -334,8 +342,7 @@ class AvoidReuseTest(Bitcoin_SilverTestFramework):
         for _ in range(101):
             self.nodes[0].sendtoaddress(new_addr, 1)
 
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate(self.nodes[0], 1)
 
         # Sending a transaction that is smaller than each one of the
         # available outputs
@@ -363,8 +370,7 @@ class AvoidReuseTest(Bitcoin_SilverTestFramework):
         for _ in range(202):
             self.nodes[0].sendtoaddress(new_addr, 1)
 
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate(self.nodes[0], 1)
 
         # Sending a transaction that needs to use the full groups
         # of 100 inputs but also the incomplete group of 2 inputs.

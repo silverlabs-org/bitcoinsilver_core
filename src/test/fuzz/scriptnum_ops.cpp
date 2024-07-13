@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2020-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -28,7 +28,7 @@ FUZZ_TARGET(scriptnum_ops)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     CScriptNum script_num = ConsumeScriptNum(fuzzed_data_provider);
-    while (fuzzed_data_provider.remaining_bytes() > 0) {
+    LIMITED_WHILE(fuzzed_data_provider.remaining_bytes() > 0, 1000000) {
         CallOneOf(
             fuzzed_data_provider,
             [&] {

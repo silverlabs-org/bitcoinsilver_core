@@ -12,10 +12,12 @@ Developer Notes
       - [Generating Documentation](#generating-documentation)
     - [Development tips and tricks](#development-tips-and-tricks)
         - [Compiling for debugging](#compiling-for-debugging)
+        - [Show sources in debugging](#show-sources-in-debugging)
         - [Compiling for gprof profiling](#compiling-for-gprof-profiling)
         - [`debug.log`](#debuglog)
         - [Signet, testnet, and regtest modes](#signet-testnet-and-regtest-modes)
         - [DEBUG_LOCKORDER](#debug_lockorder)
+        - [DEBUG_LOCKCONTENTION](#debug_lockcontention)
         - [Valgrind suppressions file](#valgrind-suppressions-file)
         - [Compiling for test coverage](#compiling-for-test-coverage)
         - [Performance profiling with perf](#performance-profiling-with-perf)
@@ -24,12 +26,13 @@ Developer Notes
     - [Threads](#threads)
     - [Ignoring IDE/editor files](#ignoring-ideeditor-files)
 - [Development guidelines](#development-guidelines)
-    - [General Bitcoin_Silver Core](#general-bitcoin_silver-core)
+    - [General BitcoinSilver](#general-bitcoinsilver-core)
     - [Wallet](#wallet)
     - [General C++](#general-c)
     - [C++ data structures](#c-data-structures)
     - [Strings and formatting](#strings-and-formatting)
     - [Shadowing](#shadowing)
+    - [Lifetimebound](#lifetimebound)
     - [Threads and synchronization](#threads-and-synchronization)
     - [Scripts](#scripts)
         - [Shebang](#shebang)
@@ -89,8 +92,15 @@ code.
     - Class member variables have a `m_` prefix.
     - Global variables have a `g_` prefix.
   - Constant names are all uppercase, and use `_` to separate words.
+  - Enumerator constants may be `snake_case`, `PascalCase` or `ALL_CAPS`.
+    This is a more tolerant policy than the [C++ Core
+    Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Renum-caps),
+    which recommend using `snake_case`.  Please use what seems appropriate.
   - Class names, function names, and method names are UpperCamelCase
-    (PascalCase). Do not prefix class names with `C`.
+    (PascalCase). Do not prefix class names with `C`. See [Internal interface
+    naming style](#internal-interface-naming-style) for an exception to this
+    convention.
+
   - Test suite naming convention: The Boost test suite in file
     `src/test/foo_tests.cpp` should be named `foo_tests`. Test suite names
     must be unique.
@@ -99,6 +109,32 @@ code.
   - `++i` is preferred over `i++`.
   - `nullptr` is preferred over `NULL` or `(void*)0`.
   - `static_assert` is preferred over `assert` where possible. Generally; compile-time checking is preferred over run-time checking.
+  - Use a named cast or functional cast, not a C-Style cast. When casting
+    between integer types, use functional casts such as `int(x)` or `int{x}`
+    instead of `(int) x`. When casting between more complex types, use `static_cast`.
+    Use `reinterpret_cast` and `const_cast` as appropriate.
+
+For function calls a namespace should be specified explicitly, unless such functions have been declared within it.
+Otherwise, [argument-dependent lookup](https://en.cppreference.com/w/cpp/language/adl), also known as ADL, could be
+triggered that makes code harder to maintain and reason about:
+```c++
+#include <filesystem>
+
+namespace fs {
+class path : public std::filesystem::path
+{
+};
+// The intention is to disallow this function.
+bool exists(const fs::path& p) = delete;
+} // namespace fs
+
+int main()
+{
+    //fs::path p; // error
+    std::filesystem::path p; // compiled
+    exists(p); // ADL being used for unqualified name lookup
+}
+```
 
 Block style example:
 ```c++
@@ -132,15 +168,83 @@ public:
 } // namespace foo
 ```
 
+Coding Style (C++ functions and methods)
+--------------------
+
+- When ordering function parameters, place input parameters first, then any
+  in-out parameters, followed by any output parameters.
+
+- *Rationale*: API consistency.
+
+- Prefer returning values directly to using in-out or output parameters. Use
+  `std::optional` where helpful for returning values.
+
+- *Rationale*: Less error-prone (no need for assumptions about what the output
+  is initialized to on failure), easier to read, and often the same or better
+  performance.
+
+- Generally, use `std::optional` to represent optional by-value inputs (and
+  instead of a magic default value, if there is no real default). Non-optional
+  input parameters should usually be values or const references, while
+  non-optional in-out and output parameters should usually be references, as
+  they cannot be null.
+
+Coding Style (C++ named arguments)
+------------------------------
+
+When passing named arguments, use a format that clang-tidy understands. The
+argument names can otherwise not be verified by clang-tidy.
+
+For example:
+
+```c++
+void function(Addrman& addrman, bool clear);
+
+int main()
+{
+    function(g_addrman, /*clear=*/false);
+}
+```
+
+### Running clang-tidy
+
+To run clang-tidy on Ubuntu/Debian, install the dependencies:
+
+```sh
+apt install clang-tidy bear clang
+```
+
+Then, pass clang as compiler to configure, and use bear to produce the `compile_commands.json`:
+
+```sh
+./autogen.sh && ./configure CC=clang CXX=clang++
+make clean && bear --config src/.bear-tidy-config -- make -j $(nproc)
+```
+
+The output is denoised of errors from external dependencies.
+
+To run clang-tidy on all source files:
+
+```sh
+( cd ./src/ && run-clang-tidy  -j $(nproc) )
+```
+
+To run clang-tidy on the changed source lines:
+
+```sh
+git diff | ( cd ./src/ && clang-tidy-diff -p2 -j $(nproc) )
+```
+
 Coding Style (Python)
 ---------------------
 
 Refer to [/test/functional/README.md#style-guidelines](/test/functional/README.md#style-guidelines).
 
+
 Coding Style (Doxygen-compatible comments)
 ------------------------------------------
 
-Bitcoin_Silver Core uses [Doxygen](https://www.doxygen.nl/) to generate its official documentation.
+BitcoinSilver uses [Doxygen](https://www.doxygen.nl/) to generate its official documentation.
 
 Use Doxygen-compatible comment blocks for functions, methods, and fields.
 
@@ -249,6 +353,35 @@ Development tips and tricks
 Run configure with `--enable-debug` to add additional compiler flags that
 produce better debugging builds.
 
+### Show sources in debugging
+
+If you have ccache enabled, absolute paths are stripped from debug information
+with the -fdebug-prefix-map and -fmacro-prefix-map options (if supported by the
+compiler). This might break source file detection in case you move binaries
+after compilation, debug from the directory other than the project root or use
+an IDE that only supports absolute paths for debugging.
+
+There are a few possible fixes:
+
+1. Configure source file mapping.
+
+For `gdb` create or append to `.gdbinit` file:
+```
+set substitute-path ./src /path/to/project/root/src
+```
+
+For `lldb` create or append to `.lldbinit` file:
+```
+settings set target.source-map ./src /path/to/project/root/src
+```
+
+2. Add a symlink to the `./src` directory:
+```
+ln -s /path/to/project/root/src src
+```
+
+3. Use `debugedit` to modify debug information in the binary.
+
 ### Compiling for gprof profiling
 
 Run configure with the `--enable-gprof` option, then make.
@@ -258,8 +391,10 @@ Run configure with the `--enable-gprof` option, then make.
 If the code is behaving strangely, take a look in the `debug.log` file in the data directory;
 error and debugging messages are written there.
 
-The `-debug=...` command-line option controls debugging; running with just `-debug` or `-debug=1` will turn
-on all categories (and give you a very large `debug.log` file).
+Debug logging can be enabled on startup with the `-debug` and `-loglevel`
+configuration options and toggled while bitcoinsilverd is running with the `logging`
+RPC.  For instance, launching bitcoinsilverd with `-debug` or `-debug=1` will turn on
+all log categories and `-loglevel=trace` will turn on all log severity levels.
 
 The Qt code routes `qDebug()` output to `debug.log` under category "qt": run with `-debug=qt`
 to see it.
@@ -268,7 +403,7 @@ to see it.
 
 If you are testing multi-machine code that needs to operate across the internet,
 you can run with either the `-signet` or the `-testnet` config option to test
-with "play bitcoin_silvers" on a test network.
+with "play bitcoins" on a test network.
 
 If you are testing something that can run on one machine, run with the
 `-regtest` option.  In regression test mode, blocks can be created on demand;
@@ -276,11 +411,26 @@ see [test/functional/](/test/functional) for tests that run in `-regtest` mode.
 
 ### DEBUG_LOCKORDER
 
-Bitcoin_Silver Core is a multi-threaded application, and deadlocks or other
+BitcoinSilver is a multi-threaded application, and deadlocks or other
 multi-threading bugs can be very difficult to track down. The `--enable-debug`
 configure option adds `-DDEBUG_LOCKORDER` to the compiler flags. This inserts
 run-time checks to keep track of which locks are held and adds warnings to the
 `debug.log` file if inconsistencies are detected.
+
+### DEBUG_LOCKCONTENTION
+
+Defining `DEBUG_LOCKCONTENTION` adds a "lock" logging category to the logging
+RPC that, when enabled, logs the location and duration of each lock contention
+to the `debug.log` file.
+
+The `--enable-debug` configure option adds `-DDEBUG_LOCKCONTENTION` to the
+compiler flags. You may also enable it manually for a non-debug build by running
+configure with `-DDEBUG_LOCKCONTENTION` added to your CPPFLAGS,
+i.e. `CPPFLAGS="-DDEBUG_LOCKCONTENTION"`, then build and run bitcoinsilverd.
+
+You can then use the `-debug=lock` configuration option at bitcoinsilverd startup or
+`bitcoinsilver-cli logging '["lock"]'` at runtime to turn on lock contention logging.
+It can be toggled off again with `bitcoinsilver-cli logging [] '["lock"]'`.
 
 ### Assertions and Checks
 
@@ -297,7 +447,7 @@ other input.
   failure, it will throw an exception, which can be caught to recover from the
   error.
    - For example, a nullptr dereference or any other logic bug in RPC code
-     means that the RPC code is faulty and can not be executed. However, the
+     means that the RPC code is faulty and cannot be executed. However, the
      logic bug can be shown to the user and the program can continue to run.
 * `Assume` should be used to document assumptions when program execution can
   safely continue even if the assumption is violated. In debug builds it
@@ -313,15 +463,15 @@ other input.
 
 Valgrind is a programming tool for memory debugging, memory leak detection, and
 profiling. The repo contains a Valgrind suppressions file
-([`valgrind.supp`](https://github.com/bitcoin_silver/bitcoin_silver/blob/master/contrib/valgrind.supp))
+([`valgrind.supp`](https://github.com/MrVistos/bitcoinsilver/blob/master/contrib/valgrind.supp))
 which includes known Valgrind warnings in our dependencies that cannot be fixed
 in-tree. Example use:
 
 ```shell
-$ valgrind --suppressions=contrib/valgrind.supp src/test/test_bitcoin_silver
+$ valgrind --suppressions=contrib/valgrind.supp src/test/test_bitcoinsilver
 $ valgrind --suppressions=contrib/valgrind.supp --leak-check=full \
-      --show-leak-kinds=all src/test/test_bitcoin_silver --log_level=test_suite
-$ valgrind -v --leak-check=full src/bitcoin_silverd -printtoconsole
+      --show-leak-kinds=all src/test/test_bitcoinsilver --log_level=test_suite
+$ valgrind -v --leak-check=full src/bitcoinsilverd -printtoconsole
 $ ./test/functional/test_runner.py --valgrind
 ```
 
@@ -338,14 +488,16 @@ To enable LCOV report generation during test runs:
 make
 make cov
 
-# A coverage report will now be accessible at `./test_bitcoin_silver.coverage/index.html`.
+# A coverage report will now be accessible at `./test_bitcoinsilver.coverage/index.html`,
+# which covers unit tests, and `./total.coverage/index.html`, which covers
+# unit and functional tests.
 ```
 
 ### Performance profiling with perf
 
 Profiling is a good way to get a precise idea of where time is being spent in
 code. One tool for doing profiling on Linux platforms is called
-[`perf`](http://www.brendangregg.com/perf.html), and has been integrated into
+[`perf`](https://www.brendangregg.com/perf.html), and has been integrated into
 the functional test framework. Perf can observe a running process and sample
 (at some frequency) where its execution is.
 
@@ -365,13 +517,13 @@ Make sure you [understand the security
 trade-offs](https://lwn.net/Articles/420403/) of setting these kernel
 parameters.
 
-To profile a running bitcoin_silverd process for 60 seconds, you could use an
+To profile a running bitcoinsilverd process for 60 seconds, you could use an
 invocation of `perf record` like this:
 
 ```sh
 $ perf record \
     -g --call-graph dwarf --per-thread -F 140 \
-    -p `pgrep bitcoin_silverd` -- sleep 60
+    -p `pgrep bitcoinsilverd` -- sleep 60
 ```
 
 You could then analyze the results by running:
@@ -387,7 +539,7 @@ See the functional test documentation for how to invoke perf within tests.
 
 ### Sanitizers
 
-Bitcoin_Silver Core can be compiled with various "sanitizers" enabled, which add
+BitcoinSilver can be compiled with various "sanitizers" enabled, which add
 instrumentation for issues regarding things like memory safety, thread race
 conditions, or undefined behavior. This is controlled with the
 `--with-sanitizers` configure flag, which should be a comma separated list of
@@ -411,8 +563,19 @@ address sanitizer, libtsan for the thread sanitizer, and libubsan for the
 undefined sanitizer. If you are missing required libraries, the configure script
 will fail with a linker error when testing the sanitizer flags.
 
-The test suite should pass cleanly with the `thread` and `undefined` sanitizers,
-but there are a number of known problems when using the `address` sanitizer. The
+The test suite should pass cleanly with the `thread` and `undefined` sanitizers. You
+may need to use a suppressions file, see `test/sanitizer_suppressions`. They may be
+used as follows:
+```bash
+export LSAN_OPTIONS="suppressions=$(pwd)/test/sanitizer_suppressions/lsan"
+export TSAN_OPTIONS="suppressions=$(pwd)/test/sanitizer_suppressions/tsan:halt_on_error=1:second_deadlock_stack=1"
+export UBSAN_OPTIONS="suppressions=$(pwd)/test/sanitizer_suppressions/ubsan:print_stacktrace=1:halt_on_error=1:report_error_type=1"
+```
+
+See the CI config for more examples, and upstream documentation for more information
+about any additional options.
+
+There are a number of known problems when using the `address` sanitizer. The
 address sanitizer is known to fail in
 [sha256_sse4::Transform](/src/crypto/sha256_sse4.cpp) which makes it unusable
 unless you also use `--disable-asm` when running configure. We would like to fix
@@ -434,7 +597,7 @@ Additional resources:
  * [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
  * [GCC Instrumentation Options](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html)
  * [Google Sanitizers Wiki](https://github.com/google/sanitizers/wiki)
- * [Issue #12691: Enable -fsanitize flags in Travis](https://github.com/bitcoin_silver/bitcoin_silver/issues/12691)
+ * [Issue #12691: Enable -fsanitize flags in Travis](https://github.com/MrVistos/bitcoinsilver/issues/12691)
 
 Locking/mutex usage notes
 -------------------------
@@ -456,52 +619,56 @@ and its `cs_KeyStore` lock for example).
 Threads
 -------
 
-- [Main thread (`bitcoin_silverd`)](https://doxygen.bitcoin_silvercore.org/bitcoin_silverd_8cpp.html#a0ddf1224851353fc92bfbff6f499fa97)
-  : Started from `main()` in `bitcoin_silverd.cpp`. Responsible for starting up and
+- [Main thread (`bitcoinsilverd`)](https://doxygen.getbitcoinsilver.org/bitcoinsilverd_8cpp.html#a0ddf1224851353fc92bfbff6f499fa97)
+  : Started from `main()` in `bitcoinsilverd.cpp`. Responsible for starting up and
   shutting down the application.
 
-- [ThreadImport (`b-loadblk`)](https://doxygen.bitcoin_silvercore.org/init_8cpp.html#ae9e290a0e829ec0198518de2eda579d1)
-  : Loads blocks from `blk*.dat` files or `-loadblock=<file>` on startup.
+- [Init load (`b-initload`)](https://doxygen.getbitcoinsilver.org/namespacenode.html#ab4305679079866f0f420f7dbf278381d)
+  : Performs various loading tasks that are part of init but shouldn't block the node from being started: external block import,
+   reindex, reindex-chainstate, main chain activation, spawn indexes background sync threads and mempool load.
 
-- [ThreadScriptCheck (`b-scriptch.x`)](https://doxygen.bitcoin_silvercore.org/validation_8cpp.html#a925a33e7952a157922b0bbb8dab29a20)
+- [CCheckQueue::Loop (`b-scriptch.x`)](https://doxygen.getbitcoinsilver.org/class_c_check_queue.html#a6e7fa51d3a25e7cb65446d4b50e6a987)
   : Parallel script validation threads for transactions in blocks.
 
-- [ThreadHTTP (`b-http`)](https://doxygen.bitcoin_silvercore.org/httpserver_8cpp.html#abb9f6ea8819672bd9a62d3695070709c)
+- [ThreadHTTP (`b-http`)](https://doxygen.getbitcoinsilver.org/httpserver_8cpp.html#abb9f6ea8819672bd9a62d3695070709c)
   : Libevent thread to listen for RPC and REST connections.
 
-- [HTTP worker threads(`b-httpworker.x`)](https://doxygen.bitcoin_silvercore.org/httpserver_8cpp.html#aa6a7bc27265043bc0193220c5ae3a55f)
+- [HTTP worker threads(`b-httpworker.x`)](https://doxygen.getbitcoinsilver.org/httpserver_8cpp.html#aa6a7bc27265043bc0193220c5ae3a55f)
   : Threads to service RPC and REST requests.
 
-- [Indexer threads (`b-txindex`, etc)](https://doxygen.bitcoin_silvercore.org/class_base_index.html#a96a7407421fbf877509248bbe64f8d87)
+- [Indexer threads (`b-txindex`, etc)](https://doxygen.getbitcoinsilver.org/class_base_index.html#a96a7407421fbf877509248bbe64f8d87)
   : One thread per indexer.
 
-- [SchedulerThread (`b-scheduler`)](https://doxygen.bitcoin_silvercore.org/class_c_scheduler.html#a14d2800815da93577858ea078aed1fba)
+- [SchedulerThread (`b-scheduler`)](https://doxygen.getbitcoinsilver.org/class_c_scheduler.html#a14d2800815da93577858ea078aed1fba)
   : Does asynchronous background tasks like dumping wallet contents, dumping
   addrman and running asynchronous validationinterface callbacks.
 
-- [TorControlThread (`b-torcontrol`)](https://doxygen.bitcoin_silvercore.org/torcontrol_8cpp.html#a4faed3692d57a0d7bdbecf3b37f72de0)
+- [TorControlThread (`b-torcontrol`)](https://doxygen.getbitcoinsilver.org/torcontrol_8cpp.html#a52a3efff23634500bb42c6474f306091)
   : Libevent thread for tor connections.
 
 - Net threads:
 
-  - [ThreadMessageHandler (`b-msghand`)](https://doxygen.bitcoin_silvercore.org/class_c_connman.html#aacdbb7148575a31bb33bc345e2bf22a9)
+  - [ThreadMessageHandler (`b-msghand`)](https://doxygen.getbitcoinsilver.org/class_c_connman.html#aacdbb7148575a31bb33bc345e2bf22a9)
     : Application level message handling (sending and receiving). Almost
     all net_processing and validation logic runs on this thread.
 
-  - [ThreadDNSAddressSeed (`b-dnsseed`)](https://doxygen.bitcoin_silvercore.org/class_c_connman.html#aa7c6970ed98a4a7bafbc071d24897d13)
+  - [ThreadDNSAddressSeed (`b-dnsseed`)](https://doxygen.getbitcoinsilver.org/class_c_connman.html#aa7c6970ed98a4a7bafbc071d24897d13)
     : Loads addresses of peers from the DNS.
 
-  - [ThreadMapPort (`b-upnp`)](https://doxygen.bitcoin_silvercore.org/net_8cpp.html#a63f82a71c4169290c2db1651a9bbe249)
+  - ThreadMapPort (`b-mapport`)
     : Universal plug-and-play startup/shutdown.
 
-  - [ThreadSocketHandler (`b-net`)](https://doxygen.bitcoin_silvercore.org/class_c_connman.html#a765597cbfe99c083d8fa3d61bb464e34)
-    : Sends/Receives data from peers on port 8383.
+  - [ThreadSocketHandler (`b-net`)](https://doxygen.getbitcoinsilver.org/class_c_connman.html#a765597cbfe99c083d8fa3d61bb464e34)
+    : Sends/Receives data from peers on port 10566.
 
-  - [ThreadOpenAddedConnections (`b-addcon`)](https://doxygen.bitcoin_silvercore.org/class_c_connman.html#a0b787caf95e52a346a2b31a580d60a62)
+  - [ThreadOpenAddedConnections (`b-addcon`)](https://doxygen.getbitcoinsilver.org/class_c_connman.html#a0b787caf95e52a346a2b31a580d60a62)
     : Opens network connections to added nodes.
 
-  - [ThreadOpenConnections (`b-opencon`)](https://doxygen.bitcoin_silvercore.org/class_c_connman.html#a55e9feafc3bab78e5c9d408c207faa45)
+  - [ThreadOpenConnections (`b-opencon`)](https://doxygen.getbitcoinsilver.org/class_c_connman.html#a55e9feafc3bab78e5c9d408c207faa45)
     : Initiates new connections to peers.
+
+  - [ThreadI2PAcceptIncoming (`b-i2paccept`)](https://doxygen.getbitcoinsilver.org/class_c_connman.html#a57787b4f9ac847d24065fbb0dd6e70f8)
+    : Listens for and accepts incoming I2P connections through the I2P SAM proxy.
 
 Ignoring IDE/editor files
 --------------------------
@@ -509,7 +676,7 @@ Ignoring IDE/editor files
 In closed-source environments in which everyone uses the same IDE, it is common
 to add temporary files it produces to the project-wide `.gitignore` file.
 
-However, in open source software such as Bitcoin_Silver Core, where everyone uses
+However, in open source software such as BitcoinSilver, where everyone uses
 their own editors/IDE/tools, it is less common. Only you know what files your
 editor produces and this may change from version to version. The canonical way
 to do this is thus to create your local gitignore. Add this to `~/.gitconfig`:
@@ -539,9 +706,9 @@ Development guidelines
 ============================
 
 A few non-style-related recommendations for developers, as well as points to
-pay attention to for reviewers of Bitcoin_Silver Core code.
+pay attention to for reviewers of BitcoinSilver code.
 
-General Bitcoin_Silver Core
+General BitcoinSilver
 ----------------------
 
 - New features should be exposed on RPC first, then can be made available in the GUI.
@@ -563,10 +730,6 @@ Wallet
 
 - Make sure that no crashes happen with run-time option `-disablewallet`.
 
-- Include `db_cxx.h` (BerkeleyDB header) only when `ENABLE_WALLET` is set.
-
-  - *Rationale*: Otherwise compilation of the disable-wallet build will fail in environments without BerkeleyDB.
-
 General C++
 -------------
 
@@ -577,12 +740,6 @@ Common misconceptions are clarified in those sections:
 
 - Passing (non-)fundamental types in the [C++ Core
   Guideline](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-conventional).
-
-- Assertions should not have side-effects.
-
-  - *Rationale*: Even though the source code is set to refuse to compile
-    with assertions disabled, having side-effects in assertions is unexpected and
-    makes the code harder to understand.
 
 - If you use the `.h`, you must link the `.cpp`.
 
@@ -669,19 +826,19 @@ Foo(vec);
 
 ```cpp
 enum class Tabs {
-    INFO,
-    CONSOLE,
-    GRAPH,
-    PEERS
+    info,
+    console,
+    network_graph,
+    peers
 };
 
 int GetInt(Tabs tab)
 {
     switch (tab) {
-    case Tabs::INFO: return 0;
-    case Tabs::CONSOLE: return 1;
-    case Tabs::GRAPH: return 2;
-    case Tabs::PEERS: return 3;
+    case Tabs::info: return 0;
+    case Tabs::console: return 1;
+    case Tabs::network_graph: return 2;
+    case Tabs::peers: return 3;
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -692,23 +849,18 @@ int GetInt(Tabs tab)
 Strings and formatting
 ------------------------
 
-- Be careful of `LogPrint` versus `LogPrintf`. `LogPrint` takes a `category` argument, `LogPrintf` does not.
-
-  - *Rationale*: Confusion of these can result in runtime exceptions due to
-    formatting mismatch, and it is easy to get wrong because of subtly similar naming.
-
 - Use `std::string`, avoid C string manipulation functions.
 
   - *Rationale*: C++ string handling is marginally safer, less scope for
     buffer overflows, and surprises with `\0` characters. Also, some C string manipulations
     tend to act differently depending on platform, or even the user locale.
 
-- Use `ParseInt32`, `ParseInt64`, `ParseUInt32`, `ParseUInt64`, `ParseDouble` from `utilstrencodings.h` for number parsing.
+- Use `ToIntegral` from [`strencodings.h`](/src/util/strencodings.h) for number parsing. In legacy code you might also find `ParseInt*` family of functions, `ParseDouble` or `LocaleIndependentAtoi`.
 
   - *Rationale*: These functions do overflow checking and avoid pesky locale issues.
 
 - Avoid using locale dependent functions if possible. You can use the provided
-  [`lint-locale-dependence.sh`](/test/lint/lint-locale-dependence.sh)
+  [`lint-locale-dependence.py`](/test/lint/lint-locale-dependence.py)
   to check for accidental use of locale dependent functions.
 
   - *Rationale*: Unnecessary locale dependence can cause bugs that are very tricky to isolate and fix.
@@ -737,7 +889,7 @@ Strings and formatting
 
 - For `strprintf`, `LogPrint`, `LogPrintf` formatting characters don't need size specifiers.
 
-  - *Rationale*: Bitcoin_Silver Core uses tinyformat, which is type safe. Leave them out to avoid confusion.
+  - *Rationale*: BitcoinSilver uses tinyformat, which is type safe. Leave them out to avoid confusion.
 
 - Use `.c_str()` sparingly. Its only valid use is to pass C++ strings to C functions that take NULL-terminated
   strings.
@@ -769,21 +921,36 @@ from using a different variable with the same name),
 please name variables so that their names do not shadow variables defined in the source code.
 
 When using nested cycles, do not name the inner cycle variable the same as in
-the upper cycle, etc.
+the outer cycle, etc.
+
+Lifetimebound
+--------------
+
+The [Clang `lifetimebound`
+attribute](https://clang.llvm.org/docs/AttributeReference.html#lifetimebound)
+can be used to tell the compiler that a lifetime is bound to an object and
+potentially see a compile-time warning if the object has a shorter lifetime from
+the invalid use of a temporary. You can use the attribute by adding a `LIFETIMEBOUND`
+annotation defined in `src/attributes.h`; please grep the codebase for examples.
 
 Threads and synchronization
 ----------------------------
 
-- Prefer `Mutex` type to `RecursiveMutex` one
+- Prefer `Mutex` type to `RecursiveMutex` one.
 
 - Consistently use [Clang Thread Safety Analysis](https://clang.llvm.org/docs/ThreadSafetyAnalysis.html) annotations to
-  get compile-time warnings about potential race conditions in code. Combine annotations in function declarations with
-  run-time asserts in function definitions:
+  get compile-time warnings about potential race conditions or deadlocks in code.
 
   - In functions that are declared separately from where they are defined, the
     thread safety annotations should be added exclusively to the function
     declaration. Annotations on the definition could lead to false positives
     (lack of compile failure) at call sites between the two.
+
+  - Prefer locks that are in a class rather than global, and that are
+    internal to a class (private or protected) rather than public.
+
+  - Combine annotations in function declarations with run-time asserts in
+    function definitions:
 
 ```C++
 // txmempool.h
@@ -808,21 +975,37 @@ void CTxMemPool::UpdateTransactionsFromBlock(...)
 
 ```C++
 // validation.h
-class ChainstateManager
+class Chainstate
 {
+protected:
+    ...
+    Mutex m_chainstate_mutex;
+    ...
 public:
     ...
-    bool ProcessNewBlock(...) LOCKS_EXCLUDED(::cs_main);
+    bool ActivateBestChain(
+        BlockValidationState& state,
+        std::shared_ptr<const CBlock> pblock = nullptr)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_chainstate_mutex)
+        LOCKS_EXCLUDED(::cs_main);
+    ...
+    bool PreciousBlock(BlockValidationState& state, CBlockIndex* pindex)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_chainstate_mutex)
+        LOCKS_EXCLUDED(::cs_main);
     ...
 }
 
 // validation.cpp
-bool ChainstateManager::ProcessNewBlock(...)
+bool Chainstate::PreciousBlock(BlockValidationState& state, CBlockIndex* pindex)
 {
+    AssertLockNotHeld(m_chainstate_mutex);
     AssertLockNotHeld(::cs_main);
-    ...
-    LOCK(::cs_main);
-    ...
+    {
+        LOCK(cs_main);
+        ...
+    }
+
+    return ActivateBestChain(state, std::shared_ptr<const CBlock>());
 }
 ```
 
@@ -852,6 +1035,8 @@ TRY_LOCK(cs_vNodes, lockNodes);
 
 Scripts
 --------------------------
+
+Write scripts in Python rather than bash, when possible.
 
 ### Shebang
 
@@ -923,13 +1108,13 @@ namespace {
     the location of the source file actually is relevant.
 
 - Use include guards to avoid the problem of double inclusion. The header file
-  `foo/bar.h` should use the include guard identifier `BITCOIN_SILVER_FOO_BAR_H`, e.g.
+  `foo/bar.h` should use the include guard identifier `BITCOINSILVER_FOO_BAR_H`, e.g.
 
 ```c++
-#ifndef BITCOIN_SILVER_FOO_BAR_H
-#define BITCOIN_SILVER_FOO_BAR_H
+#ifndef BITCOINSILVER_FOO_BAR_H
+#define BITCOINSILVER_FOO_BAR_H
 ...
-#endif // BITCOIN_SILVER_FOO_BAR_H
+#endif // BITCOINSILVER_FOO_BAR_H
 ```
 
 GUI
@@ -959,37 +1144,40 @@ Subtrees
 
 Several parts of the repository are subtrees of software maintained elsewhere.
 
-Some of these are maintained by active developers of Bitcoin_Silver Core, in which case changes should probably go
-directly upstream without being PRed directly against the project. They will be merged back in the next
-subtree merge.
+Some of these are maintained by active developers of BitcoinSilver, in which case
+changes should go directly upstream without being PRed directly against the project.
+They will be merged back in the next subtree merge.
 
-Others are external projects without a tight relationship with our project. Changes to these should also
-be sent upstream, but bugfixes may also be prudent to PR against Bitcoin_Silver Core so that they can be integrated
-quickly. Cosmetic changes should be purely taken upstream.
+Others are external projects without a tight relationship with our project. Changes
+to these should also be sent upstream, but bugfixes may also be prudent to PR against
+a BitcoinSilver subtree, so that they can be integrated quickly. Cosmetic changes
+should be taken upstream.
 
-There is a tool in `test/lint/git-subtree-check.sh` ([instructions](../test/lint#git-subtree-checksh)) to check a subtree directory for consistency with
-its upstream repository.
+There is a tool in `test/lint/git-subtree-check.sh` ([instructions](../test/lint#git-subtree-checksh))
+to check a subtree directory for consistency with its upstream repository.
 
 Current subtrees include:
 
 - src/leveldb
-  - Upstream at https://github.com/google/leveldb ; Maintained by Google, but
-    open important PRs to Core to avoid delay.
+  - Subtree at https://github.com/bitcoinsilver-core/leveldb-subtree ; maintained by Core contributors.
+  - Upstream at https://github.com/google/leveldb ; maintained by Google. Open
+    important PRs to the subtree to avoid delay.
   - **Note**: Follow the instructions in [Upgrading LevelDB](#upgrading-leveldb) when
     merging upstream changes to the LevelDB subtree.
 
 - src/crc32c
   - Used by leveldb for hardware acceleration of CRC32C checksums for data integrity.
-  - Upstream at https://github.com/google/crc32c ; Maintained by Google.
+  - Subtree at https://github.com/bitcoinsilver-core/crc32c-subtree ; maintained by Core contributors.
+  - Upstream at https://github.com/google/crc32c ; maintained by Google.
 
 - src/secp256k1
-  - Upstream at https://github.com/bitcoin_silver-core/secp256k1/ ; actively maintained by Core contributors.
+  - Upstream at https://github.com/bitcoinsilver-core/secp256k1/ ; maintained by Core contributors.
 
 - src/crypto/ctaes
-  - Upstream at https://github.com/bitcoin_silver-core/ctaes ; actively maintained by Core contributors.
+  - Upstream at https://github.com/bitcoinsilver-core/ctaes ; maintained by Core contributors.
 
-- src/univalue
-  - Upstream at https://github.com/bitcoin_silver-core/univalue ; actively maintained by Core contributors, deviates from upstream https://github.com/jgarzik/univalue
+- src/minisketch
+  - Upstream at https://github.com/sipa/minisketch ; maintained by Core contributors.
 
 Upgrading LevelDB
 ---------------------
@@ -1001,7 +1189,7 @@ you must be aware of.
 
 In most configurations, we use the default LevelDB value for `max_open_files`,
 which is 1000 at the time of this writing. If LevelDB actually uses this many
-file descriptors, it will cause problems with Bitcoin_Silver's `select()` loop, because
+file descriptors, it will cause problems with BitcoinSilver's `select()` loop, because
 it may cause new sockets to be created where the fd value is >= 1024. For this
 reason, on 64-bit Unix systems, we rely on an internal LevelDB optimization that
 uses `mmap()` + `close()` to open table files without actually retaining
@@ -1012,7 +1200,7 @@ In addition to reviewing the upstream changes in `env_posix.cc`, you can use `ls
 check this. For example, on Linux this command will show open `.ldb` file counts:
 
 ```bash
-$ lsof -p $(pidof bitcoin_silverd) |\
+$ lsof -p $(pidof bitcoinsilverd) |\
     awk 'BEGIN { fd=0; mem=0; } /ldb$/ { if ($4 == "mem") mem++; else fd++ } END { printf "mem = %s, fd = %s\n", mem, fd}'
 mem = 119, fd = 0
 ```
@@ -1027,14 +1215,14 @@ details.
 ### Consensus Compatibility
 
 It is possible for LevelDB changes to inadvertently change consensus
-compatibility between nodes. This happened in Bitcoin_Silver 0.8 (when LevelDB was
+compatibility between nodes. This happened in BitcoinSilver 0.8 (when LevelDB was
 first introduced). When upgrading LevelDB, you should review the upstream changes
 to check for issues affecting consensus compatibility.
 
 For example, if LevelDB had a bug that accidentally prevented a key from being
 returned in an edge case, and that bug was fixed upstream, the bug "fix" would
 be an incompatible consensus change. In this situation, the correct behavior
-would be to revert the upstream fix before applying the updates to Bitcoin_Silver's
+would be to revert the upstream fix before applying the updates to BitcoinSilver's
 copy of LevelDB. In general, you should be wary of any upstream changes affecting
 what data is returned from LevelDB queries.
 
@@ -1080,13 +1268,13 @@ introduce accidental changes.
 
 Some good examples of scripted-diff:
 
-- [scripted-diff: Rename InitInterfaces to NodeContext](https://github.com/bitcoin_silver/bitcoin_silver/commit/301bd41a2e6765b185bd55f4c541f9e27aeea29d)
+- [scripted-diff: Rename InitInterfaces to NodeContext](https://github.com/MrVistos/bitcoinsilver/commit/301bd41a2e6765b185bd55f4c541f9e27aeea29d)
 uses an elegant script to replace occurrences of multiple terms in all source files.
 
-- [scripted-diff: Remove g_connman, g_banman globals](https://github.com/bitcoin_silver/bitcoin_silver/commit/8922d7f6b751a3e6b3b9f6fb7961c442877fb65a)
+- [scripted-diff: Remove g_connman, g_banman globals](https://github.com/MrVistos/bitcoinsilver/commit/8922d7f6b751a3e6b3b9f6fb7961c442877fb65a)
 replaces specific terms in a list of specific source files.
 
-- [scripted-diff: Replace fprintf with tfm::format](https://github.com/bitcoin_silver/bitcoin_silver/commit/fac03ec43a15ad547161e37e53ea82482cc508f9)
+- [scripted-diff: Replace fprintf with tfm::format](https://github.com/MrVistos/bitcoinsilver/commit/fac03ec43a15ad547161e37e53ea82482cc508f9)
 does a global replacement but excludes certain directories.
 
 To find all previous uses of scripted diffs in the repository, do:
@@ -1119,7 +1307,10 @@ A few guidelines for introducing and reviewing new RPC interfaces:
 
   - *Rationale*: Consistency with the existing interface.
 
-- Argument naming: use snake case `fee_delta` (and not, e.g. camel case `feeDelta`)
+- Argument and field naming: please consider whether there is already a naming
+  style or spelling convention in the API for the type of object in question
+  (`blockhash`, for example), and if so, try to use that. If not, use snake case
+  `fee_delta` (and not, e.g. `feedelta` or camel case `feeDelta`).
 
   - *Rationale*: Consistency with the existing interface.
 
@@ -1150,7 +1341,7 @@ A few guidelines for introducing and reviewing new RPC interfaces:
 - Try not to overload methods on argument type. E.g. don't make `getblock(true)` and `getblock("hash")`
   do different things.
 
-  - *Rationale*: This is impossible to use with `bitcoin_silver-cli`, and can be surprising to users.
+  - *Rationale*: This is impossible to use with `bitcoinsilver-cli`, and can be surprising to users.
 
   - *Exception*: Some RPC calls can take both an `int` and `bool`, most notably when a bool was switched
     to a multi-value, or due to other historical reasons. **Always** have false map to 0 and
@@ -1158,11 +1349,11 @@ A few guidelines for introducing and reviewing new RPC interfaces:
 
 - Don't forget to fill in the argument names correctly in the RPC command table.
 
-  - *Rationale*: If not, the call can not be used with name-based arguments.
+  - *Rationale*: If not, the call cannot be used with name-based arguments.
 
 - Add every non-string RPC argument `(method, idx, name)` to the table `vRPCConvertParams` in `rpc/client.cpp`.
 
-  - *Rationale*: `bitcoin_silver-cli` and the GUI debug console use this table to determine how to
+  - *Rationale*: `bitcoinsilver-cli` and the GUI debug console use this table to determine how to
     convert a plaintext command line to JSON. If the types don't match, the method can be unusable
     from there.
 
@@ -1183,7 +1374,7 @@ A few guidelines for introducing and reviewing new RPC interfaces:
   RPCs whose behavior does *not* depend on the current chainstate may omit this
   call.
 
-  - *Rationale*: In previous versions of Bitcoin_Silver Core, the wallet was always
+  - *Rationale*: In previous versions of BitcoinSilver, the wallet was always
     in-sync with the chainstate (by virtue of them all being updated in the
     same cs_main lock). In order to maintain the behavior that wallet RPCs
     return results as of at least the highest best-known block an RPC
@@ -1212,6 +1403,12 @@ A few guidelines for introducing and reviewing new RPC interfaces:
   timestamps in the documentation.
 
   - *Rationale*: User-facing consistency.
+
+- Use `fs::path::u8string()` and `fs::u8path()` functions when converting path
+  to JSON strings, not `fs::PathToString` and `fs::PathFromString`
+
+  - *Rationale*: JSON strings are Unicode strings, not byte strings, and
+    RFC8259 requires JSON to be encoded as UTF-8.
 
 Internal interface guidelines
 -----------------------------
@@ -1279,22 +1476,9 @@ communication:
   virtual boost::signals2::scoped_connection connectTipChanged(TipChangedFn fn) = 0;
   ```
 
-- For consistency and friendliness to code generation tools, interface method
-  input and inout parameters should be ordered first and output parameters
-  should come last.
+- Interface methods should not be overloaded.
 
-  Example:
-
-  ```c++
-  // Good: error output param is last
-  virtual bool broadcastTransaction(const CTransactionRef& tx, CAmount max_fee, std::string& error) = 0;
-
-  // Bad: error output param is between input params
-  virtual bool broadcastTransaction(const CTransactionRef& tx, std::string& error, CAmount max_fee) = 0;
-  ```
-
-- For friendliness to code generation tools, interface methods should not be
-  overloaded:
+  *Rationale*: consistency and friendliness to code generation tools.
 
   Example:
 
@@ -1308,9 +1492,12 @@ communication:
   virtual bool disconnect(NodeId id) = 0;
   ```
 
-- For consistency and friendliness to code generation tools, interface method
-  names should be `lowerCamelCase` and standalone function names should be
+### Internal interface naming style
+
+- Interface method names should be `lowerCamelCase` and standalone function names should be
   `UpperCamelCase`.
+
+  *Rationale*: consistency and friendliness to code generation tools.
 
   Examples:
 
@@ -1332,4 +1519,4 @@ communication:
 
   Note: This last convention isn't generally followed outside of
   [`src/interfaces/`](../src/interfaces/), though it did come up for discussion
-  before in [#14635](https://github.com/bitcoin_silver/bitcoin_silver/pull/14635).
+  before in [#14635](https://github.com/MrVistos/bitcoinsilver/pull/14635).

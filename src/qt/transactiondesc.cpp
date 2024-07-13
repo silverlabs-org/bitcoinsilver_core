@@ -1,55 +1,78 @@
-// Copyright (c) 2011-2019 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifdef HAVE_CONFIG_H
-#include <config/bitcoin_silver-config.h>
+#include <config/bitcoinsilver-config.h>
 #endif
 
 #include <qt/transactiondesc.h>
 
-#include <qt/bitcoin_silverunits.h>
+#include <qt/bitcoinsilverunits.h>
 #include <qt/guiutil.h>
 #include <qt/paymentserver.h>
 #include <qt/transactionrecord.h>
 
+#include <common/system.h>
 #include <consensus/consensus.h>
 #include <interfaces/node.h>
 #include <interfaces/wallet.h>
 #include <key_io.h>
+#include <logging.h>
 #include <policy/policy.h>
-#include <script/script.h>
-#include <util/system.h>
 #include <validation.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 
 #include <stdint.h>
 #include <string>
 
 #include <QLatin1String>
 
-QString TransactionDesc::FormatTxStatus(const interfaces::WalletTx& wtx, const interfaces::WalletTxStatus& status, bool inMempool, int numBlocks)
+using wallet::ISMINE_ALL;
+using wallet::ISMINE_SPENDABLE;
+using wallet::ISMINE_WATCH_ONLY;
+using wallet::isminetype;
+
+QString TransactionDesc::FormatTxStatus(const interfaces::WalletTxStatus& status, bool inMempool)
 {
-    if (!status.is_final)
-    {
-        if (wtx.tx->nLockTime < LOCKTIME_THRESHOLD)
-            return tr("Open for %n more block(s)", "", wtx.tx->nLockTime - numBlocks);
-        else
-            return tr("Open until %1").arg(GUIUtil::dateTimeStr(wtx.tx->nLockTime));
-    }
-    else
-    {
-        int nDepth = status.depth_in_main_chain;
-        if (nDepth < 0) {
-            return tr("conflicted with a transaction with %1 confirmations").arg(-nDepth);
-        } else if (nDepth == 0) {
-            const QString abandoned{status.is_abandoned ? QLatin1String(", ") + tr("abandoned") : QString()};
-            return tr("0/unconfirmed, %1").arg(inMempool ? tr("in memory pool") : tr("not in memory pool")) + abandoned;
-        } else if (nDepth < 6) {
-            return tr("%1/unconfirmed").arg(nDepth);
+    int depth = status.depth_in_main_chain;
+    if (depth < 0) {
+        /*: Text explaining the current status of a transaction, shown in the
+            status field of the details window for this transaction. This status
+            represents an unconfirmed transaction that conflicts with a confirmed
+            transaction. */
+        return tr("conflicted with a transaction with %1 confirmations").arg(-depth);
+    } else if (depth == 0) {
+        QString s;
+        if (inMempool) {
+            /*: Text explaining the current status of a transaction, shown in the
+                status field of the details window for this transaction. This status
+                represents an unconfirmed transaction that is in the memory pool. */
+            s = tr("0/unconfirmed, in memory pool");
         } else {
-            return tr("%1 confirmations").arg(nDepth);
+            /*: Text explaining the current status of a transaction, shown in the
+                status field of the details window for this transaction. This status
+                represents an unconfirmed transaction that is not in the memory pool. */
+            s = tr("0/unconfirmed, not in memory pool");
         }
+        if (status.is_abandoned) {
+            /*: Text explaining the current status of a transaction, shown in the
+                status field of the details window for this transaction. This
+                status represents an abandoned transaction. */
+            s += QLatin1String(", ") + tr("abandoned");
+        }
+        return s;
+    } else if (depth < 6) {
+        /*: Text explaining the current status of a transaction, shown in the
+            status field of the details window for this transaction. This
+            status represents a transaction confirmed in at least one block,
+            but less than 6 blocks. */
+        return tr("%1/unconfirmed").arg(depth);
+    } else {
+        /*: Text explaining the current status of a transaction, shown in the
+            status field of the details window for this transaction. This status
+            represents a transaction confirmed in 6 or more blocks. */
+        return tr("%1 confirmations").arg(depth);
     }
 }
 
@@ -81,7 +104,7 @@ bool GetPaymentRequestMerchant(const std::string& pr, QString& merchant)
     return false;
 }
 
-QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord *rec, int unit)
+QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord* rec, BitcoinUnit unit)
 {
     int numBlocks;
     interfaces::WalletTxStatus status;
@@ -99,7 +122,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     CAmount nDebit = wtx.debit;
     CAmount nNet = nCredit - nDebit;
 
-    strHTML += "<b>" + tr("Status") + ":</b> " + FormatTxStatus(wtx, status, inMempool, numBlocks);
+    strHTML += "<b>" + tr("Status") + ":</b> " + FormatTxStatus(status, inMempool);
     strHTML += "<br>";
 
     strHTML += "<b>" + tr("Date") + ":</b> " + (nTime ? GUIUtil::dateTimeStr(nTime) : "") + "<br>";
@@ -171,7 +194,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
             nUnmatured += wallet.getCredit(txout, ISMINE_ALL);
         strHTML += "<b>" + tr("Credit") + ":</b> ";
         if (status.is_in_main_chain)
-            strHTML += Bitcoin_SilverUnits::formatHtmlWithUnit(unit, nUnmatured)+ " (" + tr("matures in %n more block(s)", "", status.blocks_to_maturity) + ")";
+            strHTML += BitcoinUnits::formatHtmlWithUnit(unit, nUnmatured)+ " (" + tr("matures in %n more block(s)", "", status.blocks_to_maturity) + ")";
         else
             strHTML += "(" + tr("not accepted") + ")";
         strHTML += "<br>";
@@ -181,7 +204,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         //
         // Credit
         //
-        strHTML += "<b>" + tr("Credit") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, nNet) + "<br>";
+        strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, nNet) + "<br>";
     }
     else
     {
@@ -226,16 +249,16 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                             strHTML += GUIUtil::HtmlEscape(name) + " ";
                         strHTML += GUIUtil::HtmlEscape(EncodeDestination(address));
                         if(toSelf == ISMINE_SPENDABLE)
-                            strHTML += " (own address)";
+                            strHTML += " (" + tr("own address") + ")";
                         else if(toSelf & ISMINE_WATCH_ONLY)
-                            strHTML += " (watch-only)";
+                            strHTML += " (" + tr("watch-only") + ")";
                         strHTML += "<br>";
                     }
                 }
 
-                strHTML += "<b>" + tr("Debit") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, -txout.nValue) + "<br>";
+                strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -txout.nValue) + "<br>";
                 if(toSelf)
-                    strHTML += "<b>" + tr("Credit") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, txout.nValue) + "<br>";
+                    strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, txout.nValue) + "<br>";
             }
 
             if (fAllToMe)
@@ -243,13 +266,13 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                 // Payment to self
                 CAmount nChange = wtx.change;
                 CAmount nValue = nCredit - nChange;
-                strHTML += "<b>" + tr("Total debit") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, -nValue) + "<br>";
-                strHTML += "<b>" + tr("Total credit") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, nValue) + "<br>";
+                strHTML += "<b>" + tr("Total debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -nValue) + "<br>";
+                strHTML += "<b>" + tr("Total credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, nValue) + "<br>";
             }
 
             CAmount nTxFee = nDebit - wtx.tx->GetValueOut();
             if (nTxFee > 0)
-                strHTML += "<b>" + tr("Transaction fee") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, -nTxFee) + "<br>";
+                strHTML += "<b>" + tr("Transaction fee") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -nTxFee) + "<br>";
         }
         else
         {
@@ -259,19 +282,19 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
             auto mine = wtx.txin_is_mine.begin();
             for (const CTxIn& txin : wtx.tx->vin) {
                 if (*(mine++)) {
-                    strHTML += "<b>" + tr("Debit") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, -wallet.getDebit(txin, ISMINE_ALL)) + "<br>";
+                    strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -wallet.getDebit(txin, ISMINE_ALL)) + "<br>";
                 }
             }
             mine = wtx.txout_is_mine.begin();
             for (const CTxOut& txout : wtx.tx->vout) {
                 if (*(mine++)) {
-                    strHTML += "<b>" + tr("Credit") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
+                    strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
                 }
             }
         }
     }
 
-    strHTML += "<b>" + tr("Net amount") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, nNet, true) + "<br>";
+    strHTML += "<b>" + tr("Net amount") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, nNet, true) + "<br>";
 
     //
     // Message
@@ -286,7 +309,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     strHTML += "<b>" + tr("Transaction virtual size") + ":</b> " + QString::number(GetVirtualTransactionSize(*wtx.tx)) + " bytes<br>";
     strHTML += "<b>" + tr("Output index") + ":</b> " + QString::number(rec->getOutputIndex()) + "<br>";
 
-    // Message from normal bitcoin_silver:URI (bitcoin_silver:123...?message=example)
+    // Message from normal bitcoinsilver:URI (bitcoinsilver:123...?message=example)
     for (const std::pair<std::string, std::string>& r : orderForm) {
         if (r.first == "Message")
             strHTML += "<br><b>" + tr("Message") + ":</b><br>" + GUIUtil::HtmlEscape(r.second, true) + "<br>";
@@ -322,10 +345,10 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         strHTML += "<hr><br>" + tr("Debug information") + "<br><br>";
         for (const CTxIn& txin : wtx.tx->vin)
             if(wallet.txinIsMine(txin))
-                strHTML += "<b>" + tr("Debit") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, -wallet.getDebit(txin, ISMINE_ALL)) + "<br>";
+                strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -wallet.getDebit(txin, ISMINE_ALL)) + "<br>";
         for (const CTxOut& txout : wtx.tx->vout)
             if(wallet.txoutIsMine(txout))
-                strHTML += "<b>" + tr("Credit") + ":</b> " + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
+                strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
 
         strHTML += "<br><b>" + tr("Transaction") + ":</b><br>";
         strHTML += GUIUtil::HtmlEscape(wtx.tx->ToString(), true);
@@ -351,7 +374,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                             strHTML += GUIUtil::HtmlEscape(name) + " ";
                         strHTML += QString::fromStdString(EncodeDestination(address));
                     }
-                    strHTML = strHTML + " " + tr("Amount") + "=" + Bitcoin_SilverUnits::formatHtmlWithUnit(unit, vout.nValue);
+                    strHTML = strHTML + " " + tr("Amount") + "=" + BitcoinUnits::formatHtmlWithUnit(unit, vout.nValue);
                     strHTML = strHTML + " IsMine=" + (wallet.txoutIsMine(vout) & ISMINE_SPENDABLE ? tr("true") : tr("false")) + "</li>";
                     strHTML = strHTML + " IsWatchOnly=" + (wallet.txoutIsMine(vout) & ISMINE_WATCH_ONLY ? tr("true") : tr("false")) + "</li>";
                 }

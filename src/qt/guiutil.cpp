@@ -1,30 +1,33 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/guiutil.h>
 
-#include <qt/bitcoin_silveraddressvalidator.h>
-#include <qt/bitcoin_silverunits.h>
+#include <qt/bitcoinsilveraddressvalidator.h>
+#include <qt/bitcoinsilverunits.h>
 #include <qt/platformstyle.h>
 #include <qt/qvalidatedlineedit.h>
 #include <qt/sendcoinsrecipient.h>
 
+#include <addresstype.h>
 #include <base58.h>
 #include <chainparams.h>
+#include <common/args.h>
 #include <interfaces/node.h>
 #include <key_io.h>
+#include <logging.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 #include <protocol.h>
 #include <script/script.h>
-#include <script/standard.h>
-#include <util/system.h>
+#include <util/chaintype.h>
+#include <util/exception.h>
+#include <util/fs.h>
+#include <util/fs_helpers.h>
+#include <util/time.h>
 
 #ifdef WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 #include <shellapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
@@ -36,6 +39,7 @@
 #include <QClipboard>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QDialog>
 #include <QDoubleValidator>
 #include <QFileDialog>
 #include <QFont>
@@ -44,6 +48,7 @@
 #include <QGuiApplication>
 #include <QJsonObject>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QLatin1String>
 #include <QLineEdit>
 #include <QList>
@@ -52,10 +57,12 @@
 #include <QMouseEvent>
 #include <QPluginLoader>
 #include <QProgressDialog>
+#include <QRegularExpression>
 #include <QScreen>
 #include <QSettings>
 #include <QShortcut>
 #include <QSize>
+#include <QStandardPaths>
 #include <QString>
 #include <QTextDocument> // for Qt::mightBeRichText
 #include <QThread>
@@ -64,13 +71,19 @@
 
 #include <cassert>
 #include <chrono>
+#include <exception>
+#include <fstream>
+#include <string>
+#include <vector>
 
-#if defined(Q_OS_MAC)
+#if defined(Q_OS_MACOS)
 
 #include <QProcess>
 
 void ForceActivation();
 #endif
+
+using namespace std::chrono_literals;
 
 namespace GUIUtil {
 
@@ -81,7 +94,7 @@ QString dateTimeStr(const QDateTime &date)
 
 QString dateTimeStr(qint64 nTime)
 {
-    return dateTimeStr(QDateTime::fromTime_t((qint32)nTime));
+    return dateTimeStr(QDateTime::fromSecsSinceEpoch(nTime));
 }
 
 QFont fixedPitchFont(bool use_embedded_font)
@@ -117,10 +130,10 @@ void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
     widget->setFont(fixedPitchFont());
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
-    widget->setPlaceholderText(QObject::tr("Enter a Bitcoin Silver address (e.g. %1)").arg(
+    widget->setPlaceholderText(QObject::tr("Enter a BitcoinSilver address (e.g. %1)").arg(
         QString::fromStdString(DummyAddress(Params()))));
-    widget->setValidator(new Bitcoin_SilverAddressEntryValidator(parent));
-    widget->setCheckValidator(new Bitcoin_SilverAddressCheckValidator(parent));
+    widget->setValidator(new BitcoinAddressEntryValidator(parent));
+    widget->setCheckValidator(new BitcoinAddressCheckValidator(parent));
 }
 
 void AddButtonShortcut(QAbstractButton* button, const QKeySequence& shortcut)
@@ -128,9 +141,9 @@ void AddButtonShortcut(QAbstractButton* button, const QKeySequence& shortcut)
     QObject::connect(new QShortcut(shortcut, button), &QShortcut::activated, [button]() { button->animateClick(); });
 }
 
-bool parseBitcoin_SilverURI(const QUrl &uri, SendCoinsRecipient *out)
+bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
 {
-    // return if URI is not valid or is no bitcoin_silver: URI
+    // return if URI is not valid or is no bitcoinsilver: URI
     if(!uri.isValid() || uri.scheme() != QString("bitcoinsilver"))
         return false;
 
@@ -167,8 +180,7 @@ bool parseBitcoin_SilverURI(const QUrl &uri, SendCoinsRecipient *out)
         {
             if(!i->second.isEmpty())
             {
-                if(!Bitcoin_SilverUnits::parse(Bitcoin_SilverUnits::BTCS, i->second, &rv.amount))
-                {
+                if (!BitcoinUnits::parse(BitcoinUnit::BTCS, i->second, &rv.amount)) {
                     return false;
                 }
             }
@@ -185,13 +197,13 @@ bool parseBitcoin_SilverURI(const QUrl &uri, SendCoinsRecipient *out)
     return true;
 }
 
-bool parseBitcoin_SilverURI(QString uri, SendCoinsRecipient *out)
+bool parseBitcoinURI(QString uri, SendCoinsRecipient *out)
 {
     QUrl uriInstance(uri);
-    return parseBitcoin_SilverURI(uriInstance, out);
+    return parseBitcoinURI(uriInstance, out);
 }
 
-QString formatBitcoin_SilverURI(const SendCoinsRecipient &info)
+QString formatBitcoinURI(const SendCoinsRecipient &info)
 {
     bool bech_32 = info.address.startsWith(QString::fromStdString(Params().Bech32HRP() + "1"));
 
@@ -200,7 +212,7 @@ QString formatBitcoin_SilverURI(const SendCoinsRecipient &info)
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(Bitcoin_SilverUnits::format(Bitcoin_SilverUnits::BTCS, info.amount, false, Bitcoin_SilverUnits::SeparatorStyle::NEVER));
+        ret += QString("?amount=%1").arg(BitcoinUnits::format(BitcoinUnit::BTCS, info.amount, false, BitcoinUnits::SeparatorStyle::NEVER));
         paramCount++;
     }
 
@@ -271,9 +283,26 @@ bool hasEntryData(const QAbstractItemView *view, int column, int role)
     return !selection.at(0).data(role).toString().isEmpty();
 }
 
+void LoadFont(const QString& file_name)
+{
+    const int id = QFontDatabase::addApplicationFont(file_name);
+    assert(id != -1);
+}
+
 QString getDefaultDataDirectory()
 {
-    return boostPathToQString(GetDefaultDataDir());
+    return PathToQString(GetDefaultDataDir());
+}
+
+QString ExtractFirstSuffixFromFilter(const QString& filter)
+{
+    QRegularExpression filter_re(QStringLiteral(".* \\(\\*\\.(.*)[ \\)]"), QRegularExpression::InvertedGreedinessOption);
+    QString suffix;
+    QRegularExpressionMatch m = filter_re.match(filter);
+    if (m.hasMatch()) {
+        suffix = m.captured(1);
+    }
+    return suffix;
 }
 
 QString getSaveFileName(QWidget *parent, const QString &caption, const QString &dir,
@@ -293,13 +322,7 @@ QString getSaveFileName(QWidget *parent, const QString &caption, const QString &
     /* Directly convert path to native OS path separators */
     QString result = QDir::toNativeSeparators(QFileDialog::getSaveFileName(parent, caption, myDir, filter, &selectedFilter));
 
-    /* Extract first suffix from filter pattern "Description (*.foo)" or "Description (*.foo *.bar ...) */
-    QRegExp filter_re(".* \\(\\*\\.(.*)[ \\)]");
-    QString selectedSuffix;
-    if(filter_re.exactMatch(selectedFilter))
-    {
-        selectedSuffix = filter_re.cap(1);
-    }
+    QString selectedSuffix = ExtractFirstSuffixFromFilter(selectedFilter);
 
     /* Add suffix if needed */
     QFileInfo info(result);
@@ -341,14 +364,8 @@ QString getOpenFileName(QWidget *parent, const QString &caption, const QString &
 
     if(selectedSuffixOut)
     {
-        /* Extract first suffix from filter pattern "Description (*.foo)" or "Description (*.foo *.bar ...) */
-        QRegExp filter_re(".* \\(\\*\\.(.*)[ \\)]");
-        QString selectedSuffix;
-        if(filter_re.exactMatch(selectedFilter))
-        {
-            selectedSuffix = filter_re.cap(1);
-        }
-        *selectedSuffixOut = selectedSuffix;
+        *selectedSuffixOut = ExtractFirstSuffixFromFilter(selectedFilter);
+        ;
     }
     return result;
 }
@@ -383,7 +400,7 @@ bool isObscured(QWidget *w)
 
 void bringToFront(QWidget* w)
 {
-#ifdef Q_OS_MAC
+#ifdef Q_OS_MACOS
     ForceActivation();
 #endif
 
@@ -401,7 +418,7 @@ void bringToFront(QWidget* w)
 
 void handleCloseWindowShortcut(QWidget* w)
 {
-    QObject::connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W), w), &QShortcut::activated, w, &QWidget::close);
+    QObject::connect(new QShortcut(QKeySequence(QObject::tr("Ctrl+W")), w), &QShortcut::activated, w, &QWidget::close);
 }
 
 void openDebugLogfile()
@@ -410,27 +427,27 @@ void openDebugLogfile()
 
     /* Open debug.log with the associated application */
     if (fs::exists(pathDebug))
-        QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathDebug)));
+        QDesktopServices::openUrl(QUrl::fromLocalFile(PathToQString(pathDebug)));
 }
 
-bool openBitcoin_SilverConf()
+bool openBitcoinConf()
 {
-    fs::path pathConfig = GetConfigFile(gArgs.GetArg("-conf", BITCOIN_SILVER_CONF_FILENAME));
+    fs::path pathConfig = gArgs.GetConfigFilePath();
 
     /* Create the file */
-    fsbridge::ofstream configFile(pathConfig, std::ios_base::app);
+    std::ofstream configFile{pathConfig, std::ios_base::app};
 
     if (!configFile.good())
         return false;
 
     configFile.close();
 
-    /* Open bitcoin_silver.conf with the associated application */
-    bool res = QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathConfig)));
-#ifdef Q_OS_MAC
+    /* Open bitcoinsilver.conf with the associated application */
+    bool res = QDesktopServices::openUrl(QUrl::fromLocalFile(PathToQString(pathConfig)));
+#ifdef Q_OS_MACOS
     // Workaround for macOS-specific behavior; see #15409.
     if (!res) {
-        res = QProcess::startDetached("/usr/bin/open", QStringList{"-t", boostPathToQString(pathConfig)});
+        res = QProcess::startDetached("/usr/bin/open", QStringList{"-t", PathToQString(pathConfig)});
     }
 #endif
 
@@ -487,17 +504,17 @@ bool LabelOutOfFocusEventFilter::eventFilter(QObject* watched, QEvent* event)
 #ifdef WIN32
 fs::path static StartupShortcutPath()
 {
-    std::string chain = gArgs.GetChainName();
-    if (chain == CBaseChainParams::MAIN)
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "Bitcoin_Silver.lnk";
-    if (chain == CBaseChainParams::TESTNET) // Remove this special case when CBaseChainParams::TESTNET = "testnet4"
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "Bitcoin_Silver (testnet).lnk";
-    return GetSpecialFolderPath(CSIDL_STARTUP) / strprintf("Bitcoin_Silver (%s).lnk", chain);
+    ChainType chain = gArgs.GetChainType();
+    if (chain == ChainType::MAIN)
+        return GetSpecialFolderPath(CSIDL_STARTUP) / "BitcoinSilver.lnk";
+    if (chain == ChainType::TESTNET) // Remove this special case when testnet CBaseChainParams::DataDir() is incremented to "testnet4"
+        return GetSpecialFolderPath(CSIDL_STARTUP) / "BitcoinSilver (testnet).lnk";
+    return GetSpecialFolderPath(CSIDL_STARTUP) / fs::u8path(strprintf("BitcoinSilver (%s).lnk", ChainTypeToString(chain)));
 }
 
 bool GetStartOnSystemStartup()
 {
-    // check for Bitcoin_Silver*.lnk
+    // check for BitcoinSilver*.lnk
     return fs::exists(StartupShortcutPath());
 }
 
@@ -525,7 +542,7 @@ bool SetStartOnSystemStartup(bool fAutoStart)
             // Start client minimized
             QString strArgs = "-min";
             // Set -testnet /-regtest options
-            strArgs += QString::fromStdString(strprintf(" -chain=%s", gArgs.GetChainName()));
+            strArgs += QString::fromStdString(strprintf(" -chain=%s", gArgs.GetChainTypeString()));
 
             // Set the path to the shortcut target
             psl->SetPath(pszExePath);
@@ -570,15 +587,15 @@ fs::path static GetAutostartDir()
 
 fs::path static GetAutostartFilePath()
 {
-    std::string chain = gArgs.GetChainName();
-    if (chain == CBaseChainParams::MAIN)
-        return GetAutostartDir() / "bitcoin_silver.desktop";
-    return GetAutostartDir() / strprintf("bitcoin_silver-%s.desktop", chain);
+    ChainType chain = gArgs.GetChainType();
+    if (chain == ChainType::MAIN)
+        return GetAutostartDir() / "bitcoinsilver.desktop";
+    return GetAutostartDir() / fs::u8path(strprintf("bitcoinsilver-%s.desktop", ChainTypeToString(chain)));
 }
 
 bool GetStartOnSystemStartup()
 {
-    fsbridge::ifstream optionFile(GetAutostartFilePath());
+    std::ifstream optionFile{GetAutostartFilePath()};
     if (!optionFile.good())
         return false;
     // Scan through file for "Hidden=true":
@@ -602,25 +619,26 @@ bool SetStartOnSystemStartup(bool fAutoStart)
     else
     {
         char pszExePath[MAX_PATH+1];
-        ssize_t r = readlink("/proc/self/exe", pszExePath, sizeof(pszExePath) - 1);
-        if (r == -1)
+        ssize_t r = readlink("/proc/self/exe", pszExePath, sizeof(pszExePath));
+        if (r == -1 || r > MAX_PATH) {
             return false;
+        }
         pszExePath[r] = '\0';
 
         fs::create_directories(GetAutostartDir());
 
-        fsbridge::ofstream optionFile(GetAutostartFilePath(), std::ios_base::out | std::ios_base::trunc);
+        std::ofstream optionFile{GetAutostartFilePath(), std::ios_base::out | std::ios_base::trunc};
         if (!optionFile.good())
             return false;
-        std::string chain = gArgs.GetChainName();
-        // Write a bitcoin_silver.desktop file to the autostart directory:
+        ChainType chain = gArgs.GetChainType();
+        // Write a bitcoinsilver.desktop file to the autostart directory:
         optionFile << "[Desktop Entry]\n";
         optionFile << "Type=Application\n";
-        if (chain == CBaseChainParams::MAIN)
-            optionFile << "Name=Bitcoin Silver\n";
+        if (chain == ChainType::MAIN)
+            optionFile << "Name=BitcoinSilver\n";
         else
-            optionFile << strprintf("Name=Bitcoin Silver (%s)\n", chain);
-        optionFile << "Exec=" << pszExePath << strprintf(" -min -chain=%s\n", chain);
+            optionFile << strprintf("Name=BitcoinSilver (%s)\n", ChainTypeToString(chain));
+        optionFile << "Exec=" << pszExePath << strprintf(" -min -chain=%s\n", ChainTypeToString(chain));
         optionFile << "Terminal=false\n";
         optionFile << "Hidden=false\n";
         optionFile.close();
@@ -644,26 +662,31 @@ void setClipboard(const QString& str)
     }
 }
 
-fs::path qstringToBoostPath(const QString &path)
+fs::path QStringToPath(const QString &path)
 {
-    return fs::path(path.toStdString());
+    return fs::u8path(path.toStdString());
 }
 
-QString boostPathToQString(const fs::path &path)
+QString PathToQString(const fs::path &path)
 {
-    return QString::fromStdString(path.string());
+    return QString::fromStdString(path.u8string());
 }
 
 QString NetworkToQString(Network net)
 {
     switch (net) {
     case NET_UNROUTABLE: return QObject::tr("Unroutable");
-    case NET_IPV4: return "IPv4";
-    case NET_IPV6: return "IPv6";
-    case NET_ONION: return "Onion";
-    case NET_I2P: return "I2P";
-    case NET_CJDNS: return "CJDNS";
-    case NET_INTERNAL: return QObject::tr("Internal");
+    //: Name of IPv4 network in peer info
+    case NET_IPV4: return QObject::tr("IPv4", "network name");
+    //: Name of IPv6 network in peer info
+    case NET_IPV6: return QObject::tr("IPv6", "network name");
+    //: Name of Tor network in peer info
+    case NET_ONION: return QObject::tr("Onion", "network name");
+    //: Name of I2P network in peer info
+    case NET_I2P: return QObject::tr("I2P", "network name");
+    //: Name of CJDNS network in peer info
+    case NET_CJDNS: return QObject::tr("CJDNS", "network name");
+    case NET_INTERNAL: return "Internal";  // should never actually happen
     case NET_MAX: assert(false);
     } // no default case, so the compiler can warn about missing cases
     assert(false);
@@ -673,37 +696,55 @@ QString ConnectionTypeToQString(ConnectionType conn_type, bool prepend_direction
 {
     QString prefix;
     if (prepend_direction) {
-        prefix = (conn_type == ConnectionType::INBOUND) ? QObject::tr("Inbound") : QObject::tr("Outbound") + " ";
+        prefix = (conn_type == ConnectionType::INBOUND) ?
+                     /*: An inbound connection from a peer. An inbound connection
+                         is a connection initiated by a peer. */
+                     QObject::tr("Inbound") :
+                     /*: An outbound connection to a peer. An outbound connection
+                         is a connection initiated by us. */
+                     QObject::tr("Outbound") + " ";
     }
     switch (conn_type) {
     case ConnectionType::INBOUND: return prefix;
+    //: Peer connection type that relays all network information.
     case ConnectionType::OUTBOUND_FULL_RELAY: return prefix + QObject::tr("Full Relay");
+    /*: Peer connection type that relays network information about
+        blocks and not transactions or addresses. */
     case ConnectionType::BLOCK_RELAY: return prefix + QObject::tr("Block Relay");
+    //: Peer connection type established manually through one of several methods.
     case ConnectionType::MANUAL: return prefix + QObject::tr("Manual");
+    //: Short-lived peer connection type that tests the aliveness of known addresses.
     case ConnectionType::FEELER: return prefix + QObject::tr("Feeler");
+    //: Short-lived peer connection type that solicits known addresses from a peer.
     case ConnectionType::ADDR_FETCH: return prefix + QObject::tr("Address Fetch");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
 
-QString formatDurationStr(int secs)
+QString formatDurationStr(std::chrono::seconds dur)
 {
-    QStringList strList;
-    int days = secs / 86400;
-    int hours = (secs % 86400) / 3600;
-    int mins = (secs % 3600) / 60;
-    int seconds = secs % 60;
+    using days = std::chrono::duration<int, std::ratio<86400>>; // can remove this line after C++20
+    const auto d{std::chrono::duration_cast<days>(dur)};
+    const auto h{std::chrono::duration_cast<std::chrono::hours>(dur - d)};
+    const auto m{std::chrono::duration_cast<std::chrono::minutes>(dur - d - h)};
+    const auto s{std::chrono::duration_cast<std::chrono::seconds>(dur - d - h - m)};
+    QStringList str_list;
+    if (auto d2{d.count()}) str_list.append(QObject::tr("%1 d").arg(d2));
+    if (auto h2{h.count()}) str_list.append(QObject::tr("%1 h").arg(h2));
+    if (auto m2{m.count()}) str_list.append(QObject::tr("%1 m").arg(m2));
+    const auto s2{s.count()};
+    if (s2 || str_list.empty()) str_list.append(QObject::tr("%1 s").arg(s2));
+    return str_list.join(" ");
+}
 
-    if (days)
-        strList.append(QObject::tr("%1 d").arg(days));
-    if (hours)
-        strList.append(QObject::tr("%1 h").arg(hours));
-    if (mins)
-        strList.append(QObject::tr("%1 m").arg(mins));
-    if (seconds || (!days && !hours && !mins))
-        strList.append(QObject::tr("%1 s").arg(seconds));
-
-    return strList.join(" ");
+QString FormatPeerAge(std::chrono::seconds time_connected)
+{
+    const auto time_now{GetTime<std::chrono::seconds>()};
+    const auto age{time_now - time_connected};
+    if (age >= 24h) return QObject::tr("%1 d").arg(age / 24h);
+    if (age >= 1h) return QObject::tr("%1 h").arg(age / 1h);
+    if (age >= 1min) return QObject::tr("%1 m").arg(age / 1min);
+    return QObject::tr("%1 s").arg(age / 1s);
 }
 
 QString formatServicesStr(quint64 mask)
@@ -848,7 +889,7 @@ bool ItemDelegate::eventFilter(QObject *object, QEvent *event)
 
 void PolishProgressDialog(QProgressDialog* dialog)
 {
-#ifdef Q_OS_MAC
+#ifdef Q_OS_MACOS
     // Workaround for macOS-only Qt bug; see: QTBUG-65750, QTBUG-70357.
     const int margin = TextWidth(dialog->fontMetrics(), ("X"));
     dialog->resize(dialog->width() + 2 * margin, dialog->height());
@@ -862,11 +903,7 @@ void PolishProgressDialog(QProgressDialog* dialog)
 
 int TextWidth(const QFontMetrics& fm, const QString& text)
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
     return fm.horizontalAdvance(text);
-#else
-    return fm.width(text);
-#endif
 }
 
 void LogQtInfo()
@@ -955,7 +992,14 @@ void PrintSlotException(
     std::string description = sender->metaObject()->className();
     description += "->";
     description += receiver->metaObject()->className();
-    PrintExceptionContinue(exception, description.c_str());
+    PrintExceptionContinue(exception, description);
+}
+
+void ShowModalDialogAsynchronously(QDialog* dialog)
+{
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowModality(Qt::ApplicationModal);
+    dialog->show();
 }
 
 } // namespace GUIUtil

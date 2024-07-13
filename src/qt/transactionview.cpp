@@ -1,11 +1,11 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/transactionview.h>
 
 #include <qt/addresstablemodel.h>
-#include <qt/bitcoin_silverunits.h>
+#include <qt/bitcoinsilverunits.h>
 #include <qt/csvmodelwriter.h>
 #include <qt/editaddressdialog.h>
 #include <qt/guiutil.h>
@@ -17,7 +17,10 @@
 #include <qt/transactiontablemodel.h>
 #include <qt/walletmodel.h>
 
-#include <node/ui_interface.h>
+#include <node/interface_ui.h>
+
+#include <chrono>
+#include <optional>
 
 #include <QApplication>
 #include <QComboBox>
@@ -88,7 +91,6 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
                                         TransactionFilterProxy::TYPE(TransactionRecord::RecvFromOther));
     typeWidget->addItem(tr("Sent to"), TransactionFilterProxy::TYPE(TransactionRecord::SendToAddress) |
                                   TransactionFilterProxy::TYPE(TransactionRecord::SendToOther));
-    typeWidget->addItem(tr("To yourself"), TransactionFilterProxy::TYPE(TransactionRecord::SendToSelf));
     typeWidget->addItem(tr("Mined"), TransactionFilterProxy::TYPE(TransactionRecord::Generated));
     typeWidget->addItem(tr("Other"), TransactionFilterProxy::TYPE(TransactionRecord::Other));
 
@@ -112,8 +114,8 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     amountWidget->setValidator(amountValidator);
     hlayout->addWidget(amountWidget);
 
-    // Delay before filtering transactions in ms
-    static const int input_filter_delay = 200;
+    // Delay before filtering transactions
+    static constexpr auto input_filter_delay{200ms};
 
     QTimer* amount_typing_delay = new QTimer(this);
     amount_typing_delay->setSingleShot(true);
@@ -220,17 +222,21 @@ void TransactionView::setModel(WalletModel *_model)
         {
             // Add third party transaction URLs to context menu
             QStringList listUrls = GUIUtil::SplitSkipEmptyParts(_model->getOptionsModel()->getThirdPartyTxUrls(), "|");
+            bool actions_created = false;
             for (int i = 0; i < listUrls.size(); ++i)
             {
                 QString url = listUrls[i].trimmed();
                 QString host = QUrl(url, QUrl::StrictMode).host();
                 if (!host.isEmpty())
                 {
-                    QAction *thirdPartyTxUrlAction = new QAction(host, this); // use host as menu item label
-                    if (i == 0)
+                    if (!actions_created) {
                         contextMenu->addSeparator();
-                    contextMenu->addAction(thirdPartyTxUrlAction);
-                    connect(thirdPartyTxUrlAction, &QAction::triggered, [this, url] { openThirdPartyTxUrl(url); });
+                        actions_created = true;
+                    }
+                    /*: Transactions table context menu action to show the
+                        selected transaction in a third-party block explorer.
+                        %1 is a stand-in argument for the URL of the explorer. */
+                    contextMenu->addAction(tr("Show in %1").arg(host), [this, url] { openThirdPartyTxUrl(url); });
                 }
             }
         }
@@ -266,26 +272,26 @@ void TransactionView::chooseDate(int idx)
     {
     case All:
         transactionProxyModel->setDateRange(
-                TransactionFilterProxy::MIN_DATE,
-                TransactionFilterProxy::MAX_DATE);
+                std::nullopt,
+                std::nullopt);
         break;
     case Today:
         transactionProxyModel->setDateRange(
                 GUIUtil::StartOfDay(current),
-                TransactionFilterProxy::MAX_DATE);
+                std::nullopt);
         break;
     case ThisWeek: {
         // Find last Monday
         QDate startOfWeek = current.addDays(-(current.dayOfWeek()-1));
         transactionProxyModel->setDateRange(
                 GUIUtil::StartOfDay(startOfWeek),
-                TransactionFilterProxy::MAX_DATE);
+                std::nullopt);
 
         } break;
     case ThisMonth:
         transactionProxyModel->setDateRange(
                 GUIUtil::StartOfDay(QDate(current.year(), current.month(), 1)),
-                TransactionFilterProxy::MAX_DATE);
+                std::nullopt);
         break;
     case LastMonth:
         transactionProxyModel->setDateRange(
@@ -295,7 +301,7 @@ void TransactionView::chooseDate(int idx)
     case ThisYear:
         transactionProxyModel->setDateRange(
                 GUIUtil::StartOfDay(QDate(current.year(), 1, 1)),
-                TransactionFilterProxy::MAX_DATE);
+                std::nullopt);
         break;
     case Range:
         dateRangeWidget->setVisible(true);
@@ -332,7 +338,7 @@ void TransactionView::changedAmount()
     if(!transactionProxyModel)
         return;
     CAmount amount_parsed = 0;
-    if (Bitcoin_SilverUnits::parse(model->getOptionsModel()->getDisplayUnit(), amountWidget->text(), &amount_parsed)) {
+    if (BitcoinUnits::parse(model->getOptionsModel()->getDisplayUnit(), amountWidget->text(), &amount_parsed)) {
         transactionProxyModel->setMinAmount(amount_parsed);
     }
     else
@@ -351,7 +357,7 @@ void TransactionView::exportClicked()
     QString filename = GUIUtil::getSaveFileName(this,
         tr("Export Transaction History"), QString(),
         /*: Expanded name of the CSV file format.
-            See https://en.wikipedia.org/wiki/Comma-separated_values */
+            See: https://en.wikipedia.org/wiki/Comma-separated_values. */
         tr("Comma separated file") + QLatin1String(" (*.csv)"), nullptr);
 
     if (filename.isNull())
@@ -368,7 +374,7 @@ void TransactionView::exportClicked()
     writer.addColumn(tr("Type"), TransactionTableModel::Type, Qt::EditRole);
     writer.addColumn(tr("Label"), 0, TransactionTableModel::LabelRole);
     writer.addColumn(tr("Address"), 0, TransactionTableModel::AddressRole);
-    writer.addColumn(Bitcoin_SilverUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit()), 0, TransactionTableModel::FormattedAmountRole);
+    writer.addColumn(BitcoinUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit()), 0, TransactionTableModel::FormattedAmountRole);
     writer.addColumn(tr("ID"), 0, TransactionTableModel::TxHashRole);
 
     if(!writer.write()) {
@@ -414,9 +420,6 @@ void TransactionView::abandonTx()
 
     // Abandon the wallet transaction over the walletModel
     model->wallet().abandonTransaction(hash);
-
-    // Update the table
-    model->getTransactionTableModel()->updateTransaction(hashQStr, CT_UPDATED, false);
 }
 
 void TransactionView::bumpFee([[maybe_unused]] bool checked)
@@ -498,22 +501,22 @@ void TransactionView::editLabel()
             // Determine type of address, launch appropriate editor dialog type
             QString type = modelIdx.data(AddressTableModel::TypeRole).toString();
 
-            EditAddressDialog dlg(
+            auto dlg = new EditAddressDialog(
                 type == AddressTableModel::Receive
                 ? EditAddressDialog::EditReceivingAddress
                 : EditAddressDialog::EditSendingAddress, this);
-            dlg.setModel(addressBook);
-            dlg.loadRow(idx);
-            dlg.exec();
+            dlg->setModel(addressBook);
+            dlg->loadRow(idx);
+            GUIUtil::ShowModalDialogAsynchronously(dlg);
         }
         else
         {
             // Add sending address
-            EditAddressDialog dlg(EditAddressDialog::NewSendingAddress,
+            auto dlg = new EditAddressDialog(EditAddressDialog::NewSendingAddress,
                 this);
-            dlg.setModel(addressBook);
-            dlg.setAddress(address);
-            dlg.exec();
+            dlg->setModel(addressBook);
+            dlg->setAddress(address);
+            GUIUtil::ShowModalDialogAsynchronously(dlg);
         }
     }
 }
@@ -527,6 +530,10 @@ void TransactionView::showDetails()
     {
         TransactionDescDialog *dlg = new TransactionDescDialog(selection.at(0));
         dlg->setAttribute(Qt::WA_DeleteOnClose);
+        m_opened_dialogs.append(dlg);
+        connect(dlg, &QObject::destroyed, [this, dlg] {
+            m_opened_dialogs.removeOne(dlg);
+        });
         dlg->show();
     }
 }
@@ -543,7 +550,7 @@ void TransactionView::openThirdPartyTxUrl(QString url)
 QWidget *TransactionView::createDateRangeWidget()
 {
     dateRangeWidget = new QFrame();
-    dateRangeWidget->setFrameStyle(QFrame::Panel | QFrame::Raised);
+    dateRangeWidget->setFrameStyle(static_cast<int>(QFrame::Panel) | static_cast<int>(QFrame::Raised));
     dateRangeWidget->setContentsMargins(1,1,1,1);
     QHBoxLayout *layout = new QHBoxLayout(dateRangeWidget);
     layout->setContentsMargins(0,0,0,0);
@@ -633,6 +640,11 @@ bool TransactionView::eventFilter(QObject *obj, QEvent *event)
              return true;
         }
     }
+    if (event->type() == QEvent::EnabledChange) {
+        if (!isEnabled()) {
+            closeOpenedDialogs();
+        }
+    }
     return QWidget::eventFilter(obj, event);
 }
 
@@ -641,4 +653,13 @@ void TransactionView::updateWatchOnlyColumn(bool fHaveWatchOnly)
 {
     watchOnlyWidget->setVisible(fHaveWatchOnly);
     transactionView->setColumnHidden(TransactionTableModel::Watchonly, !fHaveWatchOnly);
+}
+
+void TransactionView::closeOpenedDialogs()
+{
+    // close all dialogs opened from this view
+    for (QDialog* dlg : m_opened_dialogs) {
+        dlg->close();
+    }
+    m_opened_dialogs.clear();
 }

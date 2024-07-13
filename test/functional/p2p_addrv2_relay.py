@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2020-2021 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
@@ -11,27 +11,33 @@ import time
 from test_framework.messages import (
     CAddress,
     msg_addrv2,
-    NODE_NETWORK,
-    NODE_WITNESS,
 )
-from test_framework.p2p import P2PInterface
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.p2p import (
+    P2PInterface,
+    P2P_SERVICES,
+)
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal
 
 I2P_ADDR = "c4gfnttsuwqomiygupdqqqyy5y5emnk5c73hrfvatri67prd7vyq.b32.i2p"
+ONION_ADDR = "pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion"
 
 ADDRS = []
 for i in range(10):
     addr = CAddress()
     addr.time = int(time.time()) + i
-    addr.nServices = NODE_NETWORK | NODE_WITNESS
-    # Add one I2P address at an arbitrary position.
+    addr.port = 10566 + i
+    addr.nServices = P2P_SERVICES
+    # Add one I2P and one onion V3 address at an arbitrary position.
     if i == 5:
         addr.net = addr.NET_I2P
         addr.ip = I2P_ADDR
+        addr.port = 0
+    elif i == 8:
+        addr.net = addr.NET_TORV3
+        addr.ip = ONION_ADDR
     else:
         addr.ip = f"123.123.123.{i % 256}"
-    addr.port = 8383 + i
     ADDRS.append(addr)
 
 
@@ -51,7 +57,18 @@ class AddrReceiver(P2PInterface):
         self.wait_until(lambda: "addrv2" in self.last_message)
 
 
-class AddrTest(Bitcoin_SilverTestFramework):
+def calc_addrv2_msg_size(addrs):
+    size = 1  # vector length byte
+    for addr in addrs:
+        size += 4  # time
+        size += 1  # services, COMPACTSIZE(P2P_SERVICES)
+        size += 1  # network id
+        size += 1  # address length byte
+        size += addr.ADDRV2_ADDRESS_LENGTH[addr.net]  # address
+        size += 2  # port
+    return size
+
+class AddrTest(BitcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
@@ -70,12 +87,10 @@ class AddrTest(Bitcoin_SilverTestFramework):
         self.log.info('Check that addrv2 message content is relayed and added to addrman')
         addr_receiver = self.nodes[0].add_p2p_connection(AddrReceiver())
         msg.addrs = ADDRS
+        msg_size = calc_addrv2_msg_size(ADDRS)
         with self.nodes[0].assert_debug_log([
-                # The I2P address is not added to node's own addrman because it has no
-                # I2P reachability (thus 10 - 1 = 9).
-                'Added 9 addresses from 127.0.0.1: 0 tried',
-                'received: addrv2 (159 bytes) peer=0',
-                'sending addrv2 (159 bytes) peer=1',
+                f'received: addrv2 ({msg_size} bytes) peer=0',
+                f'sending addrv2 ({msg_size} bytes) peer=1',
         ]):
             addr_source.send_and_ping(msg)
             self.nodes[0].setmocktime(int(time.time()) + 30 * 60)

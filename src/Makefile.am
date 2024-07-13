@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016 The Bitcoin_Silver Core developers
+# Copyright (c) 2013-2016 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,61 +6,67 @@
 print-%: FORCE
 	@echo '$*'='$($*)'
 
-DIST_SUBDIRS = secp256k1 univalue
+DIST_SUBDIRS = secp256k1
 
-AM_LDFLAGS = $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
-AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS)
-AM_CPPFLAGS = $(DEBUG_CPPFLAGS) $(HARDENED_CPPFLAGS)
+AM_LDFLAGS = $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS) $(LTO_LDFLAGS) $(CORE_LDFLAGS)
+AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS) $(LTO_CXXFLAGS) $(CORE_CXXFLAGS)
+AM_CPPFLAGS = $(DEBUG_CPPFLAGS) $(HARDENED_CPPFLAGS) $(CORE_CPPFLAGS)
 AM_LIBTOOLFLAGS = --preserve-dup-deps
 PTHREAD_FLAGS = $(PTHREAD_CFLAGS) $(PTHREAD_LIBS)
 EXTRA_LIBRARIES =
 
-if EMBEDDED_UNIVALUE
-LIBUNIVALUE = univalue/libunivalue.la
+lib_LTLIBRARIES =
+noinst_LTLIBRARIES =
 
-$(LIBUNIVALUE): $(wildcard univalue/lib/*) $(wildcard univalue/include/*)
-	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
-else
-LIBUNIVALUE = $(UNIVALUE_LIBS)
-endif
+bin_PROGRAMS =
+noinst_PROGRAMS =
+check_PROGRAMS =
+TESTS =
+BENCHMARKS =
 
-BITCOIN_SILVER_INCLUDES=-I$(builddir) -I$(srcdir)/secp256k1/include $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS)
+BITCOINSILVER_INCLUDES=-I$(builddir) -I$(srcdir)/$(MINISKETCH_INCLUDE_DIR_INT) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT)
 
-BITCOIN_SILVER_INCLUDES += $(UNIVALUE_CFLAGS)
-
-LIBBITCOIN_SERVER=libbitcoin_server.a
-LIBBITCOIN_COMMON=libbitcoin_common.a
-LIBBITCOIN_CONSENSUS=libbitcoin_consensus.a
-LIBBITCOIN_CLI=libbitcoin_cli.a
-LIBBITCOIN_UTIL=libbitcoin_util.a
-LIBBITCOIN_CRYPTO_BASE=crypto/libbitcoin_crypto_base.a
-LIBBITCOINQT=qt/libbitcoinqt.a
+LIBBITCOINSILVER_NODE=libbitcoinsilver_node.a
+LIBBITCOINSILVER_COMMON=libbitcoinsilver_common.a
+LIBBITCOINSILVER_CONSENSUS=libbitcoinsilver_consensus.a
+LIBBITCOINSILVER_CLI=libbitcoinsilver_cli.a
+LIBBITCOINSILVER_UTIL=libbitcoinsilver_util.a
+LIBBITCOINSILVER_CRYPTO_BASE=crypto/libbitcoinsilver_crypto_base.la
+LIBBITCOINSILVERQT=qt/libbitcoinsilverqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
 
 if ENABLE_ZMQ
-LIBBITCOIN_ZMQ=libbitcoin_zmq.a
+LIBBITCOINSILVER_ZMQ=libbitcoinsilver_zmq.a
 endif
-if BUILD_BITCOIN_SILVER_LIBS
-LIBBITCOINCONSENSUS=libbitcoinconsensus.la
+if BUILD_BITCOINSILVER_LIBS
+LIBBITCOINSILVERCONSENSUS=libbitcoinsilverconsensus.la
+endif
+if BUILD_BITCOINSILVER_KERNEL_LIB
+LIBBITCOINSILVERKERNEL=libbitcoinsilverkernel.la
 endif
 if ENABLE_WALLET
-LIBBITCOIN_WALLET=libbitcoin_wallet.a
-LIBBITCOIN_WALLET_TOOL=libbitcoin_wallet_tool.a
+LIBBITCOINSILVER_WALLET=libbitcoinsilver_wallet.a
+LIBBITCOINSILVER_WALLET_TOOL=libbitcoinsilver_wallet_tool.a
 endif
 
-LIBBITCOIN_CRYPTO= $(LIBBITCOIN_CRYPTO_BASE)
+LIBBITCOINSILVER_CRYPTO = $(LIBBITCOINSILVER_CRYPTO_BASE)
 if ENABLE_SSE41
-LIBBITCOIN_CRYPTO_SSE41 = crypto/libbitcoin_crypto_sse41.a
-LIBBITCOIN_CRYPTO += $(LIBBITCOIN_CRYPTO_SSE41)
+LIBBITCOINSILVER_CRYPTO_SSE41 = crypto/libbitcoinsilver_crypto_sse41.la
+LIBBITCOINSILVER_CRYPTO += $(LIBBITCOINSILVER_CRYPTO_SSE41)
 endif
 if ENABLE_AVX2
-LIBBITCOIN_CRYPTO_AVX2 = crypto/libbitcoin_crypto_avx2.a
-LIBBITCOIN_CRYPTO += $(LIBBITCOIN_CRYPTO_AVX2)
+LIBBITCOINSILVER_CRYPTO_AVX2 = crypto/libbitcoinsilver_crypto_avx2.la
+LIBBITCOINSILVER_CRYPTO += $(LIBBITCOINSILVER_CRYPTO_AVX2)
 endif
-if ENABLE_SHANI
-LIBBITCOIN_CRYPTO_SHANI = crypto/libbitcoin_crypto_shani.a
-LIBBITCOIN_CRYPTO += $(LIBBITCOIN_CRYPTO_SHANI)
+if ENABLE_X86_SHANI
+LIBBITCOINSILVER_CRYPTO_X86_SHANI = crypto/libbitcoinsilver_crypto_x86_shani.la
+LIBBITCOINSILVER_CRYPTO += $(LIBBITCOINSILVER_CRYPTO_X86_SHANI)
 endif
+if ENABLE_ARM_SHANI
+LIBBITCOINSILVER_CRYPTO_ARM_SHANI = crypto/libbitcoinsilver_crypto_arm_shani.la
+LIBBITCOINSILVER_CRYPTO += $(LIBBITCOINSILVER_CRYPTO_ARM_SHANI)
+endif
+noinst_LTLIBRARIES += $(LIBBITCOINSILVER_CRYPTO)
 
 $(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(wildcard secp256k1/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
@@ -68,62 +74,60 @@ $(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(w
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
 # But to build the less dependent modules first, we manually select their order here:
 EXTRA_LIBRARIES += \
-  $(LIBBITCOIN_CRYPTO) \
-  $(LIBBITCOIN_UTIL) \
-  $(LIBBITCOIN_COMMON) \
-  $(LIBBITCOIN_CONSENSUS) \
-  $(LIBBITCOIN_SERVER) \
-  $(LIBBITCOIN_CLI) \
-  $(LIBBITCOIN_IPC) \
-  $(LIBBITCOIN_WALLET) \
-  $(LIBBITCOIN_WALLET_TOOL) \
-  $(LIBBITCOIN_ZMQ)
+  $(LIBBITCOINSILVER_UTIL) \
+  $(LIBBITCOINSILVER_COMMON) \
+  $(LIBBITCOINSILVER_CONSENSUS) \
+  $(LIBBITCOINSILVER_NODE) \
+  $(LIBBITCOINSILVER_CLI) \
+  $(LIBBITCOINSILVER_IPC) \
+  $(LIBBITCOINSILVER_WALLET) \
+  $(LIBBITCOINSILVER_WALLET_TOOL) \
+  $(LIBBITCOINSILVER_ZMQ)
 
-lib_LTLIBRARIES = $(LIBBITCOINCONSENSUS)
-
-bin_PROGRAMS =
-noinst_PROGRAMS =
-TESTS =
-BENCHMARKS =
-
-if BUILD_BITCOIN_SILVERD
-  bin_PROGRAMS += bitcoin_silverd
+if BUILD_BITCOINSILVERD
+  bin_PROGRAMS += bitcoinsilverd
 endif
 
-if BUILD_BITCOIN_SILVER_NODE
-  bin_PROGRAMS += bitcoin_silver-node
+if BUILD_BITCOINSILVER_NODE
+  bin_PROGRAMS += bitcoinsilver-node
 endif
 
-if BUILD_BITCOIN_SILVER_CLI
-  bin_PROGRAMS += bitcoin_silver-cli
+if BUILD_BITCOINSILVER_CLI
+  bin_PROGRAMS += bitcoinsilver-cli
 endif
 
-if BUILD_BITCOIN_SILVER_TX
-  bin_PROGRAMS += bitcoin_silver-tx
+if BUILD_BITCOINSILVER_TX
+  bin_PROGRAMS += bitcoinsilver-tx
 endif
 
 if ENABLE_WALLET
-if BUILD_BITCOIN_SILVER_WALLET
-  bin_PROGRAMS += bitcoin_silver-wallet
+if BUILD_BITCOINSILVER_WALLET
+  bin_PROGRAMS += bitcoinsilver-wallet
 endif
 endif
 
-if BUILD_BITCOIN_SILVER_UTIL
-  bin_PROGRAMS += bitcoin_silver-util
+if BUILD_BITCOINSILVER_UTIL
+  bin_PROGRAMS += bitcoinsilver-util
+endif
+
+if BUILD_BITCOINSILVER_CHAINSTATE
+  bin_PROGRAMS += bitcoinsilver-chainstate
 endif
 
 .PHONY: FORCE check-symbols check-security
-# bitcoin_silver core #
-BITCOIN_SILVER_CORE_H = \
+# bitcoinsilver #
+BITCOINSILVER_CORE_H = \
+  addresstype.h \
   addrdb.h \
   addrman.h \
+  addrman_impl.h \
   attributes.h \
   banman.h \
   base58.h \
   bech32.h \
+  bip324.h \
   blockencodings.h \
   blockfilter.h \
-  bloom.h \
   chain.h \
   chainparams.h \
   chainparamsbase.h \
@@ -131,12 +135,18 @@ BITCOIN_SILVER_CORE_H = \
   checkqueue.h \
   clientversion.h \
   coins.h \
-  compat.h \
+  common/args.h \
+  common/bloom.h \
+  common/init.h \
+  common/run_command.h \
+  common/url.h \
   compat/assumptions.h \
   compat/byteswap.h \
+  compat/compat.h \
   compat/cpuid.h \
   compat/endian.h \
-  compat/sanity.h \
+  common/settings.h \
+  common/system.h \
   compressor.h \
   consensus/consensus.h \
   consensus/tx_check.h \
@@ -149,7 +159,7 @@ BITCOIN_SILVER_CORE_H = \
   deploymentstatus.h \
   external_signer.h \
   flatfile.h \
-  fs.h \
+  headerssync.h \
   httprpc.h \
   httpserver.h \
   i2p.h \
@@ -168,6 +178,23 @@ BITCOIN_SILVER_CORE_H = \
   interfaces/ipc.h \
   interfaces/node.h \
   interfaces/wallet.h \
+  kernel/blockmanager_opts.h \
+  kernel/chain.h \
+  kernel/chainparams.h \
+  kernel/chainstatemanager_opts.h \
+  kernel/checks.h \
+  kernel/coinstats.h \
+  kernel/context.h \
+  kernel/cs_main.h \
+  kernel/disconnected_transactions.h \
+  kernel/mempool_entry.h \
+  kernel/mempool_limits.h \
+  kernel/mempool_options.h \
+  kernel/mempool_persist.h \
+  kernel/mempool_removal_reason.h \
+  kernel/messagestartchars.h \
+  kernel/notifications_interface.h \
+  kernel/validation_cache_sizes.h \
   key.h \
   key_io.h \
   logging.h \
@@ -175,26 +202,44 @@ BITCOIN_SILVER_CORE_H = \
   mapport.h \
   memusage.h \
   merkleblock.h \
-  miner.h \
   net.h \
   net_permissions.h \
   net_processing.h \
   net_types.h \
   netaddress.h \
   netbase.h \
+  netgroup.h \
   netmessagemaker.h \
+  node/abort.h \
+  node/blockmanager_args.h \
   node/blockstorage.h \
+  node/caches.h \
+  node/chainstate.h \
+  node/chainstatemanager_args.h \
   node/coin.h \
-  node/coinstats.h \
+  node/coins_view_args.h \
+  node/connection_types.h \
   node/context.h \
+  node/database_args.h \
+  node/eviction.h \
+  node/interface_ui.h \
+  node/kernel_notifications.h \
+  node/mempool_args.h \
+  node/mempool_persist_args.h \
+  node/miner.h \
+  node/mini_miner.h \
+  node/minisketchwrapper.h \
+  node/peerman_args.h \
   node/psbt.h \
   node/transaction.h \
-  node/ui_interface.h \
+  node/txreconciliation.h \
   node/utxo_snapshot.h \
+  node/validation_cache_args.h \
   noui.h \
   outputtype.h \
   policy/feerate.h \
   policy/fees.h \
+  policy/fees_args.h \
   policy/packages.h \
   policy/policy.h \
   policy/rbf.h \
@@ -204,34 +249,37 @@ BITCOIN_SILVER_CORE_H = \
   psbt.h \
   random.h \
   randomenv.h \
+  rest.h \
   reverse_iterator.h \
   rpc/blockchain.h \
   rpc/client.h \
+  rpc/mempool.h \
   rpc/mining.h \
-  rpc/net.h \
   rpc/protocol.h \
   rpc/rawtransaction_util.h \
   rpc/register.h \
   rpc/request.h \
   rpc/server.h \
+  rpc/server_util.h \
   rpc/util.h \
   scheduler.h \
   script/descriptor.h \
   script/keyorigin.h \
+  script/miniscript.h \
   script/sigcache.h \
   script/sign.h \
   script/signingprovider.h \
-  script/standard.h \
+  script/solver.h \
   shutdown.h \
   signet.h \
   streams.h \
+  support/allocators/pool.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
   support/cleanse.h \
   support/events.h \
   support/lockedpool.h \
   sync.h \
-  threadinterrupt.h \
   threadsafety.h \
   timedata.h \
   torcontrol.h \
@@ -240,36 +288,49 @@ BITCOIN_SILVER_CORE_H = \
   txorphanage.h \
   txrequest.h \
   undo.h \
+  util/any.h \
   util/asmap.h \
+  util/batchpriority.h \
   util/bip32.h \
+  util/bitdeque.h \
   util/bytevectorhash.h \
+  util/chaintype.h \
   util/check.h \
   util/epochguard.h \
   util/error.h \
+  util/exception.h \
+  util/fastrange.h \
   util/fees.h \
+  util/fs.h \
+  util/fs_helpers.h \
   util/getuniquepath.h \
   util/golombrice.h \
   util/hash_type.h \
   util/hasher.h \
+  util/insert.h \
   util/macros.h \
   util/message.h \
   util/moneystr.h \
+  util/overflow.h \
+  util/overloaded.h \
   util/rbf.h \
   util/readwritefile.h \
+  util/result.h \
   util/serfloat.h \
-  util/settings.h \
+  util/signalinterrupt.h \
   util/sock.h \
   util/spanparsing.h \
   util/string.h \
-  util/system.h \
+  util/syserror.h \
   util/thread.h \
+  util/threadinterrupt.h \
   util/threadnames.h \
   util/time.h \
   util/tokenpipe.h \
   util/trace.h \
   util/translation.h \
+  util/types.h \
   util/ui_change_type.h \
-  util/url.h \
   util/vector.h \
   validation.h \
   validationinterface.h \
@@ -284,15 +345,16 @@ BITCOIN_SILVER_CORE_H = \
   wallet/external_signer_scriptpubkeyman.h \
   wallet/feebumper.h \
   wallet/fees.h \
-  wallet/ismine.h \
   wallet/load.h \
   wallet/receive.h \
-  wallet/rpcwallet.h \
+  wallet/rpc/util.h \
+  wallet/rpc/wallet.h \
   wallet/salvage.h \
   wallet/scriptpubkeyman.h \
   wallet/spend.h \
   wallet/sqlite.h \
   wallet/transaction.h \
+  wallet/types.h \
   wallet/wallet.h \
   wallet/walletdb.h \
   wallet/wallettool.h \
@@ -308,22 +370,18 @@ BITCOIN_SILVER_CORE_H = \
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
-	@$(top_srcdir)/share/genbuild.sh "$(abs_top_builddir)/src/obj/build.h" \
+	$(AM_V_GEN) $(top_srcdir)/share/genbuild.sh "$(abs_top_builddir)/src/obj/build.h" \
 	  "$(abs_top_srcdir)"
-libbitcoin_util_a-clientversion.$(OBJEXT): obj/build.h
+libbitcoinsilver_util_a-clientversion.$(OBJEXT): obj/build.h
 
-ipc/capnp/libbitcoin_ipc_a-ipc.$(OBJEXT): $(libbitcoin_ipc_mpgen_input:=.h)
-
-# server: shared between bitcoin_silverd and bitcoin_silver-qt
-# Contains code accessing mempool and chain state that is meant to be separated
-# from wallet and gui code (see node/README.md). Shared code should go in
-# libbitcoin_common or libbitcoin_util libraries, instead.
-libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(NATPMP_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
-libbitcoin_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_server_a_SOURCES = \
+# node #
+libbitcoinsilver_node_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES) $(LEVELDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(MINIUPNPC_CPPFLAGS) $(NATPMP_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
+libbitcoinsilver_node_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoinsilver_node_a_SOURCES = \
   addrdb.cpp \
   addrman.cpp \
   banman.cpp \
+  bip324.cpp \
   blockencodings.cpp \
   blockfilter.cpp \
   chain.cpp \
@@ -331,6 +389,7 @@ libbitcoin_server_a_SOURCES = \
   dbwrapper.cpp \
   deploymentstatus.cpp \
   flatfile.cpp \
+  headerssync.cpp \
   httprpc.cpp \
   httpserver.cpp \
   i2p.cpp \
@@ -339,31 +398,63 @@ libbitcoin_server_a_SOURCES = \
   index/coinstatsindex.cpp \
   index/txindex.cpp \
   init.cpp \
+  kernel/chain.cpp \
+  kernel/checks.cpp \
+  kernel/coinstats.cpp \
+  kernel/context.cpp \
+  kernel/cs_main.cpp \
+  kernel/mempool_persist.cpp \
+  kernel/mempool_removal_reason.cpp \
   mapport.cpp \
-  miner.cpp \
   net.cpp \
   net_processing.cpp \
+  netgroup.cpp \
+  node/abort.cpp \
+  node/blockmanager_args.cpp \
   node/blockstorage.cpp \
+  node/caches.cpp \
+  node/chainstate.cpp \
+  node/chainstatemanager_args.cpp \
   node/coin.cpp \
-  node/coinstats.cpp \
+  node/coins_view_args.cpp \
+  node/connection_types.cpp \
   node/context.cpp \
+  node/database_args.cpp \
+  node/eviction.cpp \
+  node/interface_ui.cpp \
   node/interfaces.cpp \
+  node/kernel_notifications.cpp \
+  node/mempool_args.cpp \
+  node/mempool_persist_args.cpp \
+  node/miner.cpp \
+  node/mini_miner.cpp \
+  node/minisketchwrapper.cpp \
+  node/peerman_args.cpp \
   node/psbt.cpp \
   node/transaction.cpp \
-  node/ui_interface.cpp \
+  node/txreconciliation.cpp \
+  node/utxo_snapshot.cpp \
+  node/validation_cache_args.cpp \
   noui.cpp \
   policy/fees.cpp \
+  policy/fees_args.cpp \
   policy/packages.cpp \
   policy/rbf.cpp \
   policy/settings.cpp \
   pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
+  rpc/fees.cpp \
+  rpc/mempool.cpp \
   rpc/mining.cpp \
-  rpc/misc.cpp \
   rpc/net.cpp \
+  rpc/node.cpp \
+  rpc/output_script.cpp \
   rpc/rawtransaction.cpp \
   rpc/server.cpp \
+  rpc/server_util.cpp \
+  rpc/signmessage.cpp \
+  rpc/txoutproof.cpp \
   script/sigcache.cpp \
   shutdown.cpp \
   signet.cpp \
@@ -376,32 +467,34 @@ libbitcoin_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
-  $(BITCOIN_SILVER_CORE_H)
+  $(BITCOINSILVER_CORE_H)
 
 if ENABLE_WALLET
-libbitcoin_server_a_SOURCES += wallet/init.cpp
+libbitcoinsilver_node_a_SOURCES += wallet/init.cpp
+libbitcoinsilver_node_a_CPPFLAGS += $(BDB_CPPFLAGS)
 endif
 if !ENABLE_WALLET
-libbitcoin_server_a_SOURCES += dummywallet.cpp
+libbitcoinsilver_node_a_SOURCES += dummywallet.cpp
 endif
+#
 
+# zmq #
 if ENABLE_ZMQ
-libbitcoin_zmq_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES) $(ZMQ_CFLAGS)
-libbitcoin_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_zmq_a_SOURCES = \
+libbitcoinsilver_zmq_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES) $(ZMQ_CFLAGS)
+libbitcoinsilver_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoinsilver_zmq_a_SOURCES = \
   zmq/zmqabstractnotifier.cpp \
   zmq/zmqnotificationinterface.cpp \
   zmq/zmqpublishnotifier.cpp \
   zmq/zmqrpc.cpp \
   zmq/zmqutil.cpp
 endif
+#
 
-
-# wallet: shared between bitcoin_silverd and bitcoin_silver-qt, but only linked
-# when wallet enabled
-libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES) $(SQLITE_CFLAGS)
-libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_wallet_a_SOURCES = \
+# wallet #
+libbitcoinsilver_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES) $(BOOST_CPPFLAGS) $(BDB_CPPFLAGS) $(SQLITE_CFLAGS)
+libbitcoinsilver_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoinsilver_wallet_a_SOURCES = \
   wallet/coincontrol.cpp \
   wallet/context.cpp \
   wallet/crypter.cpp \
@@ -413,8 +506,15 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/interfaces.cpp \
   wallet/load.cpp \
   wallet/receive.cpp \
-  wallet/rpcdump.cpp \
-  wallet/rpcwallet.cpp \
+  wallet/rpc/addresses.cpp \
+  wallet/rpc/backup.cpp \
+  wallet/rpc/coins.cpp \
+  wallet/rpc/encrypt.cpp \
+  wallet/rpc/spend.cpp \
+  wallet/rpc/signmessage.cpp \
+  wallet/rpc/transactions.cpp \
+  wallet/rpc/util.cpp \
+  wallet/rpc/wallet.cpp \
   wallet/scriptpubkeyman.cpp \
   wallet/spend.cpp \
   wallet/transaction.cpp \
@@ -422,31 +522,41 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
   wallet/coinselection.cpp \
-  $(BITCOIN_SILVER_CORE_H)
+  $(BITCOINSILVER_CORE_H)
 
 if USE_SQLITE
-libbitcoin_wallet_a_SOURCES += wallet/sqlite.cpp
+libbitcoinsilver_wallet_a_SOURCES += wallet/sqlite.cpp
 endif
 if USE_BDB
-libbitcoin_wallet_a_SOURCES += wallet/bdb.cpp wallet/salvage.cpp
+libbitcoinsilver_wallet_a_SOURCES += wallet/bdb.cpp wallet/salvage.cpp
 endif
+#
 
-libbitcoin_wallet_tool_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
-libbitcoin_wallet_tool_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_wallet_tool_a_SOURCES = \
+# wallet tool #
+libbitcoinsilver_wallet_tool_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES) $(BOOST_CPPFLAGS)
+libbitcoinsilver_wallet_tool_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoinsilver_wallet_tool_a_SOURCES = \
   wallet/wallettool.cpp \
-  $(BITCOIN_SILVER_CORE_H)
+  $(BITCOINSILVER_CORE_H)
+#
 
-# crypto primitives library
-crypto_libbitcoin_crypto_base_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libbitcoin_crypto_base_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libbitcoin_crypto_base_a_SOURCES = \
+# crypto #
+crypto_libbitcoinsilver_crypto_base_la_CPPFLAGS = $(AM_CPPFLAGS)
+
+# Specify -static in both CXXFLAGS and LDFLAGS so libtool will only build a
+# static version of this library. We don't need a dynamic version, and a dynamic
+# version can't be used on windows anyway because the library doesn't currently
+# export DLL symbols.
+crypto_libbitcoinsilver_crypto_base_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libbitcoinsilver_crypto_base_la_LDFLAGS = $(AM_LDFLAGS) -static
+
+crypto_libbitcoinsilver_crypto_base_la_SOURCES = \
   crypto/aes.cpp \
   crypto/aes.h \
-  crypto/chacha_poly_aead.h \
-  crypto/chacha_poly_aead.cpp \
   crypto/chacha20.h \
   crypto/chacha20.cpp \
+  crypto/chacha20poly1305.h \
+  crypto/chacha20poly1305.cpp \
   crypto/common.h \
   crypto/hkdf_sha256_32.cpp \
   crypto/hkdf_sha256_32.h \
@@ -472,34 +582,53 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/siphash.h
 
 if USE_ASM
-crypto_libbitcoin_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp
+crypto_libbitcoinsilver_crypto_base_la_SOURCES += crypto/sha256_sse4.cpp
 endif
 
-crypto_libbitcoin_crypto_sse41_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libbitcoin_crypto_sse41_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libbitcoin_crypto_sse41_a_CXXFLAGS += $(SSE41_CXXFLAGS)
-crypto_libbitcoin_crypto_sse41_a_CPPFLAGS += -DENABLE_SSE41
-crypto_libbitcoin_crypto_sse41_a_SOURCES = crypto/sha256_sse41.cpp
+# See explanation for -static in crypto_libbitcoinsilver_crypto_base_la's LDFLAGS and
+# CXXFLAGS above
+crypto_libbitcoinsilver_crypto_sse41_la_LDFLAGS = $(AM_LDFLAGS) -static
+crypto_libbitcoinsilver_crypto_sse41_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libbitcoinsilver_crypto_sse41_la_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libbitcoinsilver_crypto_sse41_la_CXXFLAGS += $(SSE41_CXXFLAGS)
+crypto_libbitcoinsilver_crypto_sse41_la_CPPFLAGS += -DENABLE_SSE41
+crypto_libbitcoinsilver_crypto_sse41_la_SOURCES = crypto/sha256_sse41.cpp
 
-crypto_libbitcoin_crypto_avx2_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libbitcoin_crypto_avx2_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libbitcoin_crypto_avx2_a_CXXFLAGS += $(AVX2_CXXFLAGS)
-crypto_libbitcoin_crypto_avx2_a_CPPFLAGS += -DENABLE_AVX2
-crypto_libbitcoin_crypto_avx2_a_SOURCES = crypto/sha256_avx2.cpp
+# See explanation for -static in crypto_libbitcoinsilver_crypto_base_la's LDFLAGS and
+# CXXFLAGS above
+crypto_libbitcoinsilver_crypto_avx2_la_LDFLAGS = $(AM_LDFLAGS) -static
+crypto_libbitcoinsilver_crypto_avx2_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libbitcoinsilver_crypto_avx2_la_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libbitcoinsilver_crypto_avx2_la_CXXFLAGS += $(AVX2_CXXFLAGS)
+crypto_libbitcoinsilver_crypto_avx2_la_CPPFLAGS += -DENABLE_AVX2
+crypto_libbitcoinsilver_crypto_avx2_la_SOURCES = crypto/sha256_avx2.cpp
 
-crypto_libbitcoin_crypto_shani_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libbitcoin_crypto_shani_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libbitcoin_crypto_shani_a_CXXFLAGS += $(SHANI_CXXFLAGS)
-crypto_libbitcoin_crypto_shani_a_CPPFLAGS += -DENABLE_SHANI
-crypto_libbitcoin_crypto_shani_a_SOURCES = crypto/sha256_shani.cpp
+# See explanation for -static in crypto_libbitcoinsilver_crypto_base_la's LDFLAGS and
+# CXXFLAGS above
+crypto_libbitcoinsilver_crypto_x86_shani_la_LDFLAGS = $(AM_LDFLAGS) -static
+crypto_libbitcoinsilver_crypto_x86_shani_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libbitcoinsilver_crypto_x86_shani_la_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libbitcoinsilver_crypto_x86_shani_la_CXXFLAGS += $(X86_SHANI_CXXFLAGS)
+crypto_libbitcoinsilver_crypto_x86_shani_la_CPPFLAGS += -DENABLE_X86_SHANI
+crypto_libbitcoinsilver_crypto_x86_shani_la_SOURCES = crypto/sha256_x86_shani.cpp
 
-# consensus: shared between all executables that validate any consensus rules.
-libbitcoin_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
-libbitcoin_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_consensus_a_SOURCES = \
-  amount.h \
+# See explanation for -static in crypto_libbitcoinsilver_crypto_base_la's LDFLAGS and
+# CXXFLAGS above
+crypto_libbitcoinsilver_crypto_arm_shani_la_LDFLAGS = $(AM_LDFLAGS) -static
+crypto_libbitcoinsilver_crypto_arm_shani_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libbitcoinsilver_crypto_arm_shani_la_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libbitcoinsilver_crypto_arm_shani_la_CXXFLAGS += $(ARM_SHANI_CXXFLAGS)
+crypto_libbitcoinsilver_crypto_arm_shani_la_CPPFLAGS += -DENABLE_ARM_SHANI
+crypto_libbitcoinsilver_crypto_arm_shani_la_SOURCES = crypto/sha256_arm_shani.cpp
+#
+
+# consensus #
+libbitcoinsilver_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES)
+libbitcoinsilver_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoinsilver_consensus_a_SOURCES = \
   arith_uint256.cpp \
   arith_uint256.h \
+  consensus/amount.h \
   consensus/merkle.cpp \
   consensus/merkle.h \
   consensus/params.h \
@@ -514,7 +643,7 @@ libbitcoin_consensus_a_SOURCES = \
   primitives/transaction.h \
   pubkey.cpp \
   pubkey.h \
-  script/bitcoin_silverconsensus.cpp \
+  script/bitcoinsilverconsensus.cpp \
   script/interpreter.cpp \
   script/interpreter.h \
   script/script.cpp \
@@ -529,25 +658,36 @@ libbitcoin_consensus_a_SOURCES = \
   util/strencodings.cpp \
   util/strencodings.h \
   version.h
+#
 
-# common: shared between bitcoin_silverd, and bitcoin_silver-qt and non-server tools
-libbitcoin_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
-libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_common_a_SOURCES = \
+# common #
+libbitcoinsilver_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES) $(BOOST_CPPFLAGS)
+libbitcoinsilver_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoinsilver_common_a_SOURCES = \
+  addresstype.cpp \
   base58.cpp \
   bech32.cpp \
-  bloom.cpp \
   chainparams.cpp \
   coins.cpp \
+  common/args.cpp \
+  common/bloom.cpp \
+  common/config.cpp \
+  common/init.cpp \
+  common/interfaces.cpp \
+  common/run_command.cpp \
+  common/settings.cpp \
+  common/system.cpp \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
   deploymentinfo.cpp \
   external_signer.cpp \
   init/common.cpp \
+  kernel/chainparams.cpp \
   key.cpp \
   key_io.cpp \
   merkleblock.cpp \
+  net_types.cpp \
   netaddress.cpp \
   netbase.cpp \
   net_permissions.cpp \
@@ -556,54 +696,60 @@ libbitcoin_common_a_SOURCES = \
   policy/policy.cpp \
   protocol.cpp \
   psbt.cpp \
-  rpc/rawtransaction_util.cpp \
   rpc/external_signer.cpp \
+  rpc/rawtransaction_util.cpp \
+  rpc/request.cpp \
   rpc/util.cpp \
   scheduler.cpp \
   script/descriptor.cpp \
+  script/miniscript.cpp \
   script/sign.cpp \
   script/signingprovider.cpp \
-  script/standard.cpp \
+  script/solver.cpp \
   warnings.cpp \
-  $(BITCOIN_SILVER_CORE_H)
+  $(BITCOINSILVER_CORE_H)
 
-# util: shared between all executables.
-# This library *must* be included to make sure that the glibc
-# backward-compatibility objects and their sanity checks are linked.
-libbitcoin_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
-libbitcoin_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_util_a_SOURCES = \
+if USE_LIBEVENT
+libbitcoinsilver_common_a_CPPFLAGS += $(EVENT_CFLAGS)
+libbitcoinsilver_common_a_SOURCES += common/url.cpp
+endif
+#
+
+# util #
+libbitcoinsilver_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES)
+libbitcoinsilver_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoinsilver_util_a_SOURCES = \
   support/lockedpool.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
-  compat/glibcxx_sanity.cpp \
-  compat/strnlen.cpp \
-  fs.cpp \
-  interfaces/echo.cpp \
-  interfaces/handler.cpp \
-  interfaces/init.cpp \
   logging.cpp \
   random.cpp \
   randomenv.cpp \
-  rpc/request.cpp \
+  streams.cpp \
   support/cleanse.cpp \
   sync.cpp \
-  threadinterrupt.cpp \
   util/asmap.cpp \
+  util/batchpriority.cpp \
   util/bip32.cpp \
   util/bytevectorhash.cpp \
+  util/chaintype.cpp \
+  util/check.cpp \
   util/error.cpp \
+  util/exception.cpp \
   util/fees.cpp \
+  util/fs.cpp \
+  util/fs_helpers.cpp \
   util/getuniquepath.cpp \
   util/hasher.cpp \
   util/sock.cpp \
-  util/system.cpp \
+  util/syserror.cpp \
   util/message.cpp \
   util/moneystr.cpp \
   util/rbf.cpp \
   util/readwritefile.cpp \
-  util/settings.cpp \
+  util/signalinterrupt.cpp \
   util/thread.cpp \
+  util/threadinterrupt.cpp \
   util/threadnames.cpp \
   util/serfloat.cpp \
   util/spanparsing.cpp \
@@ -611,152 +757,266 @@ libbitcoin_util_a_SOURCES = \
   util/string.cpp \
   util/time.cpp \
   util/tokenpipe.cpp \
-  $(BITCOIN_SILVER_CORE_H)
+  $(BITCOINSILVER_CORE_H)
+#
 
-if USE_LIBEVENT
-libbitcoin_util_a_SOURCES += util/url.cpp
-endif
-
-if GLIBC_BACK_COMPAT
-libbitcoin_util_a_SOURCES += compat/glibc_compat.cpp
-AM_LDFLAGS += $(COMPAT_LDFLAGS)
-endif
-
-# cli: shared between bitcoin_silver-cli and bitcoin_silver-qt
-libbitcoin_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
-libbitcoin_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_cli_a_SOURCES = \
+# cli #
+libbitcoinsilver_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES)
+libbitcoinsilver_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoinsilver_cli_a_SOURCES = \
   compat/stdin.h \
   compat/stdin.cpp \
   rpc/client.cpp \
-  $(BITCOIN_SILVER_CORE_H)
+  $(BITCOINSILVER_CORE_H)
 
-nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
+nodist_libbitcoinsilver_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
-# bitcoin_silverd & bitcoin_silver-node binaries #
-bitcoin_silver_daemon_sources = bitcoin_silverd.cpp
-bitcoin_silver_bin_cppflags = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
-bitcoin_silver_bin_cxxflags = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bitcoin_silver_bin_ldflags = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
+# bitcoinsilverd & bitcoinsilver-node binaries #
+bitcoinsilver_daemon_sources = bitcoinsilverd.cpp
+bitcoinsilver_bin_cppflags = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES)
+bitcoinsilver_bin_cxxflags = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bitcoinsilver_bin_ldflags = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bitcoin_silver_daemon_sources += bitcoin_silverd-res.rc
+bitcoinsilver_daemon_sources += bitcoinsilverd-res.rc
 endif
 
-bitcoin_silver_bin_ldadd = \
-  $(LIBBITCOIN_WALLET) \
-  $(LIBBITCOIN_COMMON) \
-  $(LIBBITCOIN_UTIL) \
+bitcoinsilver_bin_ldadd = \
+  $(LIBBITCOINSILVER_WALLET) \
+  $(LIBBITCOINSILVER_COMMON) \
+  $(LIBBITCOINSILVER_UTIL) \
   $(LIBUNIVALUE) \
-  $(LIBBITCOIN_ZMQ) \
-  $(LIBBITCOIN_CONSENSUS) \
-  $(LIBBITCOIN_CRYPTO) \
+  $(LIBBITCOINSILVER_ZMQ) \
+  $(LIBBITCOINSILVER_CONSENSUS) \
+  $(LIBBITCOINSILVER_CRYPTO) \
   $(LIBLEVELDB) \
-  $(LIBLEVELDB_SSE42) \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-bitcoin_silver_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(NATPMP_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
+bitcoinsilver_bin_ldadd += $(BDB_LIBS) $(MINIUPNPC_LIBS) $(NATPMP_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
 
-bitcoin_silverd_SOURCES = $(bitcoin_silver_daemon_sources) init/bitcoin_silverd.cpp
-bitcoin_silverd_CPPFLAGS = $(bitcoin_silver_bin_cppflags)
-bitcoin_silverd_CXXFLAGS = $(bitcoin_silver_bin_cxxflags)
-bitcoin_silverd_LDFLAGS = $(bitcoin_silver_bin_ldflags)
-bitcoin_silverd_LDADD = $(LIBBITCOIN_SERVER) $(bitcoin_silver_bin_ldadd)
+bitcoinsilverd_SOURCES = $(bitcoinsilver_daemon_sources) init/bitcoinsilverd.cpp
+bitcoinsilverd_CPPFLAGS = $(bitcoinsilver_bin_cppflags)
+bitcoinsilverd_CXXFLAGS = $(bitcoinsilver_bin_cxxflags)
+bitcoinsilverd_LDFLAGS = $(bitcoinsilver_bin_ldflags)
+bitcoinsilverd_LDADD = $(LIBBITCOINSILVER_NODE) $(bitcoinsilver_bin_ldadd)
 
-bitcoin_silver_node_SOURCES = $(bitcoin_silver_daemon_sources) init/bitcoin_silver-node.cpp
-bitcoin_silver_node_CPPFLAGS = $(bitcoin_silver_bin_cppflags)
-bitcoin_silver_node_CXXFLAGS = $(bitcoin_silver_bin_cxxflags)
-bitcoin_silver_node_LDFLAGS = $(bitcoin_silver_bin_ldflags)
-bitcoin_silver_node_LDADD = $(LIBBITCOIN_SERVER) $(bitcoin_silver_bin_ldadd) $(LIBBITCOIN_IPC) $(LIBMULTIPROCESS_LIBS)
+bitcoinsilver_node_SOURCES = $(bitcoinsilver_daemon_sources) init/bitcoinsilver-node.cpp
+bitcoinsilver_node_CPPFLAGS = $(bitcoinsilver_bin_cppflags)
+bitcoinsilver_node_CXXFLAGS = $(bitcoinsilver_bin_cxxflags)
+bitcoinsilver_node_LDFLAGS = $(bitcoinsilver_bin_ldflags)
+bitcoinsilver_node_LDADD = $(LIBBITCOINSILVER_NODE) $(bitcoinsilver_bin_ldadd) $(LIBBITCOINSILVER_IPC) $(LIBMULTIPROCESS_LIBS)
 
-# bitcoin_silver-cli binary #
-bitcoin_silver_cli_SOURCES = bitcoin_silver-cli.cpp
-bitcoin_silver_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES) $(EVENT_CFLAGS)
-bitcoin_silver_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bitcoin_silver_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
+# bitcoinsilver-cli binary #
+bitcoinsilver_cli_SOURCES = bitcoinsilver-cli.cpp
+bitcoinsilver_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES) $(EVENT_CFLAGS)
+bitcoinsilver_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bitcoinsilver_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bitcoin_silver_cli_SOURCES += bitcoin_silver-cli-res.rc
+bitcoinsilver_cli_SOURCES += bitcoinsilver-cli-res.rc
 endif
 
-bitcoin_silver_cli_LDADD = \
-  $(LIBBITCOIN_CLI) \
+bitcoinsilver_cli_LDADD = \
+  $(LIBBITCOINSILVER_CLI) \
   $(LIBUNIVALUE) \
-  $(LIBBITCOIN_UTIL) \
-  $(LIBBITCOIN_CRYPTO)
+  $(LIBBITCOINSILVER_COMMON) \
+  $(LIBBITCOINSILVER_UTIL) \
+  $(LIBBITCOINSILVER_CRYPTO)
 
-bitcoin_silver_cli_LDADD += $(BOOST_LIBS) $(EVENT_LIBS)
+bitcoinsilver_cli_LDADD += $(EVENT_LIBS)
 #
 
-# bitcoin_silver-tx binary #
-bitcoin_silver_tx_SOURCES = bitcoin_silver-tx.cpp
-bitcoin_silver_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
-bitcoin_silver_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bitcoin_silver_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
+# bitcoinsilver-tx binary #
+bitcoinsilver_tx_SOURCES = bitcoinsilver-tx.cpp
+bitcoinsilver_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES)
+bitcoinsilver_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bitcoinsilver_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bitcoin_silver_tx_SOURCES += bitcoin_silver-tx-res.rc
+bitcoinsilver_tx_SOURCES += bitcoinsilver-tx-res.rc
 endif
 
-bitcoin_silver_tx_LDADD = \
+bitcoinsilver_tx_LDADD = \
   $(LIBUNIVALUE) \
-  $(LIBBITCOIN_COMMON) \
-  $(LIBBITCOIN_UTIL) \
-  $(LIBBITCOIN_CONSENSUS) \
-  $(LIBBITCOIN_CRYPTO) \
+  $(LIBBITCOINSILVER_COMMON) \
+  $(LIBBITCOINSILVER_UTIL) \
+  $(LIBBITCOINSILVER_CONSENSUS) \
+  $(LIBBITCOINSILVER_CRYPTO) \
   $(LIBSECP256K1)
-
-bitcoin_silver_tx_LDADD += $(BOOST_LIBS)
 #
 
-# bitcoin_silver-wallet binary #
-bitcoin_silver_wallet_SOURCES = bitcoin_silver-wallet.cpp
-bitcoin_silver_wallet_CPPFLAGS = $(bitcoin_silver_bin_cppflags)
-bitcoin_silver_wallet_CXXFLAGS = $(bitcoin_silver_bin_cxxflags)
-bitcoin_silver_wallet_LDFLAGS = $(bitcoin_silver_bin_ldflags)
-bitcoin_silver_wallet_LDADD = $(LIBBITCOIN_WALLET_TOOL) $(bitcoin_silver_bin_ldadd)
-
-if TARGET_WINDOWS
-bitcoin_silver_wallet_SOURCES += bitcoin_silver-wallet-res.rc
-endif
-#
-
-# bitcoin_silver-util binary #
-bitcoin_silver_util_SOURCES = bitcoin_silver-util.cpp
-bitcoin_silver_util_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
-bitcoin_silver_util_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bitcoin_silver_util_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
-
-if TARGET_WINDOWS
-bitcoin_silver_util_SOURCES += bitcoin_silver-util-res.rc
-endif
-
-bitcoin_silver_util_LDADD = \
-  $(LIBBITCOIN_COMMON) \
-  $(LIBBITCOIN_UTIL) \
+# bitcoinsilver-wallet binary #
+bitcoinsilver_wallet_SOURCES = bitcoinsilver-wallet.cpp
+bitcoinsilver_wallet_SOURCES += init/bitcoinsilver-wallet.cpp
+bitcoinsilver_wallet_CPPFLAGS = $(bitcoinsilver_bin_cppflags)
+bitcoinsilver_wallet_CXXFLAGS = $(bitcoinsilver_bin_cxxflags)
+bitcoinsilver_wallet_LDFLAGS = $(bitcoinsilver_bin_ldflags)
+bitcoinsilver_wallet_LDADD = \
+  $(LIBBITCOINSILVER_WALLET_TOOL) \
+  $(LIBBITCOINSILVER_WALLET) \
+  $(LIBBITCOINSILVER_COMMON) \
+  $(LIBBITCOINSILVER_UTIL) \
   $(LIBUNIVALUE) \
-  $(LIBBITCOIN_CONSENSUS) \
-  $(LIBBITCOIN_CRYPTO) \
-  $(LIBSECP256K1)
+  $(LIBBITCOINSILVER_CONSENSUS) \
+  $(LIBBITCOINSILVER_CRYPTO) \
+  $(LIBSECP256K1) \
+  $(BDB_LIBS) \
+  $(SQLITE_LIBS)
 
-bitcoin_silver_util_LDADD += $(BOOST_LIBS)
+if TARGET_WINDOWS
+bitcoinsilver_wallet_SOURCES += bitcoinsilver-wallet-res.rc
+endif
 #
 
-# bitcoin_silverconsensus library #
-if BUILD_BITCOIN_SILVER_LIBS
-include_HEADERS = script/bitcoin_silverconsensus.h
-libbitcoinconsensus_la_SOURCES = support/cleanse.cpp $(crypto_libbitcoin_crypto_base_a_SOURCES) $(libbitcoin_consensus_a_SOURCES)
+# bitcoinsilver-util binary #
+bitcoinsilver_util_SOURCES = bitcoinsilver-util.cpp
+bitcoinsilver_util_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES)
+bitcoinsilver_util_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bitcoinsilver_util_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
-if GLIBC_BACK_COMPAT
-  libbitcoinconsensus_la_SOURCES += compat/glibc_compat.cpp
+if TARGET_WINDOWS
+bitcoinsilver_util_SOURCES += bitcoinsilver-util-res.rc
 endif
 
-libbitcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
-libbitcoinconsensus_la_LIBADD = $(LIBSECP256K1)
-libbitcoinconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_SILVER_INTERNAL
-libbitcoinconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bitcoinsilver_util_LDADD = \
+  $(LIBBITCOINSILVER_COMMON) \
+  $(LIBBITCOINSILVER_UTIL) \
+  $(LIBUNIVALUE) \
+  $(LIBBITCOINSILVER_CONSENSUS) \
+  $(LIBBITCOINSILVER_CRYPTO) \
+  $(LIBSECP256K1)
+#
+
+# bitcoinsilver-chainstate binary #
+bitcoinsilver_chainstate_SOURCES = bitcoinsilver-chainstate.cpp
+bitcoinsilver_chainstate_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES) $(BOOST_CPPFLAGS)
+bitcoinsilver_chainstate_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+
+bitcoinsilver_chainstate_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(PTHREAD_FLAGS) $(LIBTOOL_APP_LDFLAGS) -static
+bitcoinsilver_chainstate_LDADD = $(LIBBITCOINSILVERKERNEL)
+
+# libtool is unable to calculate this indirect dependency, presumably because it's a subproject.
+# libsecp256k1 only needs to be linked in when libbitcoinsilverkernel is static.
+bitcoinsilver_chainstate_LDADD += $(LIBSECP256K1)
+#
+
+# bitcoinkernel library #
+if BUILD_BITCOINSILVER_KERNEL_LIB
+lib_LTLIBRARIES += $(LIBBITCOINSILVERKERNEL)
+
+libbitcoinsilverkernel_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS) $(PTHREAD_FLAGS)
+libbitcoinsilverkernel_la_LIBADD = $(LIBBITCOINSILVER_CRYPTO) $(LIBLEVELDB) $(LIBMEMENV) $(LIBSECP256K1)
+libbitcoinsilverkernel_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOINSILVER_INTERNAL $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS)
+
+# libbitcoinsilverkernel requires default symbol visibility, explicitly specify that
+# here so that things still work even when user configures with
+#   --enable-reduce-exports
+#
+# Note this is a quick hack that will be removed as we incrementally define what
+# to export from the library.
+libbitcoinsilverkernel_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -fvisibility=default
+
+# TODO: libbitcoinsilverkernel is a work in progress consensus engine library, as more
+#       and more modules are decoupled from the consensus engine, this list will
+#       shrink to only those which are absolutely necessary.
+libbitcoinsilverkernel_la_SOURCES = \
+  kernel/bitcoinkernel.cpp \
+  arith_uint256.cpp \
+  chain.cpp \
+  clientversion.cpp \
+  coins.cpp \
+  compressor.cpp \
+  consensus/merkle.cpp \
+  consensus/tx_check.cpp \
+  consensus/tx_verify.cpp \
+  core_read.cpp \
+  dbwrapper.cpp \
+  deploymentinfo.cpp \
+  deploymentstatus.cpp \
+  flatfile.cpp \
+  hash.cpp \
+  kernel/chain.cpp \
+  kernel/checks.cpp \
+  kernel/chainparams.cpp \
+  kernel/coinstats.cpp \
+  kernel/context.cpp \
+  kernel/cs_main.cpp \
+  kernel/mempool_persist.cpp \
+  kernel/mempool_removal_reason.cpp \
+  key.cpp \
+  logging.cpp \
+  node/blockstorage.cpp \
+  node/chainstate.cpp \
+  node/utxo_snapshot.cpp \
+  policy/feerate.cpp \
+  policy/fees.cpp \
+  policy/packages.cpp \
+  policy/policy.cpp \
+  policy/rbf.cpp \
+  policy/settings.cpp \
+  pow.cpp \
+  primitives/block.cpp \
+  primitives/transaction.cpp \
+  pubkey.cpp \
+  random.cpp \
+  randomenv.cpp \
+  scheduler.cpp \
+  script/interpreter.cpp \
+  script/script.cpp \
+  script/script_error.cpp \
+  script/sigcache.cpp \
+  script/solver.cpp \
+  signet.cpp \
+  streams.cpp \
+  support/cleanse.cpp \
+  support/lockedpool.cpp \
+  sync.cpp \
+  txdb.cpp \
+  txmempool.cpp \
+  uint256.cpp \
+  util/batchpriority.cpp \
+  util/chaintype.cpp \
+  util/check.cpp \
+  util/exception.cpp \
+  util/fs.cpp \
+  util/fs_helpers.cpp \
+  util/getuniquepath.cpp \
+  util/hasher.cpp \
+  util/moneystr.cpp \
+  util/rbf.cpp \
+  util/serfloat.cpp \
+  util/signalinterrupt.cpp \
+  util/strencodings.cpp \
+  util/string.cpp \
+  util/syserror.cpp \
+  util/thread.cpp \
+  util/threadnames.cpp \
+  util/time.cpp \
+  util/tokenpipe.cpp \
+  validation.cpp \
+  validationinterface.cpp \
+  versionbits.cpp \
+  warnings.cpp
+
+# Required for obj/build.h to be generated first.
+# More details: https://www.gnu.org/software/automake/manual/html_node/Built-Sources-Example.html
+libbitcoinsilverkernel_la-clientversion.l$(OBJEXT): obj/build.h
+endif # BUILD_BITCOINSILVER_KERNEL_LIB
+#
+
+# bitcoinsilverconsensus library #
+if BUILD_BITCOINSILVER_LIBS
+lib_LTLIBRARIES += $(LIBBITCOINSILVERCONSENSUS)
+
+include_HEADERS = script/bitcoinsilverconsensus.h
+libbitcoinsilverconsensus_la_SOURCES = support/cleanse.cpp $(crypto_libbitcoinsilver_crypto_base_la_SOURCES) $(libbitcoinsilver_consensus_a_SOURCES)
+
+libbitcoinsilverconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
+libbitcoinsilverconsensus_la_LIBADD = $(LIBSECP256K1)
+libbitcoinsilverconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOINSILVER_INTERNAL
+libbitcoinsilverconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 endif
 #
@@ -792,40 +1052,27 @@ CLEANFILES += obj/build.h
 EXTRA_DIST = $(CTAES_DIST)
 
 
-config/bitcoin_silver-config.h: config/stamp-h1
+config/bitcoinsilver-config.h: config/stamp-h1
 	@$(MAKE) -C $(top_builddir) $(subdir)/$(@)
-config/stamp-h1: $(top_srcdir)/$(subdir)/config/bitcoin_silver-config.h.in $(top_builddir)/config.status
+config/stamp-h1: $(top_srcdir)/$(subdir)/config/bitcoinsilver-config.h.in $(top_builddir)/config.status
 	$(AM_V_at)$(MAKE) -C $(top_builddir) $(subdir)/$(@)
-$(top_srcdir)/$(subdir)/config/bitcoin_silver-config.h.in:  $(am__configure_deps)
-	$(AM_V_at)$(MAKE) -C $(top_srcdir) $(subdir)/config/bitcoin_silver-config.h.in
+$(top_srcdir)/$(subdir)/config/bitcoinsilver-config.h.in:  $(am__configure_deps)
+	$(AM_V_at)$(MAKE) -C $(top_srcdir) $(subdir)/config/bitcoinsilver-config.h.in
 
 clean-local:
 	-$(MAKE) -C secp256k1 clean
-	-$(MAKE) -C univalue clean
 	-rm -f leveldb/*/*.gcda leveldb/*/*.gcno leveldb/helpers/memenv/*.gcda leveldb/helpers/memenv/*.gcno
 	-rm -f config.h
 	-rm -rf test/__pycache__
 
 .rc.o:
-	@test -f $(WINDRES)
+	@test -f $(WINDRES) || (echo "windres $(WINDRES) not found, but is required to compile windows resource files"; exit 1)
 	## FIXME: How to get the appropriate modulename_CPPFLAGS in here?
 	$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@
 
 check-symbols: $(bin_PROGRAMS)
-if TARGET_DARWIN
-	@echo "Checking macOS dynamic libraries..."
+	@echo "Running symbol and dynamic library checks..."
 	$(AM_V_at) $(PYTHON) $(top_srcdir)/contrib/devtools/symbol-check.py $(bin_PROGRAMS)
-endif
-
-if TARGET_WINDOWS
-	@echo "Checking Windows dynamic libraries..."
-	$(AM_V_at) $(PYTHON) $(top_srcdir)/contrib/devtools/symbol-check.py $(bin_PROGRAMS)
-endif
-
-if TARGET_LINUX
-	@echo "Checking glibc back compat..."
-	$(AM_V_at) CPPFILT='$(CPPFILT)' $(PYTHON) $(top_srcdir)/contrib/devtools/symbol-check.py $(bin_PROGRAMS)
-endif
 
 check-security: $(bin_PROGRAMS)
 if HARDEN
@@ -833,50 +1080,62 @@ if HARDEN
 	$(AM_V_at) $(PYTHON) $(top_srcdir)/contrib/devtools/security-check.py $(bin_PROGRAMS)
 endif
 
-libbitcoin_ipc_mpgen_input = \
+libbitcoinsilver_ipc_mpgen_input = \
   ipc/capnp/echo.capnp \
   ipc/capnp/init.capnp
-EXTRA_DIST += $(libbitcoin_ipc_mpgen_input)
+EXTRA_DIST += $(libbitcoinsilver_ipc_mpgen_input)
 %.capnp:
 
+# Explicitly list dependencies on generated headers as described in
+# https://www.gnu.org/software/automake/manual/html_node/Built-Sources-Example.html#Recording-Dependencies-manually
+ipc/capnp/libbitcoinsilver_ipc_a-protocol.$(OBJEXT): $(libbitcoinsilver_ipc_mpgen_input:=.h)
+
 if BUILD_MULTIPROCESS
-LIBBITCOIN_IPC=libbitcoin_ipc.a
-libbitcoin_ipc_a_SOURCES = \
+LIBBITCOINSILVER_IPC=libbitcoinsilver_ipc.a
+libbitcoinsilver_ipc_a_SOURCES = \
+  ipc/capnp/context.h \
   ipc/capnp/init-types.h \
   ipc/capnp/protocol.cpp \
   ipc/capnp/protocol.h \
+  ipc/context.h \
   ipc/exception.h \
   ipc/interfaces.cpp \
   ipc/process.cpp \
   ipc/process.h \
   ipc/protocol.h
-libbitcoin_ipc_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_SILVER_INCLUDES)
-libbitcoin_ipc_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) $(LIBMULTIPROCESS_CFLAGS)
+libbitcoinsilver_ipc_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOINSILVER_INCLUDES)
+libbitcoinsilver_ipc_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) $(LIBMULTIPROCESS_CFLAGS)
 
 include $(MPGEN_PREFIX)/include/mpgen.mk
-libbitcoin_ipc_mpgen_output = \
-  $(libbitcoin_ipc_mpgen_input:=.c++) \
-  $(libbitcoin_ipc_mpgen_input:=.h) \
-  $(libbitcoin_ipc_mpgen_input:=.proxy-client.c++) \
-  $(libbitcoin_ipc_mpgen_input:=.proxy-server.c++) \
-  $(libbitcoin_ipc_mpgen_input:=.proxy-types.c++) \
-  $(libbitcoin_ipc_mpgen_input:=.proxy-types.h) \
-  $(libbitcoin_ipc_mpgen_input:=.proxy.h)
-nodist_libbitcoin_ipc_a_SOURCES = $(libbitcoin_ipc_mpgen_output)
-CLEANFILES += $(libbitcoin_ipc_mpgen_output)
+libbitcoinsilver_ipc_mpgen_output = \
+  $(libbitcoinsilver_ipc_mpgen_input:=.c++) \
+  $(libbitcoinsilver_ipc_mpgen_input:=.h) \
+  $(libbitcoinsilver_ipc_mpgen_input:=.proxy-client.c++) \
+  $(libbitcoinsilver_ipc_mpgen_input:=.proxy-server.c++) \
+  $(libbitcoinsilver_ipc_mpgen_input:=.proxy-types.c++) \
+  $(libbitcoinsilver_ipc_mpgen_input:=.proxy-types.h) \
+  $(libbitcoinsilver_ipc_mpgen_input:=.proxy.h)
+nodist_libbitcoinsilver_ipc_a_SOURCES = $(libbitcoinsilver_ipc_mpgen_output)
+CLEANFILES += $(libbitcoinsilver_ipc_mpgen_output)
 endif
 
-if EMBEDDED_LEVELDB
+%.raw.h: %.raw
+	@$(MKDIR_P) $(@D)
+	$(AM_V_GEN) { \
+	 echo "static unsigned const char $(*F)_raw[] = {" && \
+	 $(HEXDUMP) -v -e '8/1 "0x%02x, "' -e '"\n"' $< | $(SED) -e 's/0x  ,//g' && \
+	 echo "};"; \
+	} > "$@.new" && mv -f "$@.new" "$@"
+
+include Makefile.minisketch.include
+
 include Makefile.crc32c.include
 include Makefile.leveldb.include
-endif
 
 include Makefile.test_util.include
 include Makefile.test_fuzz.include
 
-if ENABLE_TESTS
 include Makefile.test.include
-endif
 
 if ENABLE_BENCH
 include Makefile.bench.include
@@ -889,3 +1148,5 @@ endif
 if ENABLE_QT_TESTS
 include Makefile.qttest.include
 endif
+
+include Makefile.univalue.include

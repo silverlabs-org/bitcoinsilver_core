@@ -5,8 +5,8 @@ connections, inter-process communication, and shared-memory,
 providing various message-oriented semantics such as publish/subscribe,
 request/reply, and push/pull.
 
-The Bitcoin_Silver Core daemon can be configured to act as a trusted "border
-router", implementing the bitcoin_silver wire protocol and relay, making
+The BitcoinSilver daemon can be configured to act as a trusted "border
+router", implementing the bitcoinsilver wire protocol and relay, making
 consensus decisions, maintaining the local blockchain database,
 broadcasting locally generated transactions into the network, and
 providing a queryable RPC interface to interact on a polled basis for
@@ -33,7 +33,7 @@ buffering or reassembly.
 
 ## Prerequisites
 
-The ZeroMQ feature in Bitcoin_Silver Core requires the ZeroMQ API >= 4.0.0
+The ZeroMQ feature in BitcoinSilver requires the ZeroMQ API >= 4.0.0
 [libzmq](https://github.com/zeromq/libzmq/releases).
 For version information, see [dependencies.md](dependencies.md).
 Typically, it is packaged by distributions as something like
@@ -48,7 +48,7 @@ operation.
 
 By default, the ZeroMQ feature is automatically compiled in if the
 necessary prerequisites are found.  To disable, use --disable-zmq
-during the *configure* step of building bitcoin_silverd:
+during the *configure* step of building bitcoinsilverd:
 
     $ ./configure --disable-zmq (other options)
 
@@ -76,23 +76,26 @@ The option to set the PUB socket's outbound message high water mark
     -zmqpubhashblockhwm=n
     -zmqpubrawblockhwm=n
     -zmqpubrawtxhwm=n
-    -zmqpubsequencehwm=address
+    -zmqpubsequencehwm=n
 
 The high water mark value must be an integer greater than or equal to 0.
 
 For instance:
 
-    $ bitcoin_silverd -zmqpubhashtx=tcp://127.0.0.1:28382 \
-               -zmqpubhashtx=tcp://192.168.1.2:28382 \
-               -zmqpubrawtx=ipc:///tmp/bitcoin_silverd.tx.raw \
+    $ bitcoinsilverd -zmqpubhashtx=tcp://127.0.0.1:28332 \
+               -zmqpubhashtx=tcp://192.168.1.2:28332 \
+               -zmqpubhashblock="tcp://[::1]:28333" \
+               -zmqpubrawtx=ipc:///tmp/bitcoinsilverd.tx.raw \
                -zmqpubhashtxhwm=10000
 
 Each PUB notification has a topic and body, where the header
 corresponds to the notification type. For instance, for the
 notification `-zmqpubhashtx` the topic is `hashtx` (no null
-terminator) and the body is the transaction hash (32
-bytes) for all but `sequence` topic. For `sequence`, the body
-is structured as the following based on the type of message:
+terminator). These options can also be provided in bitcoinsilver.conf.
+
+The topics are:
+
+`sequence`: the body is structured as the following based on the type of message:
 
     <32-byte hash>C :                 Blockhash connected
     <32-byte hash>D :                 Blockhash disconnected
@@ -101,7 +104,24 @@ is structured as the following based on the type of message:
 
 Where the 8-byte uints correspond to the mempool sequence number.
 
-These options can also be provided in bitcoin_silver.conf.
+`rawtx`: Notifies about all transactions, both when they are added to mempool or when a new block arrives. This means a transaction could be published multiple times. First, when it enters the mempool and then again in each block that includes it. The messages are ZMQ multipart messages with three parts. The first part is the topic (`rawtx`), the second part is the serialized transaction, and the last part is a sequence number (representing the message count to detect lost messages).
+
+    | rawtx | <serialized transaction> | <uint32 sequence number in Little Endian>
+
+`hashtx`: Notifies about all transactions, both when they are added to mempool or when a new block arrives. This means a transaction could be published multiple times. First, when it enters the mempool and then again in each block that includes it. The messages are ZMQ multipart messages with three parts. The first part is the topic (`hashtx`), the second part is the 32-byte transaction hash, and the last part is a sequence number (representing the message count to detect lost messages).
+
+    | hashtx | <32-byte transaction hash in Little Endian> | <uint32 sequence number in Little Endian>
+
+
+`rawblock`: Notifies when the chain tip is updated. When assumeutxo is in use, this notification will not be issued for historical blocks connected to the background validation chainstate. Messages are ZMQ multipart messages with three parts. The first part is the topic (`rawblock`), the second part is the serialized block, and the last part is a sequence number (representing the message count to detect lost messages).
+
+    | rawblock | <serialized block> | <uint32 sequence number in Little Endian>
+
+`hashblock`: Notifies when the chain tip is updated. When assumeutxo is in use, this notification will not be issued for historical blocks connected to the background validation chainstate. Messages are ZMQ multipart messages with three parts. The first part is the topic (`hashblock`), the second part is the 32-byte block hash, and the last part is a sequence number (representing the message count to detect lost messages).
+
+    | hashblock | <32-byte block hash in Little Endian> | <uint32 sequence number in Little Endian>
+
+**_NOTE:_**  Note that the 32-byte hashes are in Little Endian and not in the Big Endian format that the RPC interface and block explorers use to display transaction and block hashes.
 
 ZeroMQ endpoint specifiers for TCP (and others) are documented in the
 [ZeroMQ API](http://api.zeromq.org/4-0:_start).
@@ -125,11 +145,14 @@ Setting the keepalive values appropriately for your operating environment may
 improve connectivity in situations where long-lived connections are silently
 dropped by network middle boxes.
 
+Also, the socket's ZMQ_IPV6 option is enabled to accept connections from IPv6
+hosts as well. If needed, this option has to be set on the client side too.
+
 ## Remarks
 
-From the perspective of bitcoin_silverd, the ZeroMQ socket is write-only; PUB
+From the perspective of bitcoinsilverd, the ZeroMQ socket is write-only; PUB
 sockets don't even have a read function. Thus, there is no state
-introduced into bitcoin_silverd directly. Furthermore, no information is
+introduced into bitcoinsilverd directly. Furthermore, no information is
 broadcast that wasn't already received from the public P2P network.
 
 No authentication or authorization is done on connecting clients; it
@@ -146,7 +169,7 @@ disconnections.
 
 There are several possibilities that ZMQ notification can get lost
 during transmission depending on the communication type you are
-using. Bitcoin_Silverd appends an up-counting sequence number to each
+using. Bitcoind appends an up-counting sequence number to each
 notification which allows listeners to detect lost notifications.
 
 The `sequence` topic refers specifically to the mempool sequence

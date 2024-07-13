@@ -1,20 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_SHUTDOWN_H
-#define BITCOIN_SILVER_SHUTDOWN_H
-
-#include <util/translation.h> // For bilingual_str
-
-/** Abort with a message */
-bool AbortNode(const std::string& strMessage, bilingual_str user_message = bilingual_str{});
-
-/** Initialize shutdown state. This must be called before using either StartShutdown(),
- * AbortShutdown() or WaitForShutdown(). Calling ShutdownRequested() is always safe.
- */
-bool InitShutdownState();
+#ifndef BITCOINSILVER_SHUTDOWN_H
+#define BITCOINSILVER_SHUTDOWN_H
 
 /** Request shutdown of the application. */
 void StartShutdown();
@@ -32,4 +22,4 @@ bool ShutdownRequested();
  */
 void WaitForShutdown();
 
-#endif
+#endif // BITCOINSILVER_SHUTDOWN_H

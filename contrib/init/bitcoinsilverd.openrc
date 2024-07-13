@@ -1,0 +1,93 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/bitcoinsilver/.bitcoinsilver" ]; then
+	BITCOINSILVERD_DEFAULT_DATADIR="/var/lib/bitcoinsilver/.bitcoinsilver"
+else
+	BITCOINSILVERD_DEFAULT_DATADIR="/var/lib/bitcoinsilverd"
+fi
+
+BITCOINSILVERD_CONFIGFILE=${BITCOINSILVERD_CONFIGFILE:-/etc/bitcoinsilver/bitcoinsilver.conf}
+BITCOINSILVERD_PIDDIR=${BITCOINSILVERD_PIDDIR:-/var/run/bitcoinsilverd}
+BITCOINSILVERD_PIDFILE=${BITCOINSILVERD_PIDFILE:-${BITCOINSILVERD_PIDDIR}/bitcoinsilverd.pid}
+BITCOINSILVERD_DATADIR=${BITCOINSILVERD_DATADIR:-${BITCOINSILVERD_DEFAULT_DATADIR}}
+BITCOINSILVERD_USER=${BITCOINSILVERD_USER:-${BITCOINSILVER_USER:-bitcoinsilver}}
+BITCOINSILVERD_GROUP=${BITCOINSILVERD_GROUP:-bitcoinsilver}
+BITCOINSILVERD_BIN=${BITCOINSILVERD_BIN:-/usr/bin/bitcoinsilverd}
+BITCOINSILVERD_NICE=${BITCOINSILVERD_NICE:-${NICELEVEL:-0}}
+BITCOINSILVERD_OPTS="${BITCOINSILVERD_OPTS:-${BITCOINSILVER_OPTS}}"
+
+name="BitcoinSilver Daemon"
+description="BitcoinSilver cryptocurrency P2P network daemon"
+
+command="/usr/bin/bitcoinsilverd"
+command_args="-pid=\"${BITCOINSILVERD_PIDFILE}\" \
+		-conf=\"${BITCOINSILVERD_CONFIGFILE}\" \
+		-datadir=\"${BITCOINSILVERD_DATADIR}\" \
+		-daemon \
+		${BITCOINSILVERD_OPTS}"
+
+required_files="${BITCOINSILVERD_CONFIGFILE}"
+start_stop_daemon_args="-u ${BITCOINSILVERD_USER} \
+			-N ${BITCOINSILVERD_NICE} -w 2000"
+pidfile="${BITCOINSILVERD_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${BITCOINSILVERD_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${BITCOINSILVERD_USER}:${BITCOINSILVERD_GROUP}" \
+	"${BITCOINSILVERD_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${BITCOINSILVERD_USER}:${BITCOINSILVERD_GROUP}" \
+	"${BITCOINSILVERD_PIDDIR}"
+
+	checkpath -f \
+	-o "${BITCOINSILVERD_USER}:${BITCOINSILVERD_GROUP}" \
+	-m 0660 \
+	"${BITCOINSILVERD_CONFIGFILE}"
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if grep -qs '^rpcuser=' "${BITCOINSILVERD_CONFIGFILE}" && \
+		! grep -qs '^rpcpassword=' "${BITCOINSILVERD_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run bitcoinsilverd."
+		eerror "The setting must appear in ${BITCOINSILVERD_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"BitcoinSilver Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

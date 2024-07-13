@@ -1,25 +1,27 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <hash.h>            // For CHashWriter
-#include <key.h>             // For CKey
-#include <key_io.h>          // For DecodeDestination()
-#include <pubkey.h>          // For CPubKey
-#include <script/standard.h> // For CTxDestination, IsValidDestination(), PKHash
-#include <serialize.h>       // For SER_GETHASH
+#include <hash.h>
+#include <key.h>
+#include <key_io.h>
+#include <pubkey.h>
+#include <uint256.h>
 #include <util/message.h>
-#include <util/strencodings.h> // For DecodeBase64()
+#include <util/strencodings.h>
 
+#include <cassert>
+#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 /**
  * Text used to signify that a signed message follows and to prevent
  * inadvertently signing a transaction.
  */
-const std::string MESSAGE_MAGIC = "Bitcoin_Silver Signed Message:\n";
+const std::string MESSAGE_MAGIC = "BitcoinSilver Signed Message:\n";
 
 MessageVerificationResult MessageVerify(
     const std::string& address,
@@ -35,18 +37,17 @@ MessageVerificationResult MessageVerify(
         return MessageVerificationResult::ERR_ADDRESS_NO_KEY;
     }
 
-    bool invalid = false;
-    std::vector<unsigned char> signature_bytes = DecodeBase64(signature.c_str(), &invalid);
-    if (invalid) {
+    auto signature_bytes = DecodeBase64(signature);
+    if (!signature_bytes) {
         return MessageVerificationResult::ERR_MALFORMED_SIGNATURE;
     }
 
     CPubKey pubkey;
-    if (!pubkey.RecoverCompact(MessageHash(message), signature_bytes)) {
+    if (!pubkey.RecoverCompact(MessageHash(message), *signature_bytes)) {
         return MessageVerificationResult::ERR_PUBKEY_NOT_RECOVERED;
     }
 
-    if (!(CTxDestination(PKHash(pubkey)) == destination)) {
+    if (!(PKHash(pubkey) == *std::get_if<PKHash>(&destination))) {
         return MessageVerificationResult::ERR_NOT_SIGNED;
     }
 
@@ -71,7 +72,7 @@ bool MessageSign(
 
 uint256 MessageHash(const std::string& message)
 {
-    CHashWriter hasher(SER_GETHASH, 0);
+    HashWriter hasher{};
     hasher << MESSAGE_MAGIC << message;
 
     return hasher.GetHash();

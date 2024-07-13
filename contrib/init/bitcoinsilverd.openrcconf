@@ -1,0 +1,33 @@
+# /etc/conf.d/bitcoinsilverd: config file for /etc/init.d/bitcoinsilverd
+
+# Config file location
+#BITCOINSILVERD_CONFIGFILE="/etc/bitcoinsilver/bitcoinsilver.conf"
+
+# What directory to write pidfile to?  (created and owned by $BITCOINSILVERD_USER)
+#BITCOINSILVERD_PIDDIR="/var/run/bitcoinsilverd"
+
+# What filename to give the pidfile
+#BITCOINSILVERD_PIDFILE="${BITCOINSILVERD_PIDDIR}/bitcoinsilverd.pid"
+
+# Where to write bitcoinsilverd data (be mindful that the blockchain is large)
+#BITCOINSILVERD_DATADIR="/var/lib/bitcoinsilverd"
+
+# User and group to own bitcoinsilverd process
+#BITCOINSILVERD_USER="bitcoinsilver"
+#BITCOINSILVERD_GROUP="bitcoinsilver"
+
+# Path to bitcoinsilverd executable
+#BITCOINSILVERD_BIN="/usr/bin/bitcoinsilverd"
+
+# Nice value to run bitcoinsilverd under
+#BITCOINSILVERD_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#BITCOINSILVERD_OPTS=""
+
+# The timeout in seconds OpenRC will wait for bitcoinsilverd to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+BITCOINSILVERD_SIGTERM_TIMEOUT=600

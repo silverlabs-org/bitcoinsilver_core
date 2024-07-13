@@ -1,35 +1,26 @@
-// Copyright (c) 2019-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2019-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_INDEX_DISKTXPOS_H
-#define BITCOIN_SILVER_INDEX_DISKTXPOS_H
+#ifndef BITCOINSILVER_INDEX_DISKTXPOS_H
+#define BITCOINSILVER_INDEX_DISKTXPOS_H
 
 #include <flatfile.h>
 #include <serialize.h>
 
 struct CDiskTxPos : public FlatFilePos
 {
-    unsigned int nTxOffset; // after header
+    unsigned int nTxOffset{0}; // after header
 
     SERIALIZE_METHODS(CDiskTxPos, obj)
     {
-        READWRITEAS(FlatFilePos, obj);
-        READWRITE(VARINT(obj.nTxOffset));
+        READWRITE(AsBase<FlatFilePos>(obj), VARINT(obj.nTxOffset));
     }
 
     CDiskTxPos(const FlatFilePos &blockIn, unsigned int nTxOffsetIn) : FlatFilePos(blockIn.nFile, blockIn.nPos), nTxOffset(nTxOffsetIn) {
     }
 
-    CDiskTxPos() {
-        SetNull();
-    }
-
-    void SetNull() {
-        FlatFilePos::SetNull();
-        nTxOffset = 0;
-    }
+    CDiskTxPos() {}
 };
 
-
-#endif // BITCOIN_SILVER_INDEX_DISKTXPOS_H
+#endif // BITCOINSILVER_INDEX_DISKTXPOS_H

@@ -1,12 +1,13 @@
-// Copyright (c) 2018-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2018-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_INTERFACES_CHAIN_H
-#define BITCOIN_SILVER_INTERFACES_CHAIN_H
+#ifndef BITCOINSILVER_INTERFACES_CHAIN_H
+#define BITCOINSILVER_INTERFACES_CHAIN_H
 
+#include <blockfilter.h>
+#include <common/settings.h>
 #include <primitives/transaction.h> // For CTransactionRef
-#include <util/settings.h>          // For util::SettingsValue
 
 #include <functional>
 #include <memory>
@@ -18,6 +19,7 @@
 
 class ArgsManager;
 class CBlock;
+class CBlockUndo;
 class CFeeRate;
 class CRPCCommand;
 class CScheduler;
@@ -25,17 +27,28 @@ class Coin;
 class uint256;
 enum class MemPoolRemovalReason;
 enum class RBFTransactionState;
+enum class ChainstateRole;
 struct bilingual_str;
 struct CBlockLocator;
 struct FeeCalculation;
+namespace node {
 struct NodeContext;
+} // namespace node
 
 namespace interfaces {
 
 class Handler;
 class Wallet;
 
-//! Helper for findBlock to selectively return pieces of block data.
+//! Hash/height pair to help track and identify blocks.
+struct BlockKey {
+    uint256 hash;
+    int height = -1;
+};
+
+//! Helper for findBlock to selectively return pieces of block data. If block is
+//! found, data will be returned by setting specified output variables. If block
+//! is not found, output variables will keep their previous values.
 class FoundBlock
 {
 public:
@@ -46,6 +59,8 @@ public:
     FoundBlock& mtpTime(int64_t& mtp_time) { m_mtp_time = &mtp_time; return *this; }
     //! Return whether block is in the active (most-work) chain.
     FoundBlock& inActiveChain(bool& in_active_chain) { m_in_active_chain = &in_active_chain; return *this; }
+    //! Return locator if block is in the active chain.
+    FoundBlock& locator(CBlockLocator& locator) { m_locator = &locator; return *this; }
     //! Return next block in the active chain if current block is in the active chain.
     FoundBlock& nextBlock(const FoundBlock& next_block) { m_next_block = &next_block; return *this; }
     //! Read block data from disk. If the block exists but doesn't have data
@@ -58,8 +73,26 @@ public:
     int64_t* m_max_time = nullptr;
     int64_t* m_mtp_time = nullptr;
     bool* m_in_active_chain = nullptr;
+    CBlockLocator* m_locator = nullptr;
     const FoundBlock* m_next_block = nullptr;
     CBlock* m_data = nullptr;
+    mutable bool found = false;
+};
+
+//! Block data sent with blockConnected, blockDisconnected notifications.
+struct BlockInfo {
+    const uint256& hash;
+    const uint256* prev_hash = nullptr;
+    int height = -1;
+    int file_number = -1;
+    unsigned data_pos = 0;
+    const CBlock* data = nullptr;
+    const CBlockUndo* undo_data = nullptr;
+    // The maximum time in the chain up to and including this block.
+    // A timestamp that can only move forward.
+    unsigned int chain_time_max{0};
+
+    BlockInfo(const uint256& hash LIFETIMEBOUND) : hash(hash) {}
 };
 
 //! Interface giving clients (wallet processes, maybe other analysis tools in
@@ -67,13 +100,13 @@ public:
 //! estimate fees, and submit transactions.
 //!
 //! TODO: Current chain methods are too low level, exposing too much of the
-//! internal workings of the bitcoin_silver node, and not being very convenient to use.
+//! internal workings of the bitcoinsilver node, and not being very convenient to use.
 //! Chain methods should be cleaned up and simplified over time. Examples:
 //!
 //! * The initMessages() and showProgress() methods which the wallet uses to send
 //!   notifications to the GUI should go away when GUI and wallet can directly
 //!   communicate with each other without going through the node
-//!   (https://github.com/bitcoin_silver/bitcoin_silver/pull/15288#discussion_r253321096).
+//!   (https://github.com/MrVistos/bitcoinsilver/pull/15288#discussion_r253321096).
 //!
 //! * The handleRpc, registerRpcs, rpcEnableDeprecated methods and other RPC
 //!   methods can go away if wallets listen for HTTP requests on their own
@@ -85,7 +118,7 @@ public:
 //!
 //! * `guessVerificationProgress` and similar methods can go away if rescan
 //!   logic moves out of the wallet, and the wallet just requests scans from the
-//!   node (https://github.com/bitcoin_silver/bitcoin_silver/issues/11756)
+//!   node (https://github.com/MrVistos/bitcoinsilver/issues/11756)
 class Chain
 {
 public:
@@ -106,13 +139,21 @@ public:
     //! Get locator for the current chain tip.
     virtual CBlockLocator getTipLocator() = 0;
 
+    //! Return a locator that refers to a block in the active chain.
+    //! If specified block is not in the active chain, return locator for the latest ancestor that is in the chain.
+    virtual CBlockLocator getActiveChainLocator(const uint256& block_hash) = 0;
+
     //! Return height of the highest block on chain in common with the locator,
     //! which will either be the original block used to create the locator,
     //! or one of its ancestors.
     virtual std::optional<int> findLocatorFork(const CBlockLocator& locator) = 0;
 
-    //! Check if transaction will be final given chain height current time.
-    virtual bool checkFinalTx(const CTransaction& tx) = 0;
+    //! Returns whether a block filter index is available.
+    virtual bool hasBlockFilterIndex(BlockFilterType filter_type) = 0;
+
+    //! Returns whether any of the elements match the block via a BIP 157 block filter
+    //! or std::nullopt if the block filter for this block couldn't be found.
+    virtual std::optional<bool> blockFilterMatchesAny(BlockFilterType filter_type, const uint256& block_hash, const GCSFilter::ElementSet& filter_set) = 0;
 
     //! Return whether node has the block and optionally return block metadata
     //! or contents.
@@ -174,7 +215,44 @@ public:
         std::string& err_string) = 0;
 
     //! Calculate mempool ancestor and descendant counts for the given transaction.
-    virtual void getTransactionAncestry(const uint256& txid, size_t& ancestors, size_t& descendants) = 0;
+    virtual void getTransactionAncestry(const uint256& txid, size_t& ancestors, size_t& descendants, size_t* ancestorsize = nullptr, CAmount* ancestorfees = nullptr) = 0;
+
+    //! For each outpoint, calculate the fee-bumping cost to spend this outpoint at the specified
+    //  feerate, including bumping its ancestors. For example, if the target feerate is 10sat/vbyte
+    //  and this outpoint refers to a mempool transaction at 3sat/vbyte, the bump fee includes the
+    //  cost to bump the mempool transaction to 10sat/vbyte (i.e. 7 * mempooltx.vsize). If that
+    //  transaction also has, say, an unconfirmed parent with a feerate of 1sat/vbyte, the bump fee
+    //  includes the cost to bump the parent (i.e. 9 * parentmempooltx.vsize).
+    //
+    //  If the outpoint comes from an unconfirmed transaction that is already above the target
+    //  feerate or bumped by its descendant(s) already, it does not need to be bumped. Its bump fee
+    //  is 0. Likewise, if any of the transaction's ancestors are already bumped by a transaction
+    //  in our mempool, they are not included in the transaction's bump fee.
+    //
+    //  Also supported is bump-fee calculation in the case of replacements. If an outpoint
+    //  conflicts with another transaction in the mempool, it is assumed that the goal is to replace
+    //  that transaction. As such, the calculation will exclude the to-be-replaced transaction, but
+    //  will include the fee-bumping cost. If bump fees of descendants of the to-be-replaced
+    //  transaction are requested, the value will be 0. Fee-related RBF rules are not included as
+    //  they are logically distinct.
+    //
+    //  Any outpoints that are otherwise unavailable from the mempool (e.g. UTXOs from confirmed
+    //  transactions or transactions not yet broadcast by the wallet) are given a bump fee of 0.
+    //
+    //  If multiple outpoints come from the same transaction (which would be very rare because
+    //  it means that one transaction has multiple change outputs or paid the same wallet using multiple
+    //  outputs in the same transaction) or have shared ancestry, the bump fees are calculated
+    //  independently, i.e. as if only one of them is spent. This may result in double-fee-bumping. This
+    //  caveat can be rectified per use of the sister-function CalculateCombinedBumpFee(…).
+    virtual std::map<COutPoint, CAmount> CalculateIndividualBumpFees(const std::vector<COutPoint>& outpoints, const CFeeRate& target_feerate) = 0;
+
+    //! Calculate the combined bump fee for an input set per the same strategy
+    //  as in CalculateIndividualBumpFees(…).
+    //  Unlike CalculateIndividualBumpFees(…), this does not return individual
+    //  bump fees per outpoint, but a single bump fee for the shared ancestry.
+    //  The combined bump fee may be used to correct overestimation due to
+    //  shared ancestry by multiple UTXOs after coin selection.
+    virtual std::optional<CAmount> CalculateCombinedBumpFee(const std::vector<COutPoint>& outpoints, const CFeeRate& target_feerate) = 0;
 
     //! Get the node's package limits.
     //! Currently only returns the ancestor and descendant count limits, but could be enhanced to
@@ -214,9 +292,6 @@ public:
     //! Check if shutdown requested.
     virtual bool shutdownRequested() = 0;
 
-    //! Get adjusted time.
-    virtual int64_t getAdjustedTime() = 0;
-
     //! Send init message.
     virtual void initMessage(const std::string& message) = 0;
 
@@ -234,12 +309,12 @@ public:
     {
     public:
         virtual ~Notifications() {}
-        virtual void transactionAddedToMempool(const CTransactionRef& tx, uint64_t mempool_sequence) {}
-        virtual void transactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason reason, uint64_t mempool_sequence) {}
-        virtual void blockConnected(const CBlock& block, int height) {}
-        virtual void blockDisconnected(const CBlock& block, int height) {}
+        virtual void transactionAddedToMempool(const CTransactionRef& tx) {}
+        virtual void transactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason reason) {}
+        virtual void blockConnected(ChainstateRole role, const BlockInfo& block) {}
+        virtual void blockDisconnected(const BlockInfo& block) {}
         virtual void updatedBlockTip() {}
-        virtual void chainStateFlushed(const CBlockLocator& locator) {}
+        virtual void chainStateFlushed(ChainstateRole role, const CBlockLocator& locator) {}
     };
 
     //! Register handler for notifications.
@@ -262,11 +337,18 @@ public:
     //! Current RPC serialization flags.
     virtual int rpcSerializationFlags() = 0;
 
-    //! Return <datadir>/settings.json setting value.
-    virtual util::SettingsValue getRwSetting(const std::string& name) = 0;
+    //! Get settings value.
+    virtual common::SettingsValue getSetting(const std::string& arg) = 0;
 
-    //! Write a setting to <datadir>/settings.json.
-    virtual bool updateRwSetting(const std::string& name, const util::SettingsValue& value) = 0;
+    //! Get list of settings values.
+    virtual std::vector<common::SettingsValue> getSettingsList(const std::string& arg) = 0;
+
+    //! Return <datadir>/settings.json setting value.
+    virtual common::SettingsValue getRwSetting(const std::string& name) = 0;
+
+    //! Write a setting to <datadir>/settings.json. Optionally just update the
+    //! setting in memory and do not write the file.
+    virtual bool updateRwSetting(const std::string& name, const common::SettingsValue& value, bool write=true) = 0;
 
     //! Synchronously send transactionAddedToMempool notifications about all
     //! current mempool transactions to the specified handler and return after
@@ -278,8 +360,12 @@ public:
     //! removed transactions and already added new transactions.
     virtual void requestMempoolTransactions(Notifications& notifications) = 0;
 
-    //! Check if Taproot has activated
-    virtual bool isTaprootActive() const = 0;
+    //! Return true if an assumed-valid chain is in use.
+    virtual bool hasAssumedValidChain() = 0;
+
+    //! Get internal node context. Useful for testing, but not
+    //! accessible across processes.
+    virtual node::NodeContext* context() { return nullptr; }
 };
 
 //! Interface to let node manage chain clients (wallets, or maybe tools for
@@ -312,8 +398,8 @@ public:
 };
 
 //! Return implementation of Chain interface.
-std::unique_ptr<Chain> MakeChain(NodeContext& node);
+std::unique_ptr<Chain> MakeChain(node::NodeContext& node);
 
 } // namespace interfaces
 
-#endif // BITCOIN_SILVER_INTERFACES_CHAIN_H
+#endif // BITCOINSILVER_INTERFACES_CHAIN_H

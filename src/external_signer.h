@@ -1,12 +1,12 @@
-// Copyright (c) 2018-2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2018-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_EXTERNAL_SIGNER_H
-#define BITCOIN_SILVER_EXTERNAL_SIGNER_H
+#ifndef BITCOINSILVER_EXTERNAL_SIGNER_H
+#define BITCOINSILVER_EXTERNAL_SIGNER_H
 
+#include <common/system.h>
 #include <univalue.h>
-#include <util/system.h>
 
 #include <string>
 #include <vector>
@@ -21,10 +21,10 @@ private:
     //! The command which handles interaction with the external signer.
     std::string m_command;
 
-    //! Bitcoin_Silver mainnet, testnet, etc
+    //! BitcoinSilver mainnet, testnet, etc
     std::string m_chain;
 
-    const std::string NetworkArg() const;
+    std::string NetworkArg() const;
 
 public:
     //! @param[in] command      the command which handles interaction with the external signer
@@ -63,4 +63,4 @@ public:
     bool SignTransaction(PartiallySignedTransaction& psbt, std::string& error);
 };
 
-#endif // BITCOIN_SILVER_EXTERNAL_SIGNER_H
+#endif // BITCOINSILVER_EXTERNAL_SIGNER_H

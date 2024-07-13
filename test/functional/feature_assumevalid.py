@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2014-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test logic for skipping signature validation on old blocks.
 
 Test logic for skipping signature validation on blocks which we've assumed
-valid (https://github.com/bitcoin_silver/bitcoin_silver/pull/9484)
+valid (https://github.com/MrVistos/bitcoinsilver/pull/9484)
 
 We build a chain that includes and invalid signature for one of the
 transactions:
@@ -35,7 +35,6 @@ from test_framework.blocktools import (
     create_block,
     create_coinbase,
 )
-from test_framework.key import ECKey
 from test_framework.messages import (
     CBlockHeader,
     COutPoint,
@@ -46,9 +45,13 @@ from test_framework.messages import (
     msg_headers,
 )
 from test_framework.p2p import P2PInterface
-from test_framework.script import (CScript, OP_TRUE)
-from test_framework.test_framework import Bitcoin_SilverTestFramework
+from test_framework.script import (
+    CScript,
+    OP_TRUE,
+)
+from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal
+from test_framework.wallet_util import generate_keypair
 
 
 class BaseNode(P2PInterface):
@@ -58,7 +61,7 @@ class BaseNode(P2PInterface):
         self.send_message(headers_message)
 
 
-class AssumeValidTest(Bitcoin_SilverTestFramework):
+class AssumeValidTest(BitcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
@@ -83,8 +86,6 @@ class AssumeValidTest(Bitcoin_SilverTestFramework):
                 break
 
     def run_test(self):
-        p2p0 = self.nodes[0].add_p2p_connection(BaseNode())
-
         # Build the blockchain
         self.tip = int(self.nodes[0].getbestblockhash(), 16)
         self.block_time = self.nodes[0].getblock(self.nodes[0].getbestblockhash())['time'] + 1
@@ -92,9 +93,7 @@ class AssumeValidTest(Bitcoin_SilverTestFramework):
         self.blocks = []
 
         # Get a pubkey for the coinbase TXO
-        coinbase_key = ECKey()
-        coinbase_key.generate()
-        coinbase_pubkey = coinbase_key.get_pubkey().get_bytes()
+        _, coinbase_pubkey = generate_keypair()
 
         # Create the first block with a coinbase output to our key
         height = 1
@@ -122,11 +121,8 @@ class AssumeValidTest(Bitcoin_SilverTestFramework):
         tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE])))
         tx.calc_sha256()
 
-        block102 = create_block(self.tip, create_coinbase(height), self.block_time)
+        block102 = create_block(self.tip, create_coinbase(height), self.block_time, txlist=[tx])
         self.block_time += 1
-        block102.vtx.extend([tx])
-        block102.hashMerkleRoot = block102.calc_merkle_root()
-        block102.rehash()
         block102.solve()
         self.blocks.append(block102)
         self.tip = block102.sha256
@@ -136,34 +132,28 @@ class AssumeValidTest(Bitcoin_SilverTestFramework):
         # Bury the assumed valid block 2100 deep
         for _ in range(2100):
             block = create_block(self.tip, create_coinbase(height), self.block_time)
-            block.nVersion = 4
             block.solve()
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
             height += 1
 
-        self.nodes[0].disconnect_p2ps()
-
         # Start node1 and node2 with assumevalid so they accept a block with a bad signature.
         self.start_node(1, extra_args=["-assumevalid=" + hex(block102.sha256)])
         self.start_node(2, extra_args=["-assumevalid=" + hex(block102.sha256)])
 
         p2p0 = self.nodes[0].add_p2p_connection(BaseNode())
-        p2p1 = self.nodes[1].add_p2p_connection(BaseNode())
-        p2p2 = self.nodes[2].add_p2p_connection(BaseNode())
-
-        # send header lists to all three nodes
         p2p0.send_header_for_blocks(self.blocks[0:2000])
         p2p0.send_header_for_blocks(self.blocks[2000:])
-        p2p1.send_header_for_blocks(self.blocks[0:2000])
-        p2p1.send_header_for_blocks(self.blocks[2000:])
-        p2p2.send_header_for_blocks(self.blocks[0:200])
 
         # Send blocks to node0. Block 102 will be rejected.
         self.send_blocks_until_disconnected(p2p0)
         self.wait_until(lambda: self.nodes[0].getblockcount() >= COINBASE_MATURITY + 1)
         assert_equal(self.nodes[0].getblockcount(), COINBASE_MATURITY + 1)
+
+        p2p1 = self.nodes[1].add_p2p_connection(BaseNode())
+        p2p1.send_header_for_blocks(self.blocks[0:2000])
+        p2p1.send_header_for_blocks(self.blocks[2000:])
 
         # Send all blocks to node1. All blocks will be accepted.
         for i in range(2202):
@@ -171,6 +161,9 @@ class AssumeValidTest(Bitcoin_SilverTestFramework):
         # Syncing 2200 blocks can take a while on slow systems. Give it plenty of time to sync.
         p2p1.sync_with_ping(960)
         assert_equal(self.nodes[1].getblock(self.nodes[1].getbestblockhash())['height'], 2202)
+
+        p2p2 = self.nodes[2].add_p2p_connection(BaseNode())
+        p2p2.send_header_for_blocks(self.blocks[0:200])
 
         # Send blocks to node2. Block 102 will be rejected.
         self.send_blocks_until_disconnected(p2p2)

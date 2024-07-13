@@ -1,13 +1,14 @@
-// Copyright (c) 2018-2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2018-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <chainparamsbase.h>
+#include <common/args.h>
+#include <common/system.h>
 #include <external_signer.h>
+#include <rpc/protocol.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <util/strencodings.h>
-#include <rpc/protocol.h>
 
 #include <string>
 #include <vector>
@@ -22,10 +23,13 @@ static RPCHelpMan enumeratesigners()
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::ARR, "signers", /* optional */ false, "",
+                {RPCResult::Type::ARR, "signers", /*optional=*/false, "",
                 {
-                    {RPCResult::Type::STR_HEX, "masterkeyfingerprint", "Master key fingerprint"},
-                    {RPCResult::Type::STR, "name", "Device name"},
+                    {RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::STR_HEX, "fingerprint", "Master key fingerprint"},
+                        {RPCResult::Type::STR, "name", "Device name"},
+                    }},
                 },
                 }
             }
@@ -37,8 +41,8 @@ static RPCHelpMan enumeratesigners()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
             const std::string command = gArgs.GetArg("-signer", "");
-            if (command == "") throw JSONRPCError(RPC_MISC_ERROR, "Error: restart bitcoin_silverd with -signer=<cmd>");
-            const std::string chain = gArgs.GetChainName();
+            if (command == "") throw JSONRPCError(RPC_MISC_ERROR, "Error: restart bitcoinsilverd with -signer=<cmd>");
+            const std::string chain = gArgs.GetChainTypeString();
             UniValue signers_res = UniValue::VARR;
             try {
                 std::vector<ExternalSigner> signers;
@@ -59,15 +63,11 @@ static RPCHelpMan enumeratesigners()
     };
 }
 
-void RegisterSignerRPCCommands(CRPCTable &t)
+void RegisterSignerRPCCommands(CRPCTable& t)
 {
-// clang-format off
-static const CRPCCommand commands[] =
-{ // category              actor (function)
-  // --------------------- ------------------------
-  { "signer",              &enumeratesigners,      },
-};
-// clang-format on
+    static const CRPCCommand commands[]{
+        {"signer", &enumeratesigners},
+    };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
     }

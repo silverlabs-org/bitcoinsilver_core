@@ -1,15 +1,12 @@
-// Copyright (c) 2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2021-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_TRANSACTIONOVERVIEWWIDGET_H
-#define BITCOIN_SILVER_QT_TRANSACTIONOVERVIEWWIDGET_H
-
-#include <qt/transactiontablemodel.h>
+#ifndef BITCOINSILVER_QT_TRANSACTIONOVERVIEWWIDGET_H
+#define BITCOINSILVER_QT_TRANSACTIONOVERVIEWWIDGET_H
 
 #include <QListView>
 #include <QSize>
-#include <QSizePolicy>
 
 QT_BEGIN_NAMESPACE
 class QShowEvent;
@@ -21,21 +18,11 @@ class TransactionOverviewWidget : public QListView
     Q_OBJECT
 
 public:
-    explicit TransactionOverviewWidget(QWidget* parent = nullptr) : QListView(parent) {}
-
-    QSize sizeHint() const override
-    {
-        return {sizeHintForColumn(TransactionTableModel::ToAddress), QListView::sizeHint().height()};
-    }
+    explicit TransactionOverviewWidget(QWidget* parent = nullptr);
+    QSize sizeHint() const override;
 
 protected:
-    void showEvent(QShowEvent* event) override
-    {
-        Q_UNUSED(event);
-        QSizePolicy sp = sizePolicy();
-        sp.setHorizontalPolicy(QSizePolicy::Minimum);
-        setSizePolicy(sp);
-    }
+    void showEvent(QShowEvent* event) override;
 };
 
-#endif // BITCOIN_SILVER_QT_TRANSACTIONOVERVIEWWIDGET_H
+#endif // BITCOINSILVER_QT_TRANSACTIONOVERVIEWWIDGET_H

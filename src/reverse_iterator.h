@@ -1,10 +1,10 @@
 // Taken from https://gist.github.com/arvidsson/7231973
 
-#ifndef BITCOIN_SILVER_REVERSE_ITERATOR_H
-#define BITCOIN_SILVER_REVERSE_ITERATOR_H
+#ifndef BITCOINSILVER_REVERSE_ITERATOR_H
+#define BITCOINSILVER_REVERSE_ITERATOR_H
 
 /**
- * Template used for reverse iteration in C++11 range-based for loops.
+ * Template used for reverse iteration in range-based for loops.
  *
  *   std::vector<int> v = {1, 2, 3, 4, 5};
  *   for (auto x : reverse_iterate(v))
@@ -36,4 +36,4 @@ reverse_range<T> reverse_iterate(T &x)
     return reverse_range<T>(x);
 }
 
-#endif // BITCOIN_SILVER_REVERSE_ITERATOR_H
+#endif // BITCOINSILVER_REVERSE_ITERATOR_H

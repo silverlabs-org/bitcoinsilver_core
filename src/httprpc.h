@@ -1,9 +1,9 @@
-// Copyright (c) 2015-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2015-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_HTTPRPC_H
-#define BITCOIN_SILVER_HTTPRPC_H
+#ifndef BITCOINSILVER_HTTPRPC_H
+#define BITCOINSILVER_HTTPRPC_H
 
 #include <any>
 
@@ -31,4 +31,4 @@ void InterruptREST();
  */
 void StopREST();
 
-#endif
+#endif // BITCOINSILVER_HTTPRPC_H

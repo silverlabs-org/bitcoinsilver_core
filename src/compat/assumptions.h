@@ -1,20 +1,21 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 // Compile-time verification of assumptions we make.
 
-#ifndef BITCOIN_SILVER_COMPAT_ASSUMPTIONS_H
-#define BITCOIN_SILVER_COMPAT_ASSUMPTIONS_H
+#ifndef BITCOINSILVER_COMPAT_ASSUMPTIONS_H
+#define BITCOINSILVER_COMPAT_ASSUMPTIONS_H
 
+#include <cstddef>
 #include <limits>
 
 // Assumption: We assume that the macro NDEBUG is not defined.
 // Example(s): We use assert(...) extensively with the assumption of it never
 //             being a noop at runtime.
 #if defined(NDEBUG)
-# error "Bitcoin_Silver cannot be compiled without assertions."
+# error "BitcoinSilver cannot be compiled without assertions."
 #endif
 
 // Assumption: We assume a C++17 (ISO/IEC 14882:2017) compiler (minimum requirement).
@@ -54,4 +55,4 @@ static_assert(sizeof(size_t) == sizeof(void*), "Sizes of size_t and void* assume
 // * We are NOT assuming a specific value for std::locale("").name().
 // * We are NOT assuming a specific value for std::numeric_limits<char>::is_signed.
 
-#endif // BITCOIN_SILVER_COMPAT_ASSUMPTIONS_H
+#endif // BITCOINSILVER_COMPAT_ASSUMPTIONS_H

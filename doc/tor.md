@@ -1,36 +1,35 @@
-# TOR SUPPORT IN BITCOIN_SILVER
+# TOR SUPPORT IN BITCOINSILVER
 
-It is possible to run Bitcoin_Silver Core as a Tor onion service, and connect to such services.
+It is possible to run BitcoinSilver as a Tor onion service, and connect to such services.
 
-The following directions assume you have a Tor proxy running on port 9050. Many distributions default to having a SOCKS proxy listening on port 9050, but others may not. In particular, the Tor Browser Bundle defaults to listening on port 9150. See [Tor Project FAQ:TBBSocksPort](https://www.torproject.org/docs/faq.html.en#TBBSocksPort) for how to properly
-configure Tor.
-
+The following directions assume you have a Tor proxy running on port 9050. Many distributions default to having a SOCKS proxy listening on port 9050, but others may not. In particular, the Tor Browser Bundle defaults to listening on port 9150.
 ## Compatibility
 
-- Starting with version 22.0, Bitcoin_Silver Core only supports Tor version 3 hidden
-  services (Tor v3). Tor v2 addresses are ignored by Bitcoin_Silver Core and neither
+- Starting with version 22.0, BitcoinSilver only supports Tor version 3 hidden
+  services (Tor v3). Tor v2 addresses are ignored by BitcoinSilver and neither
   relayed nor stored.
 
 - Tor removed v2 support beginning with version 0.4.6.
 
-## How to see information about your Tor configuration via Bitcoin_Silver Core
+## How to see information about your Tor configuration via BitcoinSilver
 
-There are several ways to see your local onion address in Bitcoin_Silver Core:
-- in the debug log (grep for "tor:" or "AddLocal")
-- in the output of RPC `getnetworkinfo` in the "localaddresses" section
-- in the output of the CLI `-netinfo` peer connections dashboard
+There are several ways to see your local onion address in BitcoinSilver:
+- in the "Local addresses" output of CLI `-netinfo`
+- in the "localaddresses" output of RPC `getnetworkinfo`
+- in the debug log (grep for "AddLocal"; the Tor address ends in `.onion`)
 
 You may set the `-debug=tor` config logging option to have additional
 information in the debug log about your Tor configuration.
 
-CLI `-addrinfo` returns the number of addresses known to your node per network
-type, including Tor v2 and v3. This is useful to see how many onion addresses
-are known to your node for `-onlynet=onion` and how many Tor v3 addresses it
-knows when upgrading to Bitcoin_Silver Core v22.0 and up that supports Tor v3 only.
+CLI `-addrinfo` returns the number of addresses known to your node per
+network. This can be useful to see how many onion peers your node knows,
+e.g. for `-onlynet=onion`.
 
-## 1. Run Bitcoin_Silver Core behind a Tor proxy
+You can use the `getnodeaddresses` RPC to fetch a number of onion peers known to your node; run `bitcoinsilver-cli help getnodeaddresses` for details.
 
-The first step is running Bitcoin_Silver Core behind a Tor proxy. This will already anonymize all
+## 1. Run BitcoinSilver behind a Tor proxy
+
+The first step is running BitcoinSilver behind a Tor proxy. This will already anonymize all
 outgoing connections, but more is possible.
 
     -proxy=ip:port  Set the proxy server. If SOCKS5 is selected (default), this proxy
@@ -41,9 +40,11 @@ outgoing connections, but more is possible.
     -onion=ip:port  Set the proxy server to use for Tor onion services. You do not
                     need to set this if it's the same as -proxy. You can use -onion=0
                     to explicitly disable access to onion services.
+                    ------------------------------------------------------------------
                     Note: Only the -proxy option sets the proxy for DNS requests;
                     with -onion they will not route over Tor, so use -proxy if you
                     have privacy concerns.
+                    ------------------------------------------------------------------
 
     -listen         When using -proxy, listening is disabled by default. If you want
                     to manually configure an onion service (see section 3), you'll
@@ -54,33 +55,29 @@ outgoing connections, but more is possible.
     -seednode=X     SOCKS5. In Tor mode, such addresses can also be exchanged with
                     other P2P nodes.
 
-    -onlynet=onion  Make outgoing connections only to .onion addresses. Incoming
-                    connections are not affected by this option. This option can be
-                    specified multiple times to allow multiple network types, e.g.
-                    ipv4, ipv6 or onion. If you use this option with values other
-                    than onion you *cannot* disable onion connections; outgoing onion
-                    connections will be enabled when you use -proxy or -onion. Use
-                    -noonion or -onion=0 if you want to be sure there are no outbound
-                    onion connections over the default proxy or your defined -proxy.
+    -onlynet=onion  Make automatic outbound connections only to .onion addresses.
+                    Inbound and manual connections are not affected by this option.
+                    It can be specified multiple times to allow multiple networks,
+                    e.g. onlynet=onion, onlynet=i2p, onlynet=cjdns.
 
 In a typical situation, this suffices to run behind a Tor proxy:
 
-    ./bitcoin_silverd -proxy=127.0.0.1:9050
+    ./bitcoinsilverd -proxy=127.0.0.1:9050
 
-## 2. Automatically create a Bitcoin_Silver Core onion service
+## 2. Automatically create a BitcoinSilver onion service
 
-Bitcoin_Silver Core makes use of Tor's control socket API to create and destroy
+BitcoinSilver makes use of Tor's control socket API to create and destroy
 ephemeral onion services programmatically. This means that if Tor is running and
-proper authentication has been configured, Bitcoin_Silver Core automatically creates an
+proper authentication has been configured, BitcoinSilver automatically creates an
 onion service to listen on. The goal is to increase the number of available
 onion nodes.
 
-This feature is enabled by default if Bitcoin_Silver Core is listening (`-listen`) and
+This feature is enabled by default if BitcoinSilver is listening (`-listen`) and
 it requires a Tor connection to work. It can be explicitly disabled with
 `-listenonion=0`. If it is not disabled, it can be configured using the
 `-torcontrol` and `-torpassword` settings.
 
-To see verbose Tor information in the bitcoin_silverd debug log, pass `-debug=tor`.
+To see verbose Tor information in the bitcoinsilverd debug log, pass `-debug=tor`.
 
 ### Control Port
 
@@ -92,36 +89,30 @@ out by default (if not, add them):
 ControlPort 9051
 CookieAuthentication 1
 CookieAuthFileGroupReadable 1
+DataDirectoryGroupReadable 1
 ```
 
 Add or uncomment those, save, and restart Tor (usually `systemctl restart tor`
 or `sudo systemctl restart tor` on most systemd-based systems, including recent
 Debian and Ubuntu, or just restart the computer).
 
-On some systems (such as Arch Linux), you may also need to add the following
-line:
-
-```
-DataDirectoryGroupReadable 1
-```
-
 ### Authentication
 
 Connecting to Tor's control socket API requires one of two authentication
-methods to be configured: cookie authentication or bitcoin_silverd's `-torpassword`
+methods to be configured: cookie authentication or bitcoinsilverd's `-torpassword`
 configuration option.
 
 #### Cookie authentication
 
-For cookie authentication, the user running bitcoin_silverd must have read access to
+For cookie authentication, the user running bitcoinsilverd must have read access to
 the `CookieAuthFile` specified in the Tor configuration. In some cases this is
 preconfigured and the creation of an onion service is automatic. Don't forget to
-use the `-debug=tor` bitcoin_silverd configuration option to enable Tor debug logging.
+use the `-debug=tor` bitcoinsilverd configuration option to enable Tor debug logging.
 
 If a permissions problem is seen in the debug log, e.g. `tor: Authentication
 cookie /run/tor/control.authcookie could not be opened (check permissions)`, it
 can be resolved by adding both the user running Tor and the user running
-bitcoin_silverd to the same Tor group and setting permissions appropriately.
+bitcoinsilverd to the same Tor group and setting permissions appropriately.
 
 On Debian-derived systems, the Tor group will likely be `debian-tor` and one way
 to verify could be to list the groups and grep for a "tor" group name:
@@ -134,18 +125,18 @@ You can also check the group of the cookie file. On most Linux systems, the Tor
 auth cookie will usually be `/run/tor/control.authcookie`:
 
 ```
-stat -c '%G' /run/tor/control.authcookie
+TORGROUP=$(stat -c '%G' /run/tor/control.authcookie)
 ```
 
 Once you have determined the `${TORGROUP}` and selected the `${USER}` that will
-run bitcoin_silverd, run this as root:
+run bitcoinsilverd, run this as root:
 
 ```
 usermod -a -G ${TORGROUP} ${USER}
 ```
 
 Then restart the computer (or log out) and log in as the `${USER}` that will run
-bitcoin_silverd.
+bitcoinsilverd.
 
 #### `torpassword` authentication
 
@@ -159,22 +150,22 @@ Manual](https://2019.www.torproject.org/docs/tor-manual.html.en) for more
 details).
 
 
-## 3. Manually create a Bitcoin_Silver Core onion service
+## 3. Manually create a BitcoinSilver onion service
 
 You can also manually configure your node to be reachable from the Tor network.
 Add these lines to your `/etc/tor/torrc` (or equivalent config file):
 
-    HiddenServiceDir /var/lib/tor/bitcoin_silver-service/
-    HiddenServicePort 8383 127.0.0.1:8384
+    HiddenServiceDir /var/lib/tor/bitcoinsilver-service/
+    HiddenServicePort 10566 127.0.0.1:10564
 
 The directory can be different of course, but virtual port numbers should be equal to
-your bitcoin_silverd's P2P listen port (8383 by default), and target addresses and ports
-should be equal to binding address and port for inbound Tor connections (127.0.0.1:8384 by default).
+your bitcoinsilverd's P2P listen port (10566 by default), and target addresses and ports
+should be equal to binding address and port for inbound Tor connections (127.0.0.1:10564 by default).
 
-    -externalip=X   You can tell bitcoin_silver about its publicly reachable addresses using
+    -externalip=X   You can tell bitcoinsilver about its publicly reachable addresses using
                     this option, and this can be an onion address. Given the above
                     configuration, you can find your onion address in
-                    /var/lib/tor/bitcoin_silver-service/hostname. For connections
+                    /var/lib/tor/bitcoinsilver-service/hostname. For connections
                     coming from unroutable addresses (such as 127.0.0.1, where the
                     Tor proxy typically runs), onion addresses are given
                     preference for your node to advertise itself with.
@@ -196,29 +187,29 @@ should be equal to binding address and port for inbound Tor connections (127.0.0
 
 In a typical situation, where you're only reachable via Tor, this should suffice:
 
-    ./bitcoin_silverd -proxy=127.0.0.1:9050 -externalip=7zvj7a2imdgkdbg4f2dryd5rgtrn7upivr5eeij4cicjh65pooxeshid.onion -listen
+    ./bitcoinsilverd -proxy=127.0.0.1:9050 -externalip=7zvj7a2imdgkdbg4f2dryd5rgtrn7upivr5eeij4cicjh65pooxeshid.onion -listen
 
 (obviously, replace the .onion address with your own). It should be noted that you still
 listen on all devices and another node could establish a clearnet connection, when knowing
 your address. To mitigate this, additionally bind the address of your Tor proxy:
 
-    ./bitcoin_silverd ... -bind=127.0.0.1
+    ./bitcoinsilverd ... -bind=127.0.0.1
 
 If you don't care too much about hiding your node, and want to be reachable on IPv4
 as well, use `discover` instead:
 
-    ./bitcoin_silverd ... -discover
+    ./bitcoinsilverd ... -discover
 
-and open port 8383 on your firewall (or use port mapping, i.e., `-upnp` or `-natpmp`).
+and open port 10566 on your firewall (or use port mapping, i.e., `-upnp` or `-natpmp`).
 
 If you only want to use Tor to reach .onion addresses, but not use it as a proxy
 for normal IPv4/IPv6 communication, use:
 
-    ./bitcoin_silverd -onion=127.0.0.1:9050 -externalip=7zvj7a2imdgkdbg4f2dryd5rgtrn7upivr5eeij4cicjh65pooxeshid.onion -discover
+    ./bitcoinsilverd -onion=127.0.0.1:9050 -externalip=7zvj7a2imdgkdbg4f2dryd5rgtrn7upivr5eeij4cicjh65pooxeshid.onion -discover
 
 ## 4. Privacy recommendations
 
-- Do not add anything but Bitcoin_Silver Core ports to the onion service created in section 3.
+- Do not add anything but BitcoinSilver ports to the onion service created in section 3.
   If you run a web service too, create a new onion service for that.
   Otherwise it is trivial to link them, which may reduce privacy. Onion
   services created automatically (as in section 2) always have only one port

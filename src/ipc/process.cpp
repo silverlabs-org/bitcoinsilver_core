@@ -1,19 +1,19 @@
-// Copyright (c) 2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2021-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <fs.h>
 #include <ipc/process.h>
 #include <ipc/protocol.h>
 #include <mp/util.h>
 #include <tinyformat.h>
+#include <util/fs.h>
 #include <util/strencodings.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <stdexcept>
-#include <stdlib.h>
 #include <string.h>
 #include <system_error>
 #include <unistd.h>
@@ -30,8 +30,8 @@ public:
         return mp::SpawnProcess(pid, [&](int fd) {
             fs::path path = argv0_path;
             path.remove_filename();
-            path.append(new_exe_name);
-            return std::vector<std::string>{path.string(), "-ipcfd", strprintf("%i", fd)};
+            path /= fs::PathFromString(new_exe_name);
+            return std::vector<std::string>{fs::PathToString(path), "-ipcfd", strprintf("%i", fd)};
         });
     }
     int waitSpawned(int pid) override { return mp::WaitProcess(pid); }

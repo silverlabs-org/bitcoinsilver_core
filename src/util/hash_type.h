@@ -1,9 +1,9 @@
-// Copyright (c) 2020-2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2020-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_UTIL_HASH_TYPE_H
-#define BITCOIN_SILVER_UTIL_HASH_TYPE_H
+#ifndef BITCOINSILVER_UTIL_HASH_TYPE_H
+#define BITCOINSILVER_UTIL_HASH_TYPE_H
 
 template <typename HashType>
 class BaseHash
@@ -69,4 +69,4 @@ public:
     const unsigned char* data() const { return m_hash.data(); }
 };
 
-#endif // BITCOIN_SILVER_UTIL_HASH_TYPE_H
+#endif // BITCOINSILVER_UTIL_HASH_TYPE_H

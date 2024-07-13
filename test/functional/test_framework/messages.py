@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # Copyright (c) 2010 ArtForz -- public domain half-a-node
 # Copyright (c) 2012 Jeff Garzik
-# Copyright (c) 2010-2020 The Bitcoin_Silver Core developers
+# Copyright (c) 2010-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Bitcoin_Silver test framework primitive and message structures
+"""BitcoinSilver test framework primitive and message structures
 
 CBlock, CTransaction, CBlockHeader, CTxIn, CTxOut, etc....:
     data structures that should map to corresponding structures in
-    bitcoin_silver/primitives
+    bitcoinsilver/primitives
 
 msg_block, msg_tx, msg_headers, etc.:
     data structures that represent network messages
@@ -19,7 +19,6 @@ Classes use __slots__ to ensure extraneous attributes aren't accidentally added
 by tests, compromising their intended effect.
 """
 from base64 import b32decode, b32encode
-from codecs import encode
 import copy
 import hashlib
 from io import BytesIO
@@ -28,19 +27,21 @@ import random
 import socket
 import struct
 import time
+import unittest
 
 from test_framework.siphash import siphash256
-from test_framework.util import hex_str_to_bytes, assert_equal
+from test_framework.util import assert_equal
 
 MAX_LOCATOR_SZ = 101
-MAX_BLOCK_BASE_SIZE = 1000000
+MAX_BLOCK_WEIGHT = 4000000
 MAX_BLOOM_FILTER_SIZE = 36000
 MAX_BLOOM_HASH_FUNCS = 50
 
-COIN = 100000000  # 1 btcs in satoshis
+COIN = 100000000  # 1 btc in satoshis
 MAX_MONEY = 21000000 * COIN
 
-BIP125_SEQUENCE_NUMBER = 0xfffffffd  # Sequence number that is rbf-opt-in (BIP 125) and csv-opt-out (BIP 68)
+MAX_BIP125_RBF_SEQUENCE = 0xfffffffd  # Sequence number that is rbf-opt-in (BIP 125) and csv-opt-out (BIP 68)
+SEQUENCE_FINAL = 0xffffffff  # Sequence number that disables nLockTime if set for every input of a tx
 
 MAX_PROTOCOL_MESSAGE_LENGTH = 4000000  # Maximum length of incoming protocol messages
 MAX_HEADERS_RESULTS = 2000  # Number of headers sent in one getheaders result
@@ -51,6 +52,7 @@ NODE_BLOOM = (1 << 2)
 NODE_WITNESS = (1 << 3)
 NODE_COMPACT_FILTERS = (1 << 6)
 NODE_NETWORK_LIMITED = (1 << 10)
+NODE_P2P_V2 = (1 << 11)
 
 MSG_TX = 1
 MSG_BLOCK = 2
@@ -65,12 +67,25 @@ FILTER_TYPE_BASIC = 0
 
 WITNESS_SCALE_FACTOR = 4
 
-# Serialization/deserialization tools
+DEFAULT_ANCESTOR_LIMIT = 25    # default max number of in-mempool ancestors
+DEFAULT_DESCENDANT_LIMIT = 25  # default max number of in-mempool descendants
+
+# Default setting for -datacarriersize. 80 bytes of data, +1 for OP_RETURN, +2 for the pushdata opcodes.
+MAX_OP_RETURN_RELAY = 83
+
+DEFAULT_MEMPOOL_EXPIRY_HOURS = 336  # hours
+
 def sha256(s):
-    return hashlib.new('sha256', s).digest()
+    return hashlib.sha256(s).digest()
+
+
+def sha3(s):
+    return hashlib.sha3_256(s).digest()
+
 
 def hash256(s):
     return sha256(sha256(s))
+
 
 def ser_compact_size(l):
     r = b""
@@ -84,6 +99,7 @@ def ser_compact_size(l):
         r = struct.pack("<BQ", 255, l)
     return r
 
+
 def deser_compact_size(f):
     nit = struct.unpack("<B", f.read(1))[0]
     if nit == 253:
@@ -94,35 +110,26 @@ def deser_compact_size(f):
         nit = struct.unpack("<Q", f.read(8))[0]
     return nit
 
+
 def deser_string(f):
     nit = deser_compact_size(f)
     return f.read(nit)
 
+
 def ser_string(s):
     return ser_compact_size(len(s)) + s
 
+
 def deser_uint256(f):
-    r = 0
-    for i in range(8):
-        t = struct.unpack("<I", f.read(4))[0]
-        r += t << (i * 32)
-    return r
+    return int.from_bytes(f.read(32), 'little')
 
 
 def ser_uint256(u):
-    rs = b""
-    for _ in range(8):
-        rs += struct.pack("<I", u & 0xFFFFFFFF)
-        u >>= 32
-    return rs
+    return u.to_bytes(32, 'little')
 
 
 def uint256_from_str(s):
-    r = 0
-    t = struct.unpack("<IIIIIIII", s[:32])
-    for i in range(8):
-        r += t[i] << (i * 32)
-    return r
+    return int.from_bytes(s[:32], 'little')
 
 
 def uint256_from_compact(c):
@@ -197,7 +204,7 @@ def from_hex(obj, hex_string):
     Note that there is no complementary helper like e.g. `to_hex` for the
     inverse operation. To serialize a message object to a hex string, simply
     use obj.serialize().hex()"""
-    obj.deserialize(BytesIO(hex_str_to_bytes(hex_string)))
+    obj.deserialize(BytesIO(bytes.fromhex(hex_string)))
     return obj
 
 
@@ -206,24 +213,47 @@ def tx_from_hex(hex_string):
     return from_hex(CTransaction(), hex_string)
 
 
-# Objects that map to bitcoin_silverd objects, which can be serialized/deserialized
+# like from_hex, but without the hex part
+def from_binary(cls, stream):
+    """deserialize a binary stream (or bytes object) into an object"""
+    # handle bytes object by turning it into a stream
+    was_bytes = isinstance(stream, bytes)
+    if was_bytes:
+        stream = BytesIO(stream)
+    obj = cls()
+    obj.deserialize(stream)
+    if was_bytes:
+        assert len(stream.read()) == 0
+    return obj
+
+
+# Objects that map to bitcoinsilverd objects, which can be serialized/deserialized
 
 
 class CAddress:
     __slots__ = ("net", "ip", "nServices", "port", "time")
 
-    # see https://github.com/bitcoin_silver/bips/blob/master/bip-0155.mediawiki
+    # see https://github.com/bitcoinsilver/bips/blob/master/bip-0155.mediawiki
     NET_IPV4 = 1
+    NET_IPV6 = 2
+    NET_TORV3 = 4
     NET_I2P = 5
+    NET_CJDNS = 6
 
     ADDRV2_NET_NAME = {
         NET_IPV4: "IPv4",
-        NET_I2P: "I2P"
+        NET_IPV6: "IPv6",
+        NET_TORV3: "TorV3",
+        NET_I2P: "I2P",
+        NET_CJDNS: "CJDNS"
     }
 
     ADDRV2_ADDRESS_LENGTH = {
         NET_IPV4: 4,
-        NET_I2P: 32
+        NET_IPV6: 16,
+        NET_TORV3: 32,
+        NET_I2P: 32,
+        NET_CJDNS: 16
     }
 
     I2P_PAD = "===="
@@ -270,7 +300,7 @@ class CAddress:
         self.nServices = deser_compact_size(f)
 
         self.net = struct.unpack("B", f.read(1))[0]
-        assert self.net in (self.NET_IPV4, self.NET_I2P)
+        assert self.net in self.ADDRV2_NET_NAME
 
         address_length = deser_compact_size(f)
         assert address_length == self.ADDRV2_ADDRESS_LENGTH[self.net]
@@ -278,14 +308,25 @@ class CAddress:
         addr_bytes = f.read(address_length)
         if self.net == self.NET_IPV4:
             self.ip = socket.inet_ntoa(addr_bytes)
-        else:
+        elif self.net == self.NET_IPV6:
+            self.ip = socket.inet_ntop(socket.AF_INET6, addr_bytes)
+        elif self.net == self.NET_TORV3:
+            prefix = b".onion checksum"
+            version = bytes([3])
+            checksum = sha3(prefix + addr_bytes + version)[:2]
+            self.ip = b32encode(addr_bytes + checksum + version).decode("ascii").lower() + ".onion"
+        elif self.net == self.NET_I2P:
             self.ip = b32encode(addr_bytes)[0:-len(self.I2P_PAD)].decode("ascii").lower() + ".b32.i2p"
+        elif self.net == self.NET_CJDNS:
+            self.ip = socket.inet_ntop(socket.AF_INET6, addr_bytes)
+        else:
+            raise Exception(f"Address type not supported")
 
         self.port = struct.unpack(">H", f.read(2))[0]
 
     def serialize_v2(self):
         """Serialize in addrv2 format (BIP155)"""
-        assert self.net in (self.NET_IPV4, self.NET_I2P)
+        assert self.net in self.ADDRV2_NET_NAME
         r = b""
         r += struct.pack("<I", self.time)
         r += ser_compact_size(self.nServices)
@@ -293,10 +334,20 @@ class CAddress:
         r += ser_compact_size(self.ADDRV2_ADDRESS_LENGTH[self.net])
         if self.net == self.NET_IPV4:
             r += socket.inet_aton(self.ip)
-        else:
+        elif self.net == self.NET_IPV6:
+            r += socket.inet_pton(socket.AF_INET6, self.ip)
+        elif self.net == self.NET_TORV3:
+            sfx = ".onion"
+            assert self.ip.endswith(sfx)
+            r += b32decode(self.ip[0:-len(sfx)], True)[0:32]
+        elif self.net == self.NET_I2P:
             sfx = ".b32.i2p"
             assert self.ip.endswith(sfx)
             r += b32decode(self.ip[0:-len(sfx)] + self.I2P_PAD, True)
+        elif self.net == self.NET_CJDNS:
+            r += socket.inet_pton(socket.AF_INET6, self.ip)
+        else:
+            raise Exception(f"Address type not supported")
         r += struct.pack(">H", self.port)
         return r
 
@@ -353,7 +404,7 @@ class CBlockLocator:
 
     def serialize(self):
         r = b""
-        r += struct.pack("<i", 0)  # Bitcoin_Silver Core ignores version field. Set it to 0.
+        r += struct.pack("<i", 0)  # BitcoinSilver ignores version field. Set it to 0.
         r += ser_uint256_vector(self.vHave)
         return r
 
@@ -507,7 +558,7 @@ class CTransaction:
 
     def __init__(self, tx=None):
         if tx is None:
-            self.nVersion = 1
+            self.nVersion = 2
             self.vin = []
             self.vout = []
             self.wit = CTxWitness()
@@ -530,7 +581,7 @@ class CTransaction:
         if len(self.vin) == 0:
             flags = struct.unpack("<B", f.read(1))[0]
             # Not sure why flags can't be zero, but this
-            # matches the implementation in bitcoin_silverd
+            # matches the implementation in bitcoinsilverd
             if (flags != 0):
                 self.vin = deser_vector(f, CTxIn)
                 self.vout = deser_vector(f, CTxOut)
@@ -608,12 +659,15 @@ class CTransaction:
                 return False
         return True
 
-    # Calculate the virtual transaction size using witness and non-witness
+    # Calculate the transaction weight using witness and non-witness
     # serialization size (does NOT use sigops).
-    def get_vsize(self):
+    def get_weight(self):
         with_witness_size = len(self.serialize_with_witness())
         without_witness_size = len(self.serialize_without_witness())
-        return math.ceil(((WITNESS_SCALE_FACTOR - 1) * without_witness_size + with_witness_size) / WITNESS_SCALE_FACTOR)
+        return (WITNESS_SCALE_FACTOR - 1) * without_witness_size + with_witness_size
+
+    def get_vsize(self):
+        return math.ceil(self.get_weight() / WITNESS_SCALE_FACTOR)
 
     def __repr__(self):
         return "CTransaction(nVersion=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
@@ -639,7 +693,7 @@ class CBlockHeader:
             self.calc_sha256()
 
     def set_null(self):
-        self.nVersion = 1
+        self.nVersion = 4
         self.hashPrevBlock = 0
         self.hashMerkleRoot = 0
         self.nTime = 0
@@ -678,7 +732,7 @@ class CBlockHeader:
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
             self.sha256 = uint256_from_str(hash256(r))
-            self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
+            self.hash = hash256(r)[::-1].hex()
 
     def rehash(self):
         self.sha256 = None
@@ -760,6 +814,13 @@ class CBlock(CBlockHeader):
         while self.sha256 > target:
             self.nNonce += 1
             self.rehash()
+
+    # Calculate the block weight using witness and non-witness
+    # serialization size (does NOT use sigops).
+    def get_weight(self):
+        with_witness_size = len(self.serialize(with_witness=True))
+        without_witness_size = len(self.serialize(with_witness=False))
+        return (WITNESS_SCALE_FACTOR - 1) * without_witness_size + with_witness_size
 
     def __repr__(self):
         return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \
@@ -1070,7 +1131,7 @@ class msg_version:
         self.nStartingHeight = struct.unpack("<i", f.read(4))[0]
 
         # Relay field is optional for version 70001 onwards
-        # But, unconditionally check it to match behaviour in bitcoin_silverd
+        # But, unconditionally check it to match behaviour in bitcoinsilverd
         try:
             self.relay = struct.unpack("<b", f.read(1))[0]
         except struct.error:
@@ -1451,7 +1512,7 @@ class msg_headers:
         self.headers = headers if headers is not None else []
 
     def deserialize(self, f):
-        # comment in bitcoin_silverd indicates these should be deserialized as blocks
+        # comment in bitcoinsilverd indicates these should be deserialized as blocks
         blocks = deser_vector(f, CBlock)
         for x in blocks:
             self.headers.append(CBlockHeader(x))
@@ -1660,7 +1721,7 @@ class msg_getcfilters:
     __slots__ = ("filter_type", "start_height", "stop_hash")
     msgtype =  b"getcfilters"
 
-    def __init__(self, filter_type, start_height, stop_hash):
+    def __init__(self, filter_type=None, start_height=None, stop_hash=None):
         self.filter_type = filter_type
         self.start_height = start_height
         self.stop_hash = stop_hash
@@ -1710,7 +1771,7 @@ class msg_getcfheaders:
     __slots__ = ("filter_type", "start_height", "stop_hash")
     msgtype =  b"getcfheaders"
 
-    def __init__(self, filter_type, start_height, stop_hash):
+    def __init__(self, filter_type=None, start_height=None, stop_hash=None):
         self.filter_type = filter_type
         self.start_height = start_height
         self.stop_hash = stop_hash
@@ -1763,7 +1824,7 @@ class msg_getcfcheckpt:
     __slots__ = ("filter_type", "stop_hash")
     msgtype =  b"getcfcheckpt"
 
-    def __init__(self, filter_type, stop_hash):
+    def __init__(self, filter_type=None, stop_hash=None):
         self.filter_type = filter_type
         self.stop_hash = stop_hash
 
@@ -1805,3 +1866,41 @@ class msg_cfcheckpt:
     def __repr__(self):
         return "msg_cfcheckpt(filter_type={:#x}, stop_hash={:x})".format(
             self.filter_type, self.stop_hash)
+
+class msg_sendtxrcncl:
+    __slots__ = ("version", "salt")
+    msgtype = b"sendtxrcncl"
+
+    def __init__(self):
+        self.version = 0
+        self.salt = 0
+
+    def deserialize(self, f):
+        self.version = struct.unpack("<I", f.read(4))[0]
+        self.salt = struct.unpack("<Q", f.read(8))[0]
+
+    def serialize(self):
+        r = b""
+        r += struct.pack("<I", self.version)
+        r += struct.pack("<Q", self.salt)
+        return r
+
+    def __repr__(self):
+        return "msg_sendtxrcncl(version=%lu, salt=%lu)" %\
+            (self.version, self.salt)
+
+class TestFrameworkScript(unittest.TestCase):
+    def test_addrv2_encode_decode(self):
+        def check_addrv2(ip, net):
+            addr = CAddress()
+            addr.net, addr.ip = net, ip
+            ser = addr.serialize_v2()
+            actual = CAddress()
+            actual.deserialize_v2(BytesIO(ser))
+            self.assertEqual(actual, addr)
+
+        check_addrv2("1.65.195.98", CAddress.NET_IPV4)
+        check_addrv2("2001:41f0::62:6974:636f:696e", CAddress.NET_IPV6)
+        check_addrv2("2bqghnldu6mcug4pikzprwhtjjnsyederctvci6klcwzepnjd46ikjyd.onion", CAddress.NET_TORV3)
+        check_addrv2("255fhcp6ajvftnyo7bwz3an3t4a4brhopm3bamyh2iu5r3gnr2rq.b32.i2p", CAddress.NET_I2P)
+        check_addrv2("fc32:17ea:e415:c3bf:9808:149d:b5a2:c9aa", CAddress.NET_CJDNS)

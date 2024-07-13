@@ -1,12 +1,12 @@
-// Copyright (c) 2017-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2017-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_CRYPTO_MUHASH_H
-#define BITCOIN_SILVER_CRYPTO_MUHASH_H
+#ifndef BITCOINSILVER_CRYPTO_MUHASH_H
+#define BITCOINSILVER_CRYPTO_MUHASH_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin_silver-config.h>
+#include <config/bitcoinsilver-config.h>
 #endif
 
 #include <serialize.h>
@@ -24,7 +24,7 @@ private:
 public:
     static constexpr size_t BYTE_SIZE = 384;
 
-#ifdef HAVE___INT128
+#ifdef __SIZEOF_INT128__
     typedef unsigned __int128 double_limb_t;
     typedef uint64_t limb_t;
     static constexpr int LIMBS = 48;
@@ -89,7 +89,7 @@ public:
  * is intended to represent a set of elements.
  *
  * See also https://cseweb.ucsd.edu/~mihir/papers/inchash.pdf and
- * https://lists.linuxfoundation.org/pipermail/bitcoin_silver-dev/2017-May/014337.html.
+ * https://lists.linuxfoundation.org/pipermail/bitcoinsilver-dev/2017-May/014337.html.
  */
 class MuHash3072
 {
@@ -128,4 +128,4 @@ public:
     }
 };
 
-#endif // BITCOIN_SILVER_CRYPTO_MUHASH_H
+#endif // BITCOINSILVER_CRYPTO_MUHASH_H

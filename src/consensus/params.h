@@ -1,13 +1,17 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_CONSENSUS_PARAMS_H
-#define BITCOIN_SILVER_CONSENSUS_PARAMS_H
+#ifndef BITCOINSILVER_CONSENSUS_PARAMS_H
+#define BITCOINSILVER_CONSENSUS_PARAMS_H
 
 #include <uint256.h>
+
+#include <chrono>
 #include <limits>
+#include <map>
+#include <vector>
 
 namespace Consensus {
 
@@ -38,11 +42,11 @@ constexpr bool ValidDeployment(DeploymentPos dep) { return dep < MAX_VERSION_BIT
  */
 struct BIP9Deployment {
     /** Bit position to select the particular bit in nVersion. */
-    int bit;
+    int bit{28};
     /** Start MedianTime for version bits miner confirmation. Can be a date in the past */
-    int64_t nStartTime;
+    int64_t nStartTime{NEVER_ACTIVE};
     /** Timeout/expiry MedianTime for the deployment attempt. */
-    int64_t nTimeout;
+    int64_t nTimeout{NEVER_ACTIVE};
     /** If lock in occurs, delay activation until at least this block
      *  height.  Note that activation will only occur on a retarget
      *  boundary.
@@ -70,8 +74,13 @@ struct BIP9Deployment {
 struct Params {
     uint256 hashGenesisBlock;
     int nSubsidyHalvingInterval;
-    /* Block hash that is excepted from BIP16 enforcement */
-    uint256 BIP16Exception;
+    /**
+     * Hashes of blocks that
+     * - are known to be consensus valid, and
+     * - buried in the chain, and
+     * - fail if the default script verify flags are applied.
+     */
+    std::map<uint256, uint32_t> script_flag_exceptions;
     /** Block height and hash at which BIP34 becomes active */
     int BIP34Height;
     uint256 BIP34Hash;
@@ -102,6 +111,10 @@ struct Params {
     bool fPowNoRetargeting;
     int64_t nPowTargetSpacing;
     int64_t nPowTargetTimespan;
+    std::chrono::seconds PowTargetSpacing() const
+    {
+        return std::chrono::seconds{nPowTargetSpacing};
+    }
     int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespan / nPowTargetSpacing; }
     /** The best chain should have at least this much work */
     uint256 nMinimumChainWork;
@@ -109,7 +122,7 @@ struct Params {
     uint256 defaultAssumeValid;
 
     /**
-     * If true, witness commitments contain a payload equal to a Bitcoin_Silver Script solution
+     * If true, witness commitments contain a payload equal to a BitcoinSilver Script solution
      * to the signet challenge. See BIP325.
      */
     bool signet_blocks{false};
@@ -135,4 +148,4 @@ struct Params {
 
 } // namespace Consensus
 
-#endif // BITCOIN_SILVER_CONSENSUS_PARAMS_H
+#endif // BITCOINSILVER_CONSENSUS_PARAMS_H

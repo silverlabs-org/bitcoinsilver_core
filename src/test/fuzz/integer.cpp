@@ -1,10 +1,12 @@
-// Copyright (c) 2019-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2019-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <amount.h>
 #include <arith_uint256.h>
+#include <common/args.h>
+#include <common/system.h>
 #include <compressor.h>
+#include <consensus/amount.h>
 #include <consensus/merkle.h>
 #include <core_io.h>
 #include <crypto/common.h>
@@ -12,38 +14,39 @@
 #include <key_io.h>
 #include <memusage.h>
 #include <netbase.h>
+#include <policy/policy.h>
 #include <policy/settings.h>
 #include <pow.h>
 #include <protocol.h>
 #include <pubkey.h>
-#include <script/standard.h>
+#include <script/script.h>
 #include <serialize.h>
 #include <streams.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
 #include <uint256.h>
+#include <univalue.h>
+#include <util/chaintype.h>
 #include <util/check.h>
 #include <util/moneystr.h>
+#include <util/overflow.h>
 #include <util/strencodings.h>
 #include <util/string.h>
-#include <util/system.h>
-#include <util/time.h>
 #include <version.h>
 
 #include <cassert>
 #include <chrono>
-#include <ctime>
 #include <limits>
 #include <set>
 #include <vector>
 
 void initialize_integer()
 {
-    SelectParams(CBaseChainParams::REGTEST);
+    SelectParams(ChainType::REGTEST);
 }
 
-FUZZ_TARGET_INIT(integer, initialize_integer)
+FUZZ_TARGET(integer, .init = initialize_integer)
 {
     if (buffer.size() < sizeof(uint256) + sizeof(uint160)) {
         return;
@@ -80,19 +83,13 @@ FUZZ_TARGET_INIT(integer, initialize_integer)
     (void)ComputeMerkleRoot(v256);
     (void)CountBits(u64);
     (void)DecompressAmount(u64);
-    (void)FormatISO8601Date(i64);
-    (void)FormatISO8601DateTime(i64);
     {
-        int64_t parsed_money;
-        if (ParseMoney(FormatMoney(i64), parsed_money)) {
-            assert(parsed_money == i64);
+        if (std::optional<CAmount> parsed = ParseMoney(FormatMoney(i64))) {
+            assert(parsed.value() == i64);
         }
     }
     (void)GetSizeOfCompactSize(u64);
     (void)GetSpecialScriptSize(u32);
-    if (!MultiplicationOverflow(i64, static_cast<int64_t>(::nBytesPerSigOp)) && !AdditionOverflow(i64 * ::nBytesPerSigOp, static_cast<int64_t>(4))) {
-        (void)GetVirtualTransactionSize(i64, i64);
-    }
     if (!MultiplicationOverflow(i64, static_cast<int64_t>(u32)) && !AdditionOverflow(i64, static_cast<int64_t>(4)) && !AdditionOverflow(i64 * u32, static_cast<int64_t>(4))) {
         (void)GetVirtualTransactionSize(i64, i64, u32);
     }
@@ -126,9 +123,8 @@ FUZZ_TARGET_INIT(integer, initialize_integer)
     (void)ToLower(ch);
     (void)ToUpper(ch);
     {
-        int64_t parsed_money;
-        if (ParseMoney(ValueFromAmount(i64).getValStr(), parsed_money)) {
-            assert(parsed_money == i64);
+        if (std::optional<CAmount> parsed = ParseMoney(ValueFromAmount(i64).getValStr())) {
+            assert(parsed.value() == i64);
         }
     }
     if (i32 >= 0 && i32 <= 16) {
@@ -158,7 +154,7 @@ FUZZ_TARGET_INIT(integer, initialize_integer)
     const CScriptID script_id{u160};
 
     {
-        CDataStream stream(SER_NETWORK, INIT_PROTO_VERSION);
+        DataStream stream{};
 
         uint256 deserialized_u256;
         stream << u256;
@@ -210,11 +206,6 @@ FUZZ_TARGET_INIT(integer, initialize_integer)
         stream >> deserialized_i8;
         assert(i8 == deserialized_i8 && stream.empty());
 
-        char deserialized_ch;
-        stream << ch;
-        stream >> deserialized_ch;
-        assert(ch == deserialized_ch && stream.empty());
-
         bool deserialized_b;
         stream << b;
         stream >> deserialized_b;
@@ -228,7 +219,7 @@ FUZZ_TARGET_INIT(integer, initialize_integer)
     }
 
     {
-        CDataStream stream(SER_NETWORK, INIT_PROTO_VERSION);
+        DataStream stream{};
 
         ser_writedata64(stream, u64);
         const uint64_t deserialized_u64 = ser_readdata64(stream);
@@ -256,7 +247,7 @@ FUZZ_TARGET_INIT(integer, initialize_integer)
     }
 
     {
-        CDataStream stream(SER_NETWORK, INIT_PROTO_VERSION);
+        DataStream stream{};
 
         WriteCompactSize(stream, u64);
         try {

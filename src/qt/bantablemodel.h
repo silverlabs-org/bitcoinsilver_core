@@ -1,10 +1,11 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_BANTABLEMODEL_H
-#define BITCOIN_SILVER_QT_BANTABLEMODEL_H
+#ifndef BITCOINSILVER_QT_BANTABLEMODEL_H
+#define BITCOINSILVER_QT_BANTABLEMODEL_H
 
+#include <addrdb.h>
 #include <net.h>
 
 #include <memory>
@@ -36,7 +37,7 @@ private:
 };
 
 /**
-   Qt model providing information about connected peers, similar to the
+   Qt model providing information about banned peers, similar to the
    "getpeerinfo" RPC call. Used by the rpc console UI.
  */
 class BanTableModel : public QAbstractTableModel
@@ -67,6 +68,8 @@ public:
 
     bool shouldShow();
 
+    bool unban(const QModelIndex& index);
+
 public Q_SLOTS:
     void refresh();
 
@@ -76,4 +79,4 @@ private:
     std::unique_ptr<BanTablePriv> priv;
 };
 
-#endif // BITCOIN_SILVER_QT_BANTABLEMODEL_H
+#endif // BITCOINSILVER_QT_BANTABLEMODEL_H

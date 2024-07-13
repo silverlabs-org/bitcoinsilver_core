@@ -1,28 +1,28 @@
-// Copyright (c) 2018-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2018-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_TEST_APPTESTS_H
-#define BITCOIN_SILVER_QT_TEST_APPTESTS_H
+#ifndef BITCOINSILVER_QT_TEST_APPTESTS_H
+#define BITCOINSILVER_QT_TEST_APPTESTS_H
 
 #include <QObject>
 #include <set>
 #include <string>
 #include <utility>
 
-class Bitcoin_SilverApplication;
-class Bitcoin_SilverGUI;
+class BitcoinApplication;
+class BitcoinGUI;
 class RPCConsole;
 
 class AppTests : public QObject
 {
     Q_OBJECT
 public:
-    explicit AppTests(Bitcoin_SilverApplication& app) : m_app(app) {}
+    explicit AppTests(BitcoinApplication& app) : m_app(app) {}
 
 private Q_SLOTS:
     void appTests();
-    void guiTests(Bitcoin_SilverGUI* window);
+    void guiTests(BitcoinGUI* window);
     void consoleTests(RPCConsole* console);
 
 private:
@@ -37,8 +37,8 @@ private:
         ~HandleCallback();
     };
 
-    //! Bitcoin_Silver application.
-    Bitcoin_SilverApplication& m_app;
+    //! BitcoinSilver application.
+    BitcoinApplication& m_app;
 
     //! Set of pending callback names. Used to track expected callbacks and shut
     //! down the app after the last callback has been handled and all tests have
@@ -47,4 +47,4 @@ private:
     std::multiset<std::string> m_callbacks;
 };
 
-#endif // BITCOIN_SILVER_QT_TEST_APPTESTS_H
+#endif // BITCOINSILVER_QT_TEST_APPTESTS_H

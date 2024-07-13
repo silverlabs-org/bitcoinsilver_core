@@ -1,12 +1,13 @@
-// Copyright (c) 2016-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2016-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_CRYPTO_SIPHASH_H
-#define BITCOIN_SILVER_CRYPTO_SIPHASH_H
+#ifndef BITCOINSILVER_CRYPTO_SIPHASH_H
+#define BITCOINSILVER_CRYPTO_SIPHASH_H
 
 #include <stdint.h>
 
+#include <span.h>
 #include <uint256.h>
 
 /** SipHash-2-4 */
@@ -26,7 +27,7 @@ public:
      */
     CSipHasher& Write(uint64_t data);
     /** Hash arbitrary bytes. */
-    CSipHasher& Write(const unsigned char* data, size_t size);
+    CSipHasher& Write(Span<const unsigned char> data);
     /** Compute the 64-bit SipHash-2-4 of the data written so far. The object remains untouched. */
     uint64_t Finalize() const;
 };
@@ -44,4 +45,4 @@ public:
 uint64_t SipHashUint256(uint64_t k0, uint64_t k1, const uint256& val);
 uint64_t SipHashUint256Extra(uint64_t k0, uint64_t k1, const uint256& val, uint32_t extra);
 
-#endif // BITCOIN_SILVER_CRYPTO_SIPHASH_H
+#endif // BITCOINSILVER_CRYPTO_SIPHASH_H

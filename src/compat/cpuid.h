@@ -1,14 +1,16 @@
-// Copyright (c) 2017-2019 The Bitcoin_Silver Core developers
+// Copyright (c) 2017-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_COMPAT_CPUID_H
-#define BITCOIN_SILVER_COMPAT_CPUID_H
+#ifndef BITCOINSILVER_COMPAT_CPUID_H
+#define BITCOINSILVER_COMPAT_CPUID_H
 
 #if defined(__x86_64__) || defined(__amd64__) || defined(__i386__)
 #define HAVE_GETCPUID
 
 #include <cpuid.h>
+
+#include <cstdint>
 
 // We can't use cpuid.h's __get_cpuid as it does not support subleafs.
 void static inline GetCPUID(uint32_t leaf, uint32_t subleaf, uint32_t& a, uint32_t& b, uint32_t& c, uint32_t& d)
@@ -21,4 +23,4 @@ void static inline GetCPUID(uint32_t leaf, uint32_t subleaf, uint32_t& a, uint32
 }
 
 #endif // defined(__x86_64__) || defined(__amd64__) || defined(__i386__)
-#endif // BITCOIN_SILVER_COMPAT_CPUID_H
+#endif // BITCOINSILVER_COMPAT_CPUID_H

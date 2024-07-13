@@ -1,19 +1,25 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_GUICONSTANTS_H
-#define BITCOIN_SILVER_QT_GUICONSTANTS_H
+#ifndef BITCOINSILVER_QT_GUICONSTANTS_H
+#define BITCOINSILVER_QT_GUICONSTANTS_H
 
+#include <chrono>
 #include <cstdint>
 
-/* Milliseconds between model updates */
-static const int MODEL_UPDATE_DELAY = 250;
+using namespace std::chrono_literals;
+
+/* A delay between model updates */
+static constexpr auto MODEL_UPDATE_DELAY{250ms};
+
+/* A delay between shutdown pollings */
+static constexpr auto SHUTDOWN_POLLING_DELAY{200ms};
 
 /* AskPassphraseDialog -- Maximum passphrase length */
 static const int MAX_PASSPHRASE_SIZE = 1024;
 
-/* Bitcoin_SilverGUI -- Size of icons in status bar */
+/* BitcoinGUI -- Size of icons in status bar */
 static const int STATUSBAR_ICONSIZE = 16;
 
 static const bool DEFAULT_SPLASHSCREEN = true;
@@ -27,8 +33,6 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_NEGATIVE QColor(255, 0, 0)
 /* Transaction list -- bare address (without label) */
 #define COLOR_BAREADDRESS QColor(140, 140, 140)
-/* Transaction list -- TX status decoration - open until date */
-#define COLOR_TX_STATUS_OPENUNTILDATE QColor(64, 64, 255)
 /* Transaction list -- TX status decoration - danger, tx needs attention */
 #define COLOR_TX_STATUS_DANGER QColor(200, 100, 100)
 /* Transaction list -- TX status decoration - default color */
@@ -42,12 +46,12 @@ static const int TOOLTIP_WRAP_THRESHOLD = 80;
 /* Number of frames in spinner animation */
 #define SPINNER_FRAMES 36
 
-#define QAPP_ORG_NAME "Bitcoin_Silver"
-#define QAPP_ORG_DOMAIN "bitcoin_silver.org"
-#define QAPP_APP_NAME_DEFAULT "Bitcoin_Silver-Qt"
-#define QAPP_APP_NAME_TESTNET "Bitcoin_Silver-Qt-testnet"
-#define QAPP_APP_NAME_SIGNET "Bitcoin_Silver-Qt-signet"
-#define QAPP_APP_NAME_REGTEST "Bitcoin_Silver-Qt-regtest"
+#define QAPP_ORG_NAME "BitcoinSilver"
+#define QAPP_ORG_DOMAIN "bitcoinsilver.org"
+#define QAPP_APP_NAME_DEFAULT "BitcoinSilver-Qt"
+#define QAPP_APP_NAME_TESTNET "BitcoinSilver-Qt-testnet"
+#define QAPP_APP_NAME_SIGNET "BitcoinSilver-Qt-signet"
+#define QAPP_APP_NAME_REGTEST "BitcoinSilver-Qt-regtest"
 
 /* One gigabyte (GB) in bytes */
 static constexpr uint64_t GB_BYTES{1000000000};
@@ -55,4 +59,4 @@ static constexpr uint64_t GB_BYTES{1000000000};
 // Default prune target displayed in GUI.
 static constexpr int DEFAULT_PRUNE_TARGET_GB{2};
 
-#endif // BITCOIN_SILVER_QT_GUICONSTANTS_H
+#endif // BITCOINSILVER_QT_GUICONSTANTS_H

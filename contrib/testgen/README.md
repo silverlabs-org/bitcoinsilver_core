@@ -1,8 +1,8 @@
 ### TestGen ###
 
-Utilities to generate test vectors for the data-driven Bitcoin_Silver tests.
+Utilities to generate test vectors for the data-driven BitcoinSilver tests.
 
-Usage:
+To use inside a scripted-diff (or just execute directly):
 
-    PYTHONPATH=../../test/functional/test_framework ./gen_key_io_test_vectors.py valid 70 > ../../src/test/data/key_io_valid.json
-    PYTHONPATH=../../test/functional/test_framework ./gen_key_io_test_vectors.py invalid 70 > ../../src/test/data/key_io_invalid.json
+    ./gen_key_io_test_vectors.py valid 70 > ../../src/test/data/key_io_valid.json
+    ./gen_key_io_test_vectors.py invalid 70 > ../../src/test/data/key_io_invalid.json

@@ -1,1 +1,1 @@
-The list of assets used in the bitcoin_silver source and their attribution can now be found in [contrib/debian/copyright](../contrib/debian/copyright).
+The list of assets used in the bitcoinsilver source and their attribution can now be found in [contrib/debian/copyright](../contrib/debian/copyright).

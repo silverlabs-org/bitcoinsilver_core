@@ -201,6 +201,9 @@
              </property>
              <item>
               <layout class="QFormLayout" name="formLayoutCoinControl1">
+               <property name="labelAlignment">
+                <set>Qt::AlignLeft|Qt::AlignVCenter</set>
+               </property>
                <property name="horizontalSpacing">
                 <number>10</number>
                </property>
@@ -331,35 +334,6 @@
                  </property>
                 </widget>
                </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="labelCoinControlLowOutputText">
-                 <property name="font">
-                  <font>
-                   <weight>75</weight>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Dust:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QLabel" name="labelCoinControlLowOutput">
-                 <property name="cursor">
-                  <cursorShape>IBeamCursor</cursorShape>
-                 </property>
-                 <property name="contextMenuPolicy">
-                  <enum>Qt::ActionsContextMenu</enum>
-                 </property>
-                 <property name="text">
-                  <string notr="true">no</string>
-                 </property>
-                 <property name="textInteractionFlags">
-                  <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-                 </property>
-                </widget>
-               </item>
               </layout>
              </item>
              <item>
@@ -415,6 +389,9 @@
              </item>
              <item>
               <layout class="QFormLayout" name="formLayoutCoinControl4">
+               <property name="labelAlignment">
+                <set>Qt::AlignLeft|Qt::AlignVCenter</set>
+               </property>
                <property name="horizontalSpacing">
                 <number>10</number>
                </property>
@@ -858,7 +835,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
                   </widget>
                  </item>
                  <item>
-                  <widget class="Bitcoin_SilverAmountField" name="customFee"/>
+                  <widget class="BitcoinAmountField" name="customFee"/>
                  </item>
                  <item>
                   <spacer name="horizontalSpacer_6">
@@ -883,7 +860,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
                     <bool>true</bool>
                    </property>
                    <property name="toolTip">
-                    <string>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoin_silver transactions than the network can process.</string>
+                    <string>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoinsilver transactions than the network can process.</string>
                    </property>
                    <property name="text">
                     <string>A too low fee might result in a never confirming transaction (read the tooltip)</string>
@@ -1120,7 +1097,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <string>S&amp;end</string>
        </property>
        <property name="icon">
-        <iconset resource="../bitcoin_silver.qrc">
+        <iconset resource="../bitcoinsilver.qrc">
          <normaloff>:/icons/send</normaloff>:/icons/send</iconset>
        </property>
        <property name="autoDefault">
@@ -1146,7 +1123,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <string>Clear &amp;All</string>
        </property>
        <property name="icon">
-        <iconset resource="../bitcoin_silver.qrc">
+        <iconset resource="../bitcoinsilver.qrc">
          <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
        </property>
        <property name="autoDefault">
@@ -1163,7 +1140,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <string>Add &amp;Recipient</string>
        </property>
        <property name="icon">
-        <iconset resource="../bitcoin_silver.qrc">
+        <iconset resource="../bitcoinsilver.qrc">
          <normaloff>:/icons/add</normaloff>:/icons/add</iconset>
        </property>
        <property name="autoDefault">
@@ -1234,14 +1211,14 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
    <header>qt/qvalidatedlineedit.h</header>
   </customwidget>
   <customwidget>
-   <class>Bitcoin_SilverAmountField</class>
+   <class>BitcoinAmountField</class>
    <extends>QLineEdit</extends>
-   <header>qt/bitcoin_silveramountfield.h</header>
+   <header>qt/bitcoinsilveramountfield.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../bitcoin_silver.qrc"/>
+  <include location="../bitcoinsilver.qrc"/>
  </resources>
  <connections/>
  <buttongroups>

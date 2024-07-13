@@ -1,28 +1,24 @@
-// Copyright (c) 2021 The Bitcoin_Silver Core developers
+// Copyright (c) 2021-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 //! @file
-//! @brief Common init functions shared by bitcoin_silver-node, bitcoin_silver-wallet, etc.
+//! @brief Common init functions shared by bitcoinsilver-node, bitcoinsilver-wallet, etc.
 
-#ifndef BITCOIN_SILVER_INIT_COMMON_H
-#define BITCOIN_SILVER_INIT_COMMON_H
+#ifndef BITCOINSILVER_INIT_COMMON_H
+#define BITCOINSILVER_INIT_COMMON_H
+
+#include <util/result.h>
 
 class ArgsManager;
 
 namespace init {
-void SetGlobals();
-void UnsetGlobals();
-/**
- *  Ensure a usable environment with all
- *  necessary library support.
- */
-bool SanityChecks();
 void AddLoggingArgs(ArgsManager& args);
 void SetLoggingOptions(const ArgsManager& args);
-void SetLoggingCategories(const ArgsManager& args);
+[[nodiscard]] util::Result<void> SetLoggingCategories(const ArgsManager& args);
+[[nodiscard]] util::Result<void> SetLoggingLevel(const ArgsManager& args);
 bool StartLogging(const ArgsManager& args);
 void LogPackageVersion();
 } // namespace init
 
-#endif // BITCOIN_SILVER_INIT_COMMON_H
+#endif // BITCOINSILVER_INIT_COMMON_H

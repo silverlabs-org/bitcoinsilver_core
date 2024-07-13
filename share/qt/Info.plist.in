@@ -3,7 +3,7 @@
 <plist version="0.9">
 <dict>
   <key>LSMinimumSystemVersion</key>
-  <string>10.14.0</string>
+  <string>11</string>
 
   <key>LSArchitecturePriority</key>
   <array>
@@ -11,10 +11,15 @@
   </array>
 
   <key>CFBundleIconFile</key>
-  <string>bitcoin_silver.icns</string>
+  <string>bitcoinsilver.icns</string>
 
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+
+  <key>CFBundleSupportedPlatforms</key>
+  <array>
+	   <string>MacOSX</string>
+  </array>
 
   <key>NSHumanReadableCopyright</key>
   <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_BUILD@, Copyright © 2009-@COPYRIGHT_YEAR@ @COPYRIGHT_HOLDERS_FINAL@</string>
@@ -29,16 +34,16 @@
   <string>????</string>
 
   <key>CFBundleExecutable</key>
-  <string>Bitcoin_Silver-Qt</string>
+  <string>BitcoinSilver-Qt</string>
 
   <key>CFBundleName</key>
-  <string>Bitcoin_Silver-Qt</string>
+  <string>BitcoinSilver-Qt</string>
 
   <key>LSHasLocalizedDisplayName</key>
   <true/>
 
   <key>CFBundleIdentifier</key>
-  <string>org.bitcoin_silverfoundation.Bitcoin_Silver-Qt</string>
+  <string>org.bitcoinfoundation.BitcoinSilver-Qt</string>
 
   <key>CFBundleURLTypes</key>
   <array>
@@ -46,10 +51,10 @@
       <key>CFBundleTypeRole</key>
       <string>Editor</string>
       <key>CFBundleURLName</key>
-      <string>org.bitcoin_silver.Bitcoin_SilverPayment</string>
+      <string>org.bitcoinsilver.BitcoinPayment</string>
       <key>CFBundleURLSchemes</key>
       <array>
-        <string>bitcoin_silver</string>
+        <string>bitcoinsilver</string>
       </array>
     </dict>
   </array>

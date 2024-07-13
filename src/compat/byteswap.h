@@ -1,15 +1,15 @@
-// Copyright (c) 2014-2019 The Bitcoin_Silver Core developers
+// Copyright (c) 2014-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_COMPAT_BYTESWAP_H
-#define BITCOIN_SILVER_COMPAT_BYTESWAP_H
+#ifndef BITCOINSILVER_COMPAT_BYTESWAP_H
+#define BITCOINSILVER_COMPAT_BYTESWAP_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin_silver-config.h>
+#include <config/bitcoinsilver-config.h>
 #endif
 
-#include <stdint.h>
+#include <cstdint>
 
 #if defined(HAVE_BYTESWAP_H)
 #include <byteswap.h>
@@ -56,4 +56,4 @@ inline uint64_t bswap_64(uint64_t x)
 
 #endif // defined(MAC_OSX)
 
-#endif // BITCOIN_SILVER_COMPAT_BYTESWAP_H
+#endif // BITCOINSILVER_COMPAT_BYTESWAP_H

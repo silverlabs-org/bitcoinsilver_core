@@ -1,55 +1,58 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <protocol.h>
 
-#include <util/system.h>
+#include <common/system.h>
+
+#include <atomic>
 
 static std::atomic<bool> g_initial_block_download_completed(false);
 
 namespace NetMsgType {
-const char *VERSION="version";
-const char *VERACK="verack";
-const char *ADDR="addr";
-const char *ADDRV2="addrv2";
-const char *SENDADDRV2="sendaddrv2";
-const char *INV="inv";
-const char *GETDATA="getdata";
-const char *MERKLEBLOCK="merkleblock";
-const char *GETBLOCKS="getblocks";
-const char *GETHEADERS="getheaders";
-const char *TX="tx";
-const char *HEADERS="headers";
-const char *BLOCK="block";
-const char *GETADDR="getaddr";
-const char *MEMPOOL="mempool";
-const char *PING="ping";
-const char *PONG="pong";
-const char *NOTFOUND="notfound";
-const char *FILTERLOAD="filterload";
-const char *FILTERADD="filteradd";
-const char *FILTERCLEAR="filterclear";
-const char *SENDHEADERS="sendheaders";
-const char *FEEFILTER="feefilter";
-const char *SENDCMPCT="sendcmpct";
-const char *CMPCTBLOCK="cmpctblock";
-const char *GETBLOCKTXN="getblocktxn";
-const char *BLOCKTXN="blocktxn";
-const char *GETCFILTERS="getcfilters";
-const char *CFILTER="cfilter";
-const char *GETCFHEADERS="getcfheaders";
-const char *CFHEADERS="cfheaders";
-const char *GETCFCHECKPT="getcfcheckpt";
-const char *CFCHECKPT="cfcheckpt";
-const char *WTXIDRELAY="wtxidrelay";
+const char* VERSION = "version";
+const char* VERACK = "verack";
+const char* ADDR = "addr";
+const char* ADDRV2 = "addrv2";
+const char* SENDADDRV2 = "sendaddrv2";
+const char* INV = "inv";
+const char* GETDATA = "getdata";
+const char* MERKLEBLOCK = "merkleblock";
+const char* GETBLOCKS = "getblocks";
+const char* GETHEADERS = "getheaders";
+const char* TX = "tx";
+const char* HEADERS = "headers";
+const char* BLOCK = "block";
+const char* GETADDR = "getaddr";
+const char* MEMPOOL = "mempool";
+const char* PING = "ping";
+const char* PONG = "pong";
+const char* NOTFOUND = "notfound";
+const char* FILTERLOAD = "filterload";
+const char* FILTERADD = "filteradd";
+const char* FILTERCLEAR = "filterclear";
+const char* SENDHEADERS = "sendheaders";
+const char* FEEFILTER = "feefilter";
+const char* SENDCMPCT = "sendcmpct";
+const char* CMPCTBLOCK = "cmpctblock";
+const char* GETBLOCKTXN = "getblocktxn";
+const char* BLOCKTXN = "blocktxn";
+const char* GETCFILTERS = "getcfilters";
+const char* CFILTER = "cfilter";
+const char* GETCFHEADERS = "getcfheaders";
+const char* CFHEADERS = "cfheaders";
+const char* GETCFCHECKPT = "getcfcheckpt";
+const char* CFCHECKPT = "cfcheckpt";
+const char* WTXIDRELAY = "wtxidrelay";
+const char* SENDTXRCNCL = "sendtxrcncl";
 } // namespace NetMsgType
 
 /** All known message types. Keep this in the same order as the list of
  * messages above and in protocol.h.
  */
-const static std::string allNetMessageTypes[] = {
+const static std::vector<std::string> g_all_net_message_types{
     NetMsgType::VERSION,
     NetMsgType::VERACK,
     NetMsgType::ADDR,
@@ -84,12 +87,12 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::GETCFCHECKPT,
     NetMsgType::CFCHECKPT,
     NetMsgType::WTXIDRELAY,
+    NetMsgType::SENDTXRCNCL,
 };
-const static std::vector<std::string> allNetMessageTypesVec(std::begin(allNetMessageTypes), std::end(allNetMessageTypes));
 
 CMessageHeader::CMessageHeader(const MessageStartChars& pchMessageStartIn, const char* pszCommand, unsigned int nMessageSizeIn)
 {
-    memcpy(pchMessageStart, pchMessageStartIn, MESSAGE_START_SIZE);
+    pchMessageStart = pchMessageStartIn;
 
     // Copy the command name
     size_t i = 0;
@@ -178,7 +181,7 @@ std::string CInv::ToString() const
 
 const std::vector<std::string> &getAllNetMessageTypes()
 {
-    return allNetMessageTypesVec;
+    return g_all_net_message_types;
 }
 
 /**
@@ -196,15 +199,11 @@ static std::string serviceFlagToStr(size_t bit)
     case NODE_WITNESS:         return "WITNESS";
     case NODE_COMPACT_FILTERS: return "COMPACT_FILTERS";
     case NODE_NETWORK_LIMITED: return "NETWORK_LIMITED";
+    case NODE_P2P_V2:          return "P2P_V2";
     // Not using default, so we get warned when a case is missing
     }
 
-    std::ostringstream stream;
-    stream.imbue(std::locale::classic());
-    stream << "UNKNOWN[";
-    stream << "2^" << bit;
-    stream << "]";
-    return stream.str();
+    return strprintf("UNKNOWN[2^%u]", bit);
 }
 
 std::vector<std::string> serviceFlagsToStr(uint64_t flags)
@@ -223,5 +222,5 @@ std::vector<std::string> serviceFlagsToStr(uint64_t flags)
 GenTxid ToGenTxid(const CInv& inv)
 {
     assert(inv.IsGenTxMsg());
-    return {inv.IsMsgWtx(), inv.hash};
+    return inv.IsMsgWtx() ? GenTxid::Wtxid(inv.hash) : GenTxid::Txid(inv.hash);
 }

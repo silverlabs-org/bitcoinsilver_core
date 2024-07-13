@@ -1,33 +1,44 @@
-This directory contains integration tests that test bitcoin_silverd and its
+This directory contains integration tests that test bitcoinsilverd and its
 utilities in their entirety. It does not contain unit tests, which
 can be found in [/src/test](/src/test), [/src/wallet/test](/src/wallet/test),
 etc.
 
 This directory contains the following sets of tests:
 
+- [fuzz](/test/fuzz) A runner to execute all fuzz targets from
+  [/src/test/fuzz](/src/test/fuzz).
 - [functional](/test/functional) which test the functionality of
-bitcoin_silverd and bitcoin_silver-qt by interacting with them through the RPC and P2P
+bitcoinsilverd and bitcoinsilver-qt by interacting with them through the RPC and P2P
 interfaces.
-- [util](/test/util) which tests the bitcoin_silver utilities, currently only
-bitcoin_silver-tx.
+- [util](/test/util) which tests the utilities (bitcoinsilver-util, bitcoinsilver-tx, ...).
 - [lint](/test/lint/) which perform various static analysis checks.
 
-The util tests are run as part of `make check` target. The functional
+The util tests are run as part of `make check` target. The fuzz tests, functional
 tests and lint scripts can be run as explained in the sections below.
 
 # Running tests locally
 
-Before tests can be run locally, Bitcoin_Silver Core must be built.  See the [building instructions](/doc#building) for help.
+Before tests can be run locally, BitcoinSilver must be built.  See the [building instructions](/doc#building) for help.
 
+## Fuzz tests
+
+See [/doc/fuzzing.md](/doc/fuzzing.md)
 
 ### Functional tests
 
-#### Dependencies
+#### Dependencies and prerequisites
 
 The ZMQ functional test requires a python ZMQ library. To install it:
 
 - on Unix, run `sudo apt-get install python3-zmq`
 - on mac OS, run `pip3 install pyzmq`
+
+
+On Windows the `PYTHONUTF8` environment variable must be set to 1:
+
+```cmd
+set PYTHONUTF8=1
+```
 
 #### Running the tests
 
@@ -84,11 +95,13 @@ Run all possible tests with
 test/functional/test_runner.py --extended
 ```
 
-In order to run backwards compatibility tests, download the previous node binaries:
+In order to run backwards compatibility tests, first run:
 
 ```
-test/get_previous_releases.py -b v0.20.1 v0.19.1 v0.18.1 v0.17.2 v0.16.3 v0.15.2
+test/get_previous_releases.py -b
 ```
+
+to download the necessary previous release binaries.
 
 By default, up to 4 tests will be run in parallel by test_runner. To specify
 how many jobs to run, append `--jobs=n`
@@ -96,33 +109,84 @@ how many jobs to run, append `--jobs=n`
 The individual tests and the test_runner harness have many command-line
 options. Run `test/functional/test_runner.py -h` to see them all.
 
+#### Speed up test runs with a RAM disk
+
+If you have available RAM on your system you can create a RAM disk to use as the `cache` and `tmp` directories for the functional tests in order to speed them up.
+Speed-up amount varies on each system (and according to your RAM speed and other variables), but a 2-3x speed-up is not uncommon.
+
+**Linux**
+
+To create a 4 GiB RAM disk at `/mnt/tmp/`:
+
+```bash
+sudo mkdir -p /mnt/tmp
+sudo mount -t tmpfs -o size=4g tmpfs /mnt/tmp/
+```
+
+Configure the size of the RAM disk using the `size=` option.
+The size of the RAM disk needed is relative to the number of concurrent jobs the test suite runs.
+For example running the test suite with `--jobs=100` might need a 4 GiB RAM disk, but running with `--jobs=32` will only need a 2.5 GiB RAM disk.
+
+To use, run the test suite specifying the RAM disk as the `cachedir` and `tmpdir`:
+
+```bash
+test/functional/test_runner.py --cachedir=/mnt/tmp/cache --tmpdir=/mnt/tmp
+```
+
+Once finished with the tests and the disk, and to free the RAM, simply unmount the disk:
+
+```bash
+sudo umount /mnt/tmp
+```
+
+**macOS**
+
+To create a 4 GiB RAM disk named "ramdisk" at `/Volumes/ramdisk/`:
+
+```bash
+diskutil erasevolume HFS+ ramdisk $(hdiutil attach -nomount ram://8388608)
+```
+
+Configure the RAM disk size, expressed as the number of blocks, at the end of the command
+(`4096 MiB * 2048 blocks/MiB = 8388608 blocks` for 4 GiB). To run the tests using the RAM disk:
+
+```bash
+test/functional/test_runner.py --cachedir=/Volumes/ramdisk/cache --tmpdir=/Volumes/ramdisk/tmp
+```
+
+To unmount:
+
+```bash
+umount /Volumes/ramdisk
+```
+
 #### Troubleshooting and debugging test failures
 
 ##### Resource contention
 
-The P2P and RPC ports used by the bitcoin_silverd nodes-under-test are chosen to make
-conflicts with other processes unlikely. However, if there is another bitcoin_silverd
+The P2P and RPC ports used by the bitcoinsilverd nodes-under-test are chosen to make
+conflicts with other processes unlikely. However, if there is another bitcoinsilverd
 process running on the system (perhaps from a previous test which hasn't successfully
-killed all its bitcoin_silverd nodes), then there may be a port conflict which will
+killed all its bitcoinsilverd nodes), then there may be a port conflict which will
 cause the test to fail. It is recommended that you run the tests on a system
-where no other bitcoin_silverd processes are running.
+where no other bitcoinsilverd processes are running.
 
 On linux, the test framework will warn if there is another
-bitcoin_silverd process running when the tests are started.
+bitcoinsilverd process running when the tests are started.
 
-If there are zombie bitcoin_silverd processes after test failure, you can kill them
+If there are zombie bitcoinsilverd processes after test failure, you can kill them
 by running the following commands. **Note that these commands will kill all
-bitcoin_silverd processes running on the system, so should not be used if any non-test
-bitcoin_silverd processes are being run.**
+bitcoinsilverd processes running on the system, so should not be used if any non-test
+bitcoinsilverd processes are being run.**
 
 ```bash
-killall bitcoin_silverd
+killall bitcoinsilverd
 ```
 
 or
 
 ```bash
-pkill -9 bitcoin_silverd
+pkill -9 bitcoinsilverd
 ```
 
 
@@ -133,11 +197,11 @@ functional test is run and is stored in test/cache. This speeds up
 test startup times since new blockchains don't need to be generated for
 each test. However, the cache may get into a bad state, in which case
 tests will fail. If this happens, remove the cache directory (and make
-sure bitcoin_silverd processes are stopped as above):
+sure bitcoinsilverd processes are stopped as above):
 
 ```bash
 rm -rf test/cache
-killall bitcoin_silverd
+killall bitcoinsilverd
 ```
 
 ##### Test logging
@@ -152,7 +216,7 @@ levels using the logger included in the test_framework, e.g.
 - when run directly, *all* logs are written to `test_framework.log` and INFO
   level and above are output to the console.
 - when run by [our CI (Continuous Integration)](/ci/README.md), no logs are output to the console. However, if a test
-  fails, the `test_framework.log` and bitcoin_silverd `debug.log`s will all be dumped
+  fails, the `test_framework.log` and bitcoinsilverd `debug.log`s will all be dumped
   to the console to help troubleshooting.
 
 These log files can be located under the test data directory (which is always
@@ -167,7 +231,7 @@ e.g. `self.nodes[0]`.
 To change the level of logs output to the console, use the `-l` command line
 argument.
 
-`test_framework.log` and bitcoin_silverd `debug.log`s can be combined into a single
+`test_framework.log` and bitcoinsilverd `debug.log`s can be combined into a single
 aggregate log by running the `combine_logs.py` script. The output can be plain
 text, colorized text or html. For example:
 
@@ -194,9 +258,9 @@ import pdb; pdb.set_trace()
 ```
 
 anywhere in the test. You will then be able to inspect variables, as well as
-call methods that interact with the bitcoin_silverd nodes-under-test.
+call methods that interact with the bitcoinsilverd nodes-under-test.
 
-If further introspection of the bitcoin_silverd instances themselves becomes
+If further introspection of the bitcoinsilverd instances themselves becomes
 necessary, this can be accomplished by first setting a pdb breakpoint
 at an appropriate location, running the test to that point, then using
 `gdb` (or `lldb` on macOS) to attach to the process and debug.
@@ -219,20 +283,20 @@ test run:
 Use the path to find the pid file in the temp folder:
 
 ```bash
-cat /tmp/user/1000/testo9vsdjo3/node1/regtest/bitcoin_silverd.pid
+cat /tmp/user/1000/testo9vsdjo3/node1/regtest/bitcoinsilverd.pid
 ```
 
 Then you can use the pid to start `gdb`:
 
 ```bash
-gdb /home/example/bitcoin_silverd <pid>
+gdb /home/example/bitcoinsilverd <pid>
 ```
 
 Note: gdb attach step may require ptrace_scope to be modified, or `sudo` preceding the `gdb`.
 See this link for considerations: https://www.kernel.org/doc/Documentation/security/Yama.txt
 
-Often while debugging rpc calls from functional tests, the test might reach timeout before
-process can return a response. Use `--timeout-factor 0` to disable all rpc timeouts for that partcular
+Often while debugging RPC calls in functional tests, the test might time out before the
+process can return a response. Use `--timeout-factor 0` to disable all RPC timeouts for that particular
 functional test. Ex: `test/functional/wallet_hd.py --timeout-factor 0`.
 
 ##### Profiling
@@ -257,20 +321,24 @@ For ways to generate more granular profiles, see the README in
 
 ### Util tests
 
-Util tests can be run locally by running `test/util/bitcoin_silver-util-test.py`.
+Util tests can be run locally by running `test/util/test_runner.py`.
 Use the `-v` option for verbose output.
 
 ### Lint tests
 
 #### Dependencies
 
-| Lint test | Dependency | Version [used by CI](../ci/lint/04_install.sh) | Installation
-|-----------|:----------:|:-------------------------------------------:|--------------
-| [`lint-python.sh`](lint/lint-python.sh) | [flake8](https://gitlab.com/pycqa/flake8) | [3.8.3](https://github.com/bitcoin_silver/bitcoin_silver/pull/19348) | `pip3 install flake8==3.8.3`
-| [`lint-python.sh`](lint/lint-python.sh) | [mypy](https://github.com/python/mypy) | [0.781](https://github.com/bitcoin_silver/bitcoin_silver/pull/19348) | `pip3 install mypy==0.781`
-| [`lint-shell.sh`](lint/lint-shell.sh) | [ShellCheck](https://github.com/koalaman/shellcheck) | [0.7.2](https://github.com/bitcoin_silver/bitcoin_silver/pull/21749) | [details...](https://github.com/koalaman/shellcheck#installing)
-| [`lint-shell.sh`](lint/lint-shell.sh) | [yq](https://github.com/kislyuk/yq) | default | `pip3 install yq`
-| [`lint-spelling.sh`](lint/lint-spelling.sh) | [codespell](https://github.com/codespell-project/codespell) | [2.0.0](https://github.com/bitcoin_silver/bitcoin_silver/pull/20817) | `pip3 install codespell==2.0.0`
+| Lint test | Dependency |
+|-----------|:----------:|
+| [`lint-python.py`](lint/lint-python.py) | [flake8](https://gitlab.com/pycqa/flake8)
+| [`lint-python.py`](lint/lint-python.py) | [lief](https://github.com/lief-project/LIEF)
+| [`lint-python.py`](lint/lint-python.py) | [mypy](https://github.com/python/mypy)
+| [`lint-python.py`](lint/lint-python.py) | [pyzmq](https://github.com/zeromq/pyzmq)
+| [`lint-python-dead-code.py`](lint/lint-python-dead-code.py) | [vulture](https://github.com/jendrikseipp/vulture)
+| [`lint-shell.py`](lint/lint-shell.py) | [ShellCheck](https://github.com/koalaman/shellcheck)
+| [`lint-spelling.py`](lint/lint-spelling.py) | [codespell](https://github.com/codespell-project/codespell)
+
+In use versions and install instructions are available in the [CI setup](../ci/lint/04_install.sh).
 
 Please be aware that on Linux distributions all dependencies are usually available as packages, but could be outdated.
 
@@ -279,13 +347,13 @@ Please be aware that on Linux distributions all dependencies are usually availab
 Individual tests can be run by directly calling the test script, e.g.:
 
 ```
-test/lint/lint-files.sh
+test/lint/lint-files.py
 ```
 
 You can run all the shell-based lint tests by running:
 
 ```
-test/lint/lint-all.sh
+test/lint/all-lint.py
 ```
 
 # Writing functional tests

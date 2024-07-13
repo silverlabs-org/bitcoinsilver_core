@@ -1,15 +1,16 @@
-// Copyright (c) 2012-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2012-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_CHECKQUEUE_H
-#define BITCOIN_SILVER_CHECKQUEUE_H
+#ifndef BITCOINSILVER_CHECKQUEUE_H
+#define BITCOINSILVER_CHECKQUEUE_H
 
 #include <sync.h>
 #include <tinyformat.h>
 #include <util/threadnames.h>
 
 #include <algorithm>
+#include <iterator>
 #include <vector>
 
 template <typename T>
@@ -65,7 +66,7 @@ private:
     bool m_request_stop GUARDED_BY(m_mutex){false};
 
     /** Internal function that does bulk of the verification work. */
-    bool Loop(bool fMaster)
+    bool Loop(bool fMaster) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex)
     {
         std::condition_variable& cond = fMaster ? m_master_cv : m_worker_cv;
         std::vector<T> vChecks;
@@ -110,13 +111,9 @@ private:
                 // * Try to account for idle jobs which will instantly start helping.
                 // * Don't do batches smaller than 1 (duh), or larger than nBatchSize.
                 nNow = std::max(1U, std::min(nBatchSize, (unsigned int)queue.size() / (nTotal + nIdle + 1)));
-                vChecks.resize(nNow);
-                for (unsigned int i = 0; i < nNow; i++) {
-                    // We want the lock on the m_mutex to be as short as possible, so swap jobs from the global
-                    // queue to the local batch vector instead of copying.
-                    vChecks[i].swap(queue.back());
-                    queue.pop_back();
-                }
+                auto start_it = queue.end() - nNow;
+                vChecks.assign(std::make_move_iterator(start_it), std::make_move_iterator(queue.end()));
+                queue.erase(start_it, queue.end());
                 // Check whether we need to do work at all
                 fOk = fAllOk;
             }
@@ -139,7 +136,7 @@ public:
     }
 
     //! Create a pool of new worker threads.
-    void StartWorkerThreads(const int threads_num)
+    void StartWorkerThreads(const int threads_num) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex)
     {
         {
             LOCK(m_mutex);
@@ -157,28 +154,33 @@ public:
     }
 
     //! Wait until execution finishes, and return whether all evaluations were successful.
-    bool Wait()
+    bool Wait() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex)
     {
         return Loop(true /* master thread */);
     }
 
     //! Add a batch of checks to the queue
-    void Add(std::vector<T>& vChecks)
+    void Add(std::vector<T>&& vChecks) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex)
     {
-        LOCK(m_mutex);
-        for (T& check : vChecks) {
-            queue.push_back(T());
-            check.swap(queue.back());
+        if (vChecks.empty()) {
+            return;
         }
-        nTodo += vChecks.size();
-        if (vChecks.size() == 1)
+
+        {
+            LOCK(m_mutex);
+            queue.insert(queue.end(), std::make_move_iterator(vChecks.begin()), std::make_move_iterator(vChecks.end()));
+            nTodo += vChecks.size();
+        }
+
+        if (vChecks.size() == 1) {
             m_worker_cv.notify_one();
-        else if (vChecks.size() > 1)
+        } else {
             m_worker_cv.notify_all();
+        }
     }
 
     //! Stop all of the worker threads.
-    void StopWorkerThreads()
+    void StopWorkerThreads() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex)
     {
         WITH_LOCK(m_mutex, m_request_stop = true);
         m_worker_cv.notify_all();
@@ -189,11 +191,12 @@ public:
         WITH_LOCK(m_mutex, m_request_stop = false);
     }
 
+    bool HasThreads() const { return !m_worker_threads.empty(); }
+
     ~CCheckQueue()
     {
         assert(m_worker_threads.empty());
     }
-
 };
 
 /**
@@ -228,10 +231,11 @@ public:
         return fRet;
     }
 
-    void Add(std::vector<T>& vChecks)
+    void Add(std::vector<T>&& vChecks)
     {
-        if (pqueue != nullptr)
-            pqueue->Add(vChecks);
+        if (pqueue != nullptr) {
+            pqueue->Add(std::move(vChecks));
+        }
     }
 
     ~CCheckQueueControl()
@@ -244,4 +248,4 @@ public:
     }
 };
 
-#endif // BITCOIN_SILVER_CHECKQUEUE_H
+#endif // BITCOINSILVER_CHECKQUEUE_H

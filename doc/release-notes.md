@@ -1,128 +1,94 @@
-22.1 Release Notes
+26.2 Release Notes
 ==================
 
-Bitcoin_Silver Core version 22.1 is now available from:
+BitcoinSilver version 26.2 is now available from:
 
-  <https://bitcoin_silvercore.org/bin/bitcoin_silver-core-22.1/>
+  <https://getbitcoinsilver.org/bin/bitcoinsilver-core-26.2/>
 
 This release includes new features, various bug fixes and performance
 improvements, as well as updated translations.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/bitcoin_silver/bitcoin_silver/issues>
+  <https://github.com/MrVistos/bitcoinsilver/issues>
 
 To receive security and update notifications, please subscribe to:
 
-  <https://bitcoin_silvercore.org/en/list/announcements/join/>
+  <https://getbitcoinsilver.org/en/list/announcements/join/>
 
 How to Upgrade
 ==============
 
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes in some cases), then run the
-installer (on Windows) or just copy over `/Applications/Bitcoin_Silver-Qt` (on macOS)
-or `bitcoin_silverd`/`bitcoin_silver-qt` (on Linux).
+installer (on Windows) or just copy over `/Applications/BitcoinSilver-Qt` (on macOS)
+or `bitcoinsilverd`/`bitcoinsilver-qt` (on Linux).
 
-Upgrading directly from a version of Bitcoin_Silver Core that has reached its EOL is
+Upgrading directly from a version of BitcoinSilver that has reached its EOL is
 possible, but it might take some time if the data directory needs to be migrated. Old
-wallet versions of Bitcoin_Silver Core are generally supported.
+wallet versions of BitcoinSilver are generally supported.
 
 Compatibility
 ==============
 
-Bitcoin_Silver Core is supported and extensively tested on operating systems
-using the Linux kernel, macOS 10.14+, and Windows 7 and newer.  Bitcoin_Silver
+BitcoinSilver is supported and extensively tested on operating systems
+using the Linux kernel, macOS 11.0+, and Windows 7 and newer.  BitcoinSilver
 Core should also work on most other Unix-like systems but is not as
-frequently tested on them.  It is not recommended to use Bitcoin_Silver Core on
+frequently tested on them.  It is not recommended to use BitcoinSilver on
 unsupported systems.
-
-From Bitcoin_Silver Core 22.0 onwards, macOS versions earlier than 10.14 are no longer supported.
 
 Notable changes
 ===============
 
-Updated settings
-----------------
+### Script
 
-- In previous releases, the meaning of the command line option
-  `-persistmempool` (without a value provided) incorrectly disabled mempool
-  persistence.  `-persistmempool` is now treated like other boolean options to
-  mean `-persistmempool=1`. Passing `-persistmempool=0`, `-persistmempool=1`
-  and `-nopersistmempool` is unaffected. (#23061)
+- #29853: sign: don't assume we are parsing a sane TapMiniscript
 
-### P2P
+### P2P and network changes
 
-### RPC and other APIs
+- #29691: Change Luke Dashjr seed to dashjr-list-of-p2p-nodes.us
+- #30085: p2p: detect addnode cjdns peers in GetAddedNodeInfo()
 
-- #25237 rpc: Capture UniValue by ref for rpcdoccheck
-- #25983 Prevent data race for pathHandlers
-- #26275 Fix crash on deriveaddresses when index is 2147483647 (2^31-1)
+### RPC
 
-### Wallet
+- #29869: rpc, bugfix: Enforce maximum value for setmocktime
+- #28554: bugfix: throw an error if an invalid parameter is passed to getnetworkhashps RPC
+- #30094: rpc: move UniValue in blockToJSON
+- #29870: rpc: Reword SighashFromStr error message
 
-- #22781 wallet: fix the behavior of IsHDEnabled
-- #22949 fee: Round up fee calculation to avoid a lower than expected feerate
-- #23333 wallet: fix segfault by avoiding invalid default-ctored external_spk_managers entry
+### Build
 
-### Build system
+- #29747: depends: fix mingw-w64 Qt DEBUG=1 build
+- #29985: depends: Fix build of Qt for 32-bit platforms with recent glibc
+- #30151: depends: Fetch miniupnpc sources from an alternative website
+- #30283: upnp: fix build with miniupnpc 2.2.8
 
-- #22820 build, qt: Fix typo in QtInputSupport check
-- #23045 build: Restrict check for CRC32C intrinsic to aarch64
-- #23148 build: Fix guix linker-loader path and add check_ELF_interpreter
-- #23314 build: explicitly disable libsecp256k1 openssl based tests
-- #23580 build: patch qt to explicitly define previously implicit header include
-- #24215 guix: ignore additional failing certvalidator test
-- #24256 build: Bump depends packages (zmq, libXau)
-- #25201 windeploy: Renewed windows code signing certificate
-- #25985 Revert "build: Use Homebrew's sqlite package if it is available"
-- #26633 depends: update qt 5.12 url to archive location
+### Misc
 
-### GUI
-
-- #gui631 Disallow encryption of watchonly wallets
-- #gui680 Fixes MacOS 13 segfault by preventing certain notifications
-- #24498 qt: Avoid crash on startup if int specified in settings.json
-
-### Tests
-
-- #23716 test: replace hashlib.ripemd160 with an own implementation
-- #24239 test: fix ceildiv division by using integers
-
-### Utilities
-
-- #22390 system: skip trying to set the locale on NetBSD
-- #22895 don't call GetBlockPos in ReadBlockFromDisk without cs_main lock
-- #24104 fs: Make compatible with boost 1.78
-
-### Miscellaneous
-
-- #23335 refactor: include a missing <limits> header in fs.cpp
-- #23504 ci: Replace soon EOL hirsute with jammy
-- #26321 Adjust .tx/config for new Transifex CLI
+- #29776: ThreadSanitizer: Fix #29767
+- #29856: ci: Bump s390x to ubuntu:24.04
+- #29764: doc: Suggest installing dev packages for debian/ubuntu qt5 build
+- #30149: contrib: Renew Windows code signing certificate
 
 Credits
 =======
 
 Thanks to everyone who directly contributed to this release:
 
-- Andrew Chow
-- BlackcoinDev
-- Carl Dong
+- Antoine Poinsot
+- Ava Chow
+- Cory Fields
+- dergoegge
+- fanquake
+- glozow
 - Hennadii Stepanov
-- Joan Karadimov
-- John Moffett
-- Jon Atack
-- Kittywhiskers Van Gogh
-- Marco Falke
-- Martin Zumsande
-- Michael Ford
-- muxator
-- Pieter Wuille
-- Ryan Ofsky
-- Saibato
-- Sebastian Falbesoner
-- W. J. van der Laan
+- Jameson Lopp
+- jonatack
+- laanwj
+- Luke Dashjr
+- MarcoFalke
+- nanlour
+- willcl-ark
 
 As well as to everyone that helped with translations on
-[Transifex](https://www.transifex.com/bitcoin_silver/bitcoin_silver/).
+[Transifex](https://www.transifex.com/bitcoinsilver/bitcoinsilver/).

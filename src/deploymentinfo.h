@@ -1,12 +1,13 @@
-// Copyright (c) 2016-2018 The Bitcoin_Silver Core developers
+// Copyright (c) 2016-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_DEPLOYMENTINFO_H
-#define BITCOIN_SILVER_DEPLOYMENTINFO_H
+#ifndef BITCOINSILVER_DEPLOYMENTINFO_H
+#define BITCOINSILVER_DEPLOYMENTINFO_H
 
 #include <consensus/params.h>
 
+#include <optional>
 #include <string>
 
 struct VBDeploymentInfo {
@@ -26,4 +27,6 @@ inline std::string DeploymentName(Consensus::DeploymentPos pos)
     return VersionBitsDeploymentInfo[pos].name;
 }
 
-#endif // BITCOIN_SILVER_DEPLOYMENTINFO_H
+std::optional<Consensus::BuriedDeployment> GetBuriedDeployment(const std::string_view deployment_name);
+
+#endif // BITCOINSILVER_DEPLOYMENTINFO_H

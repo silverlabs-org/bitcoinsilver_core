@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2014-2019 The Bitcoin_Silver Core developers
+# Copyright (c) 2014-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,10 +7,12 @@ export LC_ALL=C
 set -e
 
 ROOTDIR=dist
-BUNDLE="${ROOTDIR}/Bitcoin_Silver-Qt.app"
+BUNDLE="${ROOTDIR}/BitcoinSilver-Qt.app"
+BINARY="${BUNDLE}/Contents/MacOS/BitcoinSilver-Qt"
 SIGNAPPLE=signapple
 TEMPDIR=sign.temp
-OUT=signature-osx.tar.gz
+ARCH=$(${SIGNAPPLE} info ${BINARY} | head -n 1 | cut -d " " -f 1)
+OUT="signature-osx-${ARCH}.tar.gz"
 OUTROOT=osx/dist
 
 if [ -z "$1" ]; then
@@ -22,7 +24,7 @@ fi
 rm -rf ${TEMPDIR}
 mkdir -p ${TEMPDIR}
 
-${SIGNAPPLE} sign -f --detach "${TEMPDIR}/${OUTROOT}"  "$@" "${BUNDLE}"
+${SIGNAPPLE} sign -f --detach "${TEMPDIR}/${OUTROOT}"  "$@" "${BUNDLE}" --hardened-runtime
 
 tar -C "${TEMPDIR}" -czf "${OUT}" .
 rm -rf "${TEMPDIR}"

@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_RECEIVECOINSDIALOG_H
-#define BITCOIN_SILVER_QT_RECEIVECOINSDIALOG_H
+#ifndef BITCOINSILVER_QT_RECEIVECOINSDIALOG_H
+#define BITCOINSILVER_QT_RECEIVECOINSDIALOG_H
 
 #include <qt/guiutil.h>
 
@@ -26,7 +26,7 @@ QT_BEGIN_NAMESPACE
 class QModelIndex;
 QT_END_NAMESPACE
 
-/** Dialog for requesting payment of bitcoin_silvers */
+/** Dialog for requesting payment of bitcoins */
 class ReceiveCoinsDialog : public QDialog
 {
     Q_OBJECT
@@ -51,7 +51,7 @@ public Q_SLOTS:
 
 private:
     Ui::ReceiveCoinsDialog *ui;
-    WalletModel *model;
+    WalletModel* model{nullptr};
     QMenu *contextMenu;
     QAction* copyLabelAction;
     QAction* copyMessageAction;
@@ -76,4 +76,4 @@ private Q_SLOTS:
     void copyAmount();
 };
 
-#endif // BITCOIN_SILVER_QT_RECEIVECOINSDIALOG_H
+#endif // BITCOINSILVER_QT_RECEIVECOINSDIALOG_H

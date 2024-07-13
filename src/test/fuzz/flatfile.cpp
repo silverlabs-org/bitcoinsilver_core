@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -25,6 +25,4 @@ FUZZ_TARGET(flatfile)
         assert((*flat_file_pos == *another_flat_file_pos) != (*flat_file_pos != *another_flat_file_pos));
     }
     (void)flat_file_pos->ToString();
-    flat_file_pos->SetNull();
-    assert(flat_file_pos->IsNull());
 }

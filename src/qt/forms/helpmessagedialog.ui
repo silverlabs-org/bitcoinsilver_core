@@ -52,7 +52,7 @@
         </size>
        </property>
        <property name="pixmap">
-        <pixmap resource="../bitcoin_silver.qrc">:/icons/bitcoin_silver</pixmap>
+        <pixmap resource="../bitcoinsilver.qrc">:/icons/bitcoinsilver</pixmap>
        </property>
        <property name="scaledContents">
         <bool>true</bool>
@@ -150,7 +150,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="../bitcoin_silver.qrc"/>
+  <include location="../bitcoinsilver.qrc"/>
  </resources>
  <connections>
   <connection>

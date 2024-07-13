@@ -1,24 +1,31 @@
-# Fuzzing Bitcoin_Silver Core using libFuzzer
+# Fuzzing BitcoinSilver using libFuzzer
 
 ## Quickstart guide
 
-To quickly get started fuzzing Bitcoin_Silver Core using [libFuzzer](https://llvm.org/docs/LibFuzzer.html):
+To quickly get started fuzzing BitcoinSilver using [libFuzzer](https://llvm.org/docs/LibFuzzer.html):
 
 ```sh
-$ git clone https://github.com/bitcoin_silver/bitcoin_silver
-$ cd bitcoin_silver/
+$ git clone https://github.com/MrVistos/bitcoinsilver
+$ cd bitcoinsilver/
 $ ./autogen.sh
 $ CC=clang CXX=clang++ ./configure --enable-fuzz --with-sanitizers=address,fuzzer,undefined
 # macOS users: If you have problem with this step then make sure to read "macOS hints for
-# libFuzzer" on https://github.com/bitcoin_silver/bitcoin_silver/blob/master/doc/fuzzing.md#macos-hints-for-libfuzzer
+# libFuzzer" on https://github.com/MrVistos/bitcoinsilver/blob/master/doc/fuzzing.md#macos-hints-for-libfuzzer
 $ make
 $ FUZZ=process_message src/test/fuzz/fuzz
 # abort fuzzing using ctrl-c
 ```
 
+There is also a runner script to execute all fuzz targets. Refer to
+`./test/fuzz/test_runner.py --help` for more details.
+
+## Overview of BitcoinSilver fuzzing
+
+[Google](https://github.com/google/fuzzing/) has a good overview of fuzzing in general, with contributions from key architects of some of the most-used fuzzers. [This paper](https://agroce.github.io/bitcoinsilver_report.pdf) includes an external overview of the status of BitcoinSilver fuzzing, as of summer 2021.  [John Regehr](https://blog.regehr.org/archives/1687) provides good advice on writing code that assists fuzzers in finding bugs, which is useful for developers to keep in mind.
+
 ## Fuzzing harnesses and output
 
-[`process_message`](https://github.com/bitcoin_silver/bitcoin_silver/blob/master/src/test/fuzz/process_message.cpp) is a fuzzing harness for the [`ProcessMessage(...)` function (`net_processing`)](https://github.com/bitcoin_silver/bitcoin_silver/blob/master/src/net_processing.cpp). The available fuzzing harnesses are found in [`src/test/fuzz/`](https://github.com/bitcoin_silver/bitcoin_silver/tree/master/src/test/fuzz).
+[`process_message`](https://github.com/MrVistos/bitcoinsilver/blob/master/src/test/fuzz/process_message.cpp) is a fuzzing harness for the [`ProcessMessage(...)` function (`net_processing`)](https://github.com/MrVistos/bitcoinsilver/blob/master/src/net_processing.cpp). The available fuzzing harnesses are found in [`src/test/fuzz/`](https://github.com/MrVistos/bitcoinsilver/tree/master/src/test/fuzz).
 
 The fuzzer will output `NEW` every time it has created a test input that covers new areas of the code under test. For more information on how to interpret the fuzzer output, see the [libFuzzer documentation](https://llvm.org/docs/LibFuzzer.html).
 
@@ -64,14 +71,23 @@ block^@M-^?M-^?M-^?M-^?M-^?nM-^?M-^?
 
 In this case the fuzzer managed to create a `block` message which when passed to `ProcessMessage(...)` increased coverage.
 
-## Fuzzing corpora
-
-The project's collection of seed corpora is found in the [`bitcoin_silver-core/qa-assets`](https://github.com/bitcoin_silver-core/qa-assets) repo.
-
-To fuzz `process_message` using the [`bitcoin_silver-core/qa-assets`](https://github.com/bitcoin_silver-core/qa-assets) seed corpus:
+It is possible to specify `bitcoinsilverd` arguments to the `fuzz` executable.
+Depending on the test, they may be ignored or consumed and alter the behavior
+of the test. Just make sure to use double-dash to distinguish them from the
+fuzzer's own arguments:
 
 ```sh
-$ git clone https://github.com/bitcoin_silver-core/qa-assets
+$ FUZZ=address_deserialize_v2 src/test/fuzz/fuzz -runs=1 fuzz_seed_corpus/address_deserialize_v2 --checkaddrman=5 --printtoconsole=1
+```
+
+## Fuzzing corpora
+
+The project's collection of seed corpora is found in the [`bitcoinsilver-core/qa-assets`](https://github.com/bitcoinsilver-core/qa-assets) repo.
+
+To fuzz `process_message` using the [`bitcoinsilver-core/qa-assets`](https://github.com/bitcoinsilver-core/qa-assets) seed corpus:
+
+```sh
+$ git clone https://github.com/bitcoinsilver-core/qa-assets
 $ FUZZ=process_message src/test/fuzz/fuzz qa-assets/fuzz_seed_corpus/process_message/
 INFO: Seed: 1346407872
 INFO: Loaded 1 modules   (424174 inline 8-bit counters): 424174 [0x55d8a9004ab8, 0x55d8a906c3a6),
@@ -82,6 +98,10 @@ INFO: seed corpus: files: 991 min: 1b max: 1858b total: 288291b rss: 150Mb
 #993    INITED cov: 7063 ft: 8236 corp: 25/3821b exec/s: 0 rss: 181Mb
 …
 ```
+
+## Run without sanitizers for increased throughput
+
+Fuzzing on a harness compiled with `--with-sanitizers=address,fuzzer,undefined` is good for finding bugs. However, the very slow execution even under libFuzzer will limit the ability to find new coverage. A good approach is to perform occasional long runs without the additional bug-detectors (configure `--with-sanitizers=fuzzer`) and then merge new inputs into a corpus as described in the qa-assets repo (https://github.com/bitcoinsilver-core/qa-assets/blob/main/.github/PULL_REQUEST_TEMPLATE.md).  Patience is useful; even with improved throughput, libFuzzer may need days and 10s of millions of executions to reach deep/hard targets.
 
 ## Reproduce a fuzzer crash reported by the CI
 
@@ -97,9 +117,9 @@ INFO: seed corpus: files: 991 min: 1b max: 1858b total: 288291b rss: 150Mb
 
 ## Submit improved coverage
 
-If you find coverage increasing inputs when fuzzing you are highly encouraged to submit them for inclusion in the [`bitcoin_silver-core/qa-assets`](https://github.com/bitcoin_silver-core/qa-assets) repo.
+If you find coverage increasing inputs when fuzzing you are highly encouraged to submit them for inclusion in the [`bitcoinsilver-core/qa-assets`](https://github.com/bitcoinsilver-core/qa-assets) repo.
 
-Every single pull request submitted against the Bitcoin_Silver Core repo is automatically tested against all inputs in the [`bitcoin_silver-core/qa-assets`](https://github.com/bitcoin_silver-core/qa-assets) repo. Contributing new coverage increasing inputs is an easy way to help make Bitcoin_Silver Core more robust.
+Every single pull request submitted against the BitcoinSilver repo is automatically tested against all inputs in the [`bitcoinsilver-core/qa-assets`](https://github.com/bitcoinsilver-core/qa-assets) repo. Contributing new coverage increasing inputs is an easy way to help make BitcoinSilver more robust.
 
 ## macOS hints for libFuzzer
 
@@ -109,30 +129,30 @@ example using `brew install llvm`.
 
 Should you run into problems with the address sanitizer, it is possible you
 may need to run `./configure` with `--disable-asm` to avoid errors
-with certain assembly code from Bitcoin_Silver Core's code. See [developer notes on sanitizers](https://github.com/bitcoin_silver/bitcoin_silver/blob/master/doc/developer-notes.md#sanitizers)
+with certain assembly code from BitcoinSilver's code. See [developer notes on sanitizers](https://github.com/MrVistos/bitcoinsilver/blob/master/doc/developer-notes.md#sanitizers)
 for more information.
 
 You may also need to take care of giving the correct path for `clang` and
 `clang++`, like `CC=/path/to/clang CXX=/path/to/clang++` if the non-systems
 `clang` does not come first in your path.
 
-Full configure that was tested on macOS Catalina with `brew` installed `llvm`:
+Full configure that was tested on macOS with `brew` installed `llvm`:
 
 ```sh
-./configure --enable-fuzz --with-sanitizers=fuzzer,address,undefined CC=/usr/local/opt/llvm/bin/clang CXX=/usr/local/opt/llvm/bin/clang++ --disable-asm
+./configure --enable-fuzz --with-sanitizers=fuzzer,address,undefined --disable-asm CC=$(brew --prefix llvm)/bin/clang CXX=$(brew --prefix llvm)/bin/clang++
 ```
 
 Read the [libFuzzer documentation](https://llvm.org/docs/LibFuzzer.html) for more information. This [libFuzzer tutorial](https://github.com/google/fuzzing/blob/master/tutorial/libFuzzerTutorial.md) might also be of interest.
 
-# Fuzzing Bitcoin_Silver Core using afl++
+# Fuzzing BitcoinSilver using afl++
 
 ## Quickstart guide
 
-To quickly get started fuzzing Bitcoin_Silver Core using [afl++](https://github.com/AFLplusplus/AFLplusplus):
+To quickly get started fuzzing BitcoinSilver using [afl++](https://github.com/AFLplusplus/AFLplusplus):
 
 ```sh
-$ git clone https://github.com/bitcoin_silver/bitcoin_silver
-$ cd bitcoin_silver/
+$ git clone https://github.com/MrVistos/bitcoinsilver
+$ cd bitcoinsilver/
 $ git clone https://github.com/AFLplusplus/AFLplusplus
 $ make -C AFLplusplus/ source-only
 $ ./autogen.sh
@@ -151,15 +171,15 @@ $ FUZZ=bech32 AFLplusplus/afl-fuzz -i inputs/ -o outputs/ -- src/test/fuzz/fuzz
 
 Read the [afl++ documentation](https://github.com/AFLplusplus/AFLplusplus) for more information.
 
-# Fuzzing Bitcoin_Silver Core using Honggfuzz
+# Fuzzing BitcoinSilver using Honggfuzz
 
 ## Quickstart guide
 
-To quickly get started fuzzing Bitcoin_Silver Core using [Honggfuzz](https://github.com/google/honggfuzz):
+To quickly get started fuzzing BitcoinSilver using [Honggfuzz](https://github.com/google/honggfuzz):
 
 ```sh
-$ git clone https://github.com/bitcoin_silver/bitcoin_silver
-$ cd bitcoin_silver/
+$ git clone https://github.com/MrVistos/bitcoinsilver
+$ cd bitcoinsilver/
 $ ./autogen.sh
 $ git clone https://github.com/google/honggfuzz
 $ cd honggfuzz/
@@ -173,10 +193,10 @@ $ FUZZ=process_message honggfuzz/honggfuzz -i inputs/ -- src/test/fuzz/fuzz
 
 Read the [Honggfuzz documentation](https://github.com/google/honggfuzz/blob/master/docs/USAGE.md) for more information.
 
-## Fuzzing the Bitcoin_Silver Core P2P layer using Honggfuzz NetDriver
+## Fuzzing the BitcoinSilver P2P layer using Honggfuzz NetDriver
 
-Honggfuzz NetDriver allows for very easy fuzzing of TCP servers such as Bitcoin_Silver
-Core without having to write any custom fuzzing harness. The `bitcoin_silverd` server
+Honggfuzz NetDriver allows for very easy fuzzing of TCP servers such as BitcoinSilver
+Core without having to write any custom fuzzing harness. The `bitcoinsilverd` server
 process is largely fuzzed without modification.
 
 This makes the fuzzing highly realistic: a bug reachable by the fuzzer is likely
@@ -185,10 +205,10 @@ also remotely triggerable by an untrusted peer.
 To quickly get started fuzzing the P2P layer using Honggfuzz NetDriver:
 
 ```sh
-$ mkdir bitcoin_silver-honggfuzz-p2p/
-$ cd bitcoin_silver-honggfuzz-p2p/
-$ git clone https://github.com/bitcoin_silver/bitcoin_silver
-$ cd bitcoin_silver/
+$ mkdir bitcoinsilver-honggfuzz-p2p/
+$ cd bitcoinsilver-honggfuzz-p2p/
+$ git clone https://github.com/MrVistos/bitcoinsilver
+$ cd bitcoinsilver/
 $ ./autogen.sh
 $ git clone https://github.com/google/honggfuzz
 $ cd honggfuzz/
@@ -199,64 +219,132 @@ $ CC=$(pwd)/honggfuzz/hfuzz_cc/hfuzz-clang \
       ./configure --disable-wallet --with-gui=no \
                   --with-sanitizers=address,undefined
 $ git apply << "EOF"
-diff --git a/src/bitcoin_silverd.cpp b/src/bitcoin_silverd.cpp
-index 455a82e39..2faa3f80f 100644
---- a/src/bitcoin_silverd.cpp
-+++ b/src/bitcoin_silverd.cpp
-@@ -158,7 +158,11 @@ static bool AppInit(int argc, char* argv[])
-     return fRet;
- }
-
+diff --git a/src/compat/compat.h b/src/compat/compat.h
+index 8195bceaec..cce2b31ff0 100644
+--- a/src/compat/compat.h
++++ b/src/compat/compat.h
+@@ -90,8 +90,12 @@ typedef char* sockopt_arg_type;
+ // building with a binutils < 2.36 is subject to this ld bug.
+ #define MAIN_FUNCTION __declspec(dllexport) int main(int argc, char* argv[])
+ #else
 +#ifdef HFND_FUZZING_ENTRY_FUNCTION_CXX
-+HFND_FUZZING_ENTRY_FUNCTION_CXX(int argc, char* argv[])
++#define MAIN_FUNCTION HFND_FUZZING_ENTRY_FUNCTION_CXX(int argc, char* argv[])
 +#else
- int main(int argc, char* argv[])
+ #define MAIN_FUNCTION int main(int argc, char* argv[])
+ #endif
 +#endif
- {
- #ifdef WIN32
-     util::WinCmdLineArgs winArgs;
+
+ // Note these both should work with the current usage of poll, but best to be safe
+ // WIN32 poll is broken https://daniel.haxx.se/blog/2012/10/10/wsapoll-is-broken/
 diff --git a/src/net.cpp b/src/net.cpp
-index cf987b699..636a4176a 100644
+index 7601a6ea84..702d0f56ce 100644
 --- a/src/net.cpp
 +++ b/src/net.cpp
-@@ -709,7 +709,7 @@ int V1TransportDeserializer::readHeader(const char *pch, unsigned int nBytes)
+@@ -727,7 +727,7 @@ int V1TransportDeserializer::readHeader(Span<const uint8_t> msg_bytes)
      }
 
      // Check start string, network magic
 -    if (memcmp(hdr.pchMessageStart, m_chain_params.MessageStart(), CMessageHeader::MESSAGE_START_SIZE) != 0) {
 +    if (false && memcmp(hdr.pchMessageStart, m_chain_params.MessageStart(), CMessageHeader::MESSAGE_START_SIZE) != 0) { // skip network magic checking
-         LogPrint(BCLog::NET, "HEADER ERROR - MESSAGESTART (%s, %u bytes), received %s, peer=%d\n", hdr.GetCommand(), hdr.nMessageSize, HexStr(hdr.pchMessageStart), m_node_id);
+         LogPrint(BCLog::NET, "Header error: Wrong MessageStart %s received, peer=%d\n", HexStr(hdr.pchMessageStart), m_node_id);
          return -1;
      }
-@@ -768,7 +768,7 @@ Optional<CNetMessage> V1TransportDeserializer::GetMessage(const std::chrono::mic
+@@ -788,7 +788,7 @@ CNetMessage V1TransportDeserializer::GetMessage(const std::chrono::microseconds
      RandAddEvent(ReadLE32(hash.begin()));
 
-     // Check checksum and header command string
+     // Check checksum and header message type string
 -    if (memcmp(hash.begin(), hdr.pchChecksum, CMessageHeader::CHECKSUM_SIZE) != 0) {
 +    if (false && memcmp(hash.begin(), hdr.pchChecksum, CMessageHeader::CHECKSUM_SIZE) != 0) { // skip checksum checking
-         LogPrint(BCLog::NET, "CHECKSUM ERROR (%s, %u bytes), expected %s was %s, peer=%d\n",
-                  SanitizeString(msg->m_command), msg->m_message_size,
-                  HexStr(Span<uint8_t>(hash.begin(), hash.begin() + CMessageHeader::CHECKSUM_SIZE)),
+         LogPrint(BCLog::NET, "Header error: Wrong checksum (%s, %u bytes), expected %s was %s, peer=%d\n",
+                  SanitizeString(msg.m_type), msg.m_message_size,
+                  HexStr(Span{hash}.first(CMessageHeader::CHECKSUM_SIZE)),
 EOF
-$ make -C src/ bitcoin_silverd
+$ make -C src/ bitcoinsilverd
 $ mkdir -p inputs/
 $ honggfuzz/honggfuzz --exit_upon_crash --quiet --timeout 4 -n 1 -Q \
-      -E HFND_TCP_PORT=18484 -f inputs/ -- \
-          src/bitcoin_silverd -regtest -discover=0 -dns=0 -dnsseed=0 -listenonion=0 \
-                       -nodebuglogfile -bind=127.0.0.1:18484 -logthreadnames \
+      -E HFND_TCP_PORT=18444 -f inputs/ -- \
+          src/bitcoinsilverd -regtest -discover=0 -dns=0 -dnsseed=0 -listenonion=0 \
+                       -nodebuglogfile -bind=127.0.0.1:18444 -logthreadnames \
                        -debug
 ```
 
+# Fuzzing BitcoinSilver using Eclipser (v1.x)
+
+## Quickstart guide
+
+To quickly get started fuzzing BitcoinSilver using [Eclipser v1.x](https://github.com/SoftSec-KAIST/Eclipser/tree/v1.x):
+
+```sh
+$ git clone https://github.com/MrVistos/bitcoinsilver
+$ cd bitcoinsilver/
+$ sudo vim /etc/apt/sources.list # Uncomment the lines starting with 'deb-src'.
+$ sudo apt-get update
+$ sudo apt-get build-dep qemu
+$ sudo apt-get install libtool libtool-bin wget automake autoconf bison gdb
+```
+
+At this point, you must install the .NET core.  The process differs, depending on your Linux distribution.
+See [this link](https://learn.microsoft.com/en-us/dotnet/core/install/linux) for details.
+On Ubuntu 20.04, the following should work:
+
+```sh
+$ wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
+$ sudo dpkg -i packages-microsoft-prod.deb
+$ rm packages-microsoft-prod.deb
+$ sudo apt-get update
+$ sudo apt-get install -y dotnet-sdk-2.1
+```
+
+You will also want to make sure Python is installed as `python` for the Eclipser install to succeed.
+
+```sh
+$ git clone https://github.com/SoftSec-KAIST/Eclipser.git
+$ cd Eclipser
+$ git checkout v1.x
+$ make
+$ cd ..
+$ ./autogen.sh
+$ ./configure --enable-fuzz
+$ make
+$ mkdir -p outputs/
+$ FUZZ=bech32 dotnet Eclipser/build/Eclipser.dll fuzz -p src/test/fuzz/fuzz -t 36000 -o outputs --src stdin
+```
+
+This will perform 10 hours of fuzzing.
+
+To make further use of the inputs generated by Eclipser, you
+must first decode them:
+
+```sh
+$ dotnet Eclipser/build/Eclipser.dll decode -i outputs/testcase -o decoded_outputs
+```
+This will place raw inputs in the directory `decoded_outputs/decoded_stdins`.  Crashes are in the `outputs/crashes` directory, and must
+be decoded in the same way.
+
+Fuzzing with Eclipser will likely be much more effective if using an existing corpus:
+
+```sh
+$ git clone https://github.com/bitcoinsilver-core/qa-assets
+$ FUZZ=bech32 dotnet Eclipser/build/Eclipser.dll fuzz -p src/test/fuzz/fuzz -t 36000 -i qa-assets/fuzz_seed_corpus/bech32 outputs --src stdin
+```
+
+Note that fuzzing with Eclipser on certain targets (those that create 'full nodes', e.g. `process_message*`) will,
+for now, slowly fill `/tmp/` with improperly cleaned-up files, which will cause spurious crashes.
+See [this proposed patch](https://github.com/MrVistos/bitcoinsilver/pull/22472) for more information.
+
+Read the [Eclipser documentation for v1.x](https://github.com/SoftSec-KAIST/Eclipser/tree/v1.x) for more details on using Eclipser.
+
+
 # OSS-Fuzz
 
-Bitcoin_Silver Core participates in Google's [OSS-Fuzz](https://github.com/google/oss-fuzz/tree/master/projects/bitcoin_silver-core)
-program, which includes a dashboard of [publicly disclosed vulnerabilities](https://bugs.chromium.org/p/oss-fuzz/issues/list?q=bitcoin_silver-core).
+BitcoinSilver participates in Google's [OSS-Fuzz](https://github.com/google/oss-fuzz/tree/master/projects/bitcoinsilver-core)
+program, which includes a dashboard of [publicly disclosed vulnerabilities](https://bugs.chromium.org/p/oss-fuzz/issues/list?q=bitcoinsilver-core).
 Generally, we try to disclose vulnerabilities as soon as possible after they
 are fixed to give users the knowledge they need to be protected. However,
-because Bitcoin_Silver is a live P2P network, and not just standalone local software,
+because BitcoinSilver is a live P2P network, and not just standalone local software,
 we might not fully disclose every issue within Google's standard
 [90-day disclosure window](https://google.github.io/oss-fuzz/getting-started/bug-disclosure-guidelines/)
 if a partial or delayed disclosure is important to protect users or the
 function of the network.
 
-OSS-Fuzz also produces [a fuzzing coverage report](https://oss-fuzz.com/coverage-report/job/libfuzzer_asan_bitcoin_silver-core/latest).
+OSS-Fuzz also produces [a fuzzing coverage report](https://oss-fuzz.com/coverage-report/job/libfuzzer_asan_bitcoinsilver-core/latest).

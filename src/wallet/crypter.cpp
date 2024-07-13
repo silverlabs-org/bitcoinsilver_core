@@ -1,15 +1,16 @@
-// Copyright (c) 2009-2019 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/crypter.h>
 
+#include <common/system.h>
 #include <crypto/aes.h>
 #include <crypto/sha512.h>
-#include <util/system.h>
 
 #include <vector>
 
+namespace wallet {
 int CCrypter::BytesToKeySHA512AES(const std::vector<unsigned char>& chSalt, const SecureString& strKeyData, int count, unsigned char *key,unsigned char *iv) const
 {
     // This mimics the behavior of openssl's EVP_BytesToKey with an aes256cbc
@@ -111,7 +112,7 @@ bool EncryptSecret(const CKeyingMaterial& vMasterKey, const CKeyingMaterial &vch
     memcpy(chIV.data(), &nIV, WALLET_CRYPTO_IV_SIZE);
     if(!cKeyCrypter.SetKey(vMasterKey, chIV))
         return false;
-    return cKeyCrypter.Encrypt(*((const CKeyingMaterial*)&vchPlaintext), vchCiphertext);
+    return cKeyCrypter.Encrypt(vchPlaintext, vchCiphertext);
 }
 
 bool DecryptSecret(const CKeyingMaterial& vMasterKey, const std::vector<unsigned char>& vchCiphertext, const uint256& nIV, CKeyingMaterial& vchPlaintext)
@@ -136,3 +137,4 @@ bool DecryptKey(const CKeyingMaterial& vMasterKey, const std::vector<unsigned ch
     key.Set(vchSecret.begin(), vchSecret.end(), vchPubKey.IsCompressed());
     return key.VerifyPubKey(vchPubKey);
 }
+} // namespace wallet

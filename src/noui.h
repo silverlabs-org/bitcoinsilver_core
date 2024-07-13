@@ -1,9 +1,9 @@
-// Copyright (c) 2013-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2013-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_NOUI_H
-#define BITCOIN_SILVER_NOUI_H
+#ifndef BITCOINSILVER_NOUI_H
+#define BITCOINSILVER_NOUI_H
 
 #include <string>
 
@@ -16,13 +16,13 @@ bool noui_ThreadSafeQuestion(const bilingual_str& /* ignored interactive message
 /** Non-GUI handler, which only logs a message. */
 void noui_InitMessage(const std::string& message);
 
-/** Connect all bitcoin_silverd signal handlers */
+/** Connect all bitcoinsilverd signal handlers */
 void noui_connect();
 
-/** Redirect all bitcoin_silverd signal handlers to LogPrintf. Used to check or suppress output during test runs that produce expected errors */
+/** Redirect all bitcoinsilverd signal handlers to LogPrintf. Used to check or suppress output during test runs that produce expected errors */
 void noui_test_redirect();
 
 /** Reconnects the regular Non-GUI handlers after having used noui_test_redirect */
 void noui_reconnect();
 
-#endif // BITCOIN_SILVER_NOUI_H
+#endif // BITCOINSILVER_NOUI_H

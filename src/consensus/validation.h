@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_CONSENSUS_VALIDATION_H
-#define BITCOIN_SILVER_CONSENSUS_VALIDATION_H
+#ifndef BITCOINSILVER_CONSENSUS_VALIDATION_H
+#define BITCOINSILVER_CONSENSUS_VALIDATION_H
 
 #include <string>
 #include <version.h>
@@ -53,6 +53,7 @@ enum class TxValidationResult {
      */
     TX_CONFLICT,
     TX_MEMPOOL_POLICY,        //!< violated mempool's fee/size/descendant/RBF/etc limits
+    TX_NO_MEMPOOL,            //!< this node does not have a mempool so can't validate the transaction
 };
 
 /** A "reason" why a block was invalid, suitable for determining whether the
@@ -78,6 +79,7 @@ enum class BlockValidationResult {
     BLOCK_INVALID_PREV,      //!< A block this one builds on is invalid
     BLOCK_TIME_FUTURE,       //!< block timestamp was > 2 hours in the future (or our clock is bad)
     BLOCK_CHECKPOINT,        //!< the block failed to meet one of our checkpoints
+    BLOCK_HEADER_LOW_WORK    //!< the block header may be on a too-little-work chain
 };
 
 
@@ -143,7 +145,7 @@ class BlockValidationState : public ValidationState<BlockValidationResult> {};
 // using only serialization with and without witness data. As witness_size
 // is equal to total_size - stripped_size, this formula is identical to:
 // weight = (stripped_size * 3) + total_size.
-static inline int64_t GetTransactionWeight(const CTransaction& tx)
+static inline int32_t GetTransactionWeight(const CTransaction& tx)
 {
     return ::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(tx, PROTOCOL_VERSION);
 }
@@ -178,4 +180,4 @@ inline int GetWitnessCommitmentIndex(const CBlock& block)
     return commitpos;
 }
 
-#endif // BITCOIN_SILVER_CONSENSUS_VALIDATION_H
+#endif // BITCOINSILVER_CONSENSUS_VALIDATION_H

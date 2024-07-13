@@ -1,15 +1,15 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SILVER_QT_GUIUTIL_H
-#define BITCOIN_SILVER_QT_GUIUTIL_H
+#ifndef BITCOINSILVER_QT_GUIUTIL_H
+#define BITCOINSILVER_QT_GUIUTIL_H
 
-#include <amount.h>
-#include <fs.h>
+#include <consensus/amount.h>
 #include <net.h>
 #include <netaddress.h>
 #include <util/check.h>
+#include <util/fs.h>
 
 #include <QApplication>
 #include <QEvent>
@@ -41,6 +41,7 @@ class QAbstractButton;
 class QAbstractItemView;
 class QAction;
 class QDateTime;
+class QDialog;
 class QFont;
 class QKeySequence;
 class QLineEdit;
@@ -51,7 +52,7 @@ class QUrl;
 class QWidget;
 QT_END_NAMESPACE
 
-/** Utility functions used by the Bitcoin_Silver Qt UI.
+/** Utility functions used by the BitcoinSilver Qt UI.
  */
 namespace GUIUtil
 {
@@ -76,10 +77,10 @@ namespace GUIUtil
      */
     void AddButtonShortcut(QAbstractButton* button, const QKeySequence& shortcut);
 
-    // Parse "bitcoin_silver:" URI into recipient object, return true on successful parsing
-    bool parseBitcoin_SilverURI(const QUrl &uri, SendCoinsRecipient *out);
-    bool parseBitcoin_SilverURI(QString uri, SendCoinsRecipient *out);
-    QString formatBitcoin_SilverURI(const SendCoinsRecipient &info);
+    // Parse "bitcoinsilver:" URI into recipient object, return true on successful parsing
+    bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out);
+    bool parseBitcoinURI(QString uri, SendCoinsRecipient *out);
+    QString formatBitcoinURI(const SendCoinsRecipient &info);
 
     // Returns true if given address+amount meets "dust" definition
     bool isDust(interfaces::Node& node, const QString& address, const CAmount& amount);
@@ -113,9 +114,22 @@ namespace GUIUtil
     void setClipboard(const QString& str);
 
     /**
+     * Loads the font from the file specified by file_name, aborts if it fails.
+     */
+    void LoadFont(const QString& file_name);
+
+    /**
      * Determine default data directory for operating system.
      */
     QString getDefaultDataDirectory();
+
+    /**
+     * Extract first suffix from filter pattern "Description (*.foo)" or "Description (*.foo *.bar ...).
+     *
+     * @param[in] filter Filter specification such as "Comma Separated Files (*.csv)"
+     * @return QString
+     */
+    QString ExtractFirstSuffixFromFilter(const QString& filter);
 
     /** Get save filename, mimics QFileDialog::getSaveFileName, except that it appends a default suffix
         when no suffix is provided by the user.
@@ -164,7 +178,7 @@ namespace GUIUtil
     void openDebugLogfile();
 
     // Open the config file
-    bool openBitcoin_SilverConf();
+    bool openBitcoinConf();
 
     /** Qt event filter that intercepts ToolTipChange events, and replaces the tooltip with a rich text
       representation if needed. This assures that Qt can word-wrap long tooltip messages.
@@ -203,10 +217,10 @@ namespace GUIUtil
     bool SetStartOnSystemStartup(bool fAutoStart);
 
     /** Convert QString to OS specific boost path through UTF-8 */
-    fs::path qstringToBoostPath(const QString &path);
+    fs::path QStringToPath(const QString &path);
 
     /** Convert OS specific boost path to QString through UTF-8 */
-    QString boostPathToQString(const fs::path &path);
+    QString PathToQString(const fs::path &path);
 
     /** Convert enum Network to QString */
     QString NetworkToQString(Network net);
@@ -215,7 +229,10 @@ namespace GUIUtil
     QString ConnectionTypeToQString(ConnectionType conn_type, bool prepend_direction);
 
     /** Convert seconds into a QString with days, hours, mins, secs */
-    QString formatDurationStr(int secs);
+    QString formatDurationStr(std::chrono::seconds dur);
+
+    /** Convert peer connection time to a QString denominated in the most relevant unit. */
+    QString FormatPeerAge(std::chrono::seconds time_connected);
 
     /** Format CNodeStats.nServices bitmask into a user-readable string */
     QString formatServicesStr(quint64 mask);
@@ -352,18 +369,6 @@ namespace GUIUtil
     #endif
     }
 
-    /**
-     * Queue a function to run in an object's event loop. This can be
-     * replaced by a call to the QMetaObject::invokeMethod functor overload after Qt 5.10, but
-     * for now use a QObject::connect for compatibility with older Qt versions, based on
-     * https://stackoverflow.com/questions/21646467/how-to-execute-a-functor-or-a-lambda-in-a-given-thread-in-qt-gcd-style
-     */
-    template <typename Fn>
-    void ObjectInvoke(QObject* object, Fn&& function, Qt::ConnectionType connection = Qt::QueuedConnection)
-    {
-        QObject source;
-        QObject::connect(&source, &QObject::destroyed, object, std::forward<Fn>(function), connection);
-    }
 
     /**
      * Replaces a plain text link with an HTML tagged one.
@@ -417,6 +422,20 @@ namespace GUIUtil
             type);
     }
 
+    /**
+     * Shows a QDialog instance asynchronously, and deletes it on close.
+     */
+    void ShowModalDialogAsynchronously(QDialog* dialog);
+
+    inline bool IsEscapeOrBack(int key)
+    {
+        if (key == Qt::Key_Escape) return true;
+#ifdef Q_OS_ANDROID
+        if (key == Qt::Key_Back) return true;
+#endif // Q_OS_ANDROID
+        return false;
+    }
+
 } // namespace GUIUtil
 
-#endif // BITCOIN_SILVER_QT_GUIUTIL_H
+#endif // BITCOINSILVER_QT_GUIUTIL_H

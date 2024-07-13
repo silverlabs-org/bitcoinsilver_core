@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin_Silver Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin_silver-config.h>
+#include <config/bitcoinsilver-config.h>
 #endif
 
 #include <qt/utilitydialog.h>
@@ -13,16 +13,17 @@
 #include <qt/guiutil.h>
 
 #include <clientversion.h>
+#include <common/args.h>
 #include <init.h>
-#include <util/system.h>
 #include <util/strencodings.h>
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <QCloseEvent>
 #include <QLabel>
 #include <QMainWindow>
-#include <QRegExp>
+#include <QRegularExpression>
+#include <QString>
 #include <QTextCursor>
 #include <QTextTable>
 #include <QVBoxLayout>
@@ -44,9 +45,8 @@ HelpMessageDialog::HelpMessageDialog(QWidget *parent, bool about) :
         /// HTML-format the license message from the core
         QString licenseInfoHTML = QString::fromStdString(LicenseInfo());
         // Make URLs clickable
-        QRegExp uri("<(.*)>", Qt::CaseSensitive, QRegExp::RegExp2);
-        uri.setMinimal(true); // use non-greedy matching
-        licenseInfoHTML.replace(uri, "<a href=\"\\1\">\\1</a>");
+        QRegularExpression uri(QStringLiteral("<(.*)>"), QRegularExpression::InvertedGreedinessOption);
+        licenseInfoHTML.replace(uri, QStringLiteral("<a href=\"\\1\">\\1</a>"));
         // Replace newlines with HTML breaks
         licenseInfoHTML.replace("\n", "<br>");
 
@@ -58,7 +58,7 @@ HelpMessageDialog::HelpMessageDialog(QWidget *parent, bool about) :
         ui->helpMessage->setVisible(false);
     } else {
         setWindowTitle(tr("Command-line options"));
-        QString header = "Usage:  bitcoin silver-qt [command-line options]                     \n";
+        QString header = "Usage:  bitcoinsilver-qt [command-line options]                     \n";
         QTextCursor cursor(ui->helpMessage->document());
         cursor.insertText(version);
         cursor.insertBlock();
