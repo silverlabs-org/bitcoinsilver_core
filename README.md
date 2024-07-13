@@ -20,14 +20,18 @@ Bitcoin Silver aims to enhance the original Bitcoin network by:
 <table>
 <tr><td>Coin Name</td><td>Bitcoin Silver</td></tr>
 <tr><td>Ticker</td><td>BTCS</td></tr>
-<tr><td>Algorithm</td><td>SHA256</td></tr>
-<tr><td>Block Time</td><td>5 Min.</td></tr>
-<tr><td>Maximum Supply</td><td>21,000,000 BTCS</td></tr>
-<tr><td>Coin Maturity</td><td>200 Block</td></tr>
-<tr><td>Address Prefix</td><td>1</td></tr>
-<tr><td>Halving Interval</td><td>210,000 Block</td></tr>
-<tr><td>RPC Port</td><td>8382, 8384</td></tr>
-<tr><td>Network Port</td><td>8383</td></tr>
+<tr><td>Type</td><td>PoW</td></tr>
+<tr><td>Maturity</td><td>200</td></tr>
+<tr><td>Max supply</td><td>21 470 000</td></tr>
+<tr><td>P2P port</td><td>10566</td></tr>
+<tr><td>RPC port</td><td>10567</td></tr>
+<tr><td>Prefix</td><td>"B" / "bs1"</td></tr>
+<tr><td>Halving</td><td>210 000</td></tr>
+<tr><td>Block time</td><td>300 seconds</td></tr>
+<tr><td>Diff time</td><td>~96 blocks</td></tr>
+<tr><td>Block reward</td><td>50</td></tr>
+<tr><td>Pre-mine</td><td>470 000</td></tr>
+<tr><td>Algo</td><td>SHA256</td></tr>
 </table>
 
 ## Getting Started
