@@ -30,7 +30,7 @@ Bitcoin Silver aims to enhance the original Bitcoin network by:
 <tr><td>Block time</td><td>300 seconds</td></tr>
 <tr><td>Diff time</td><td>~96 blocks</td></tr>
 <tr><td>Block reward</td><td>50</td></tr>
-<tr><td>Pre-mine (ISF)</td><td>470 000 (Block 9400)</td></tr>
+<tr><td>Initial Security Fund</td><td>470 000 (Block 9400)</td></tr>
 <tr><td>Algo</td><td>SHA256</td></tr>
 </table>
 
