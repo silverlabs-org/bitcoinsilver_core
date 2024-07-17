@@ -5,7 +5,7 @@ Setup
 ---------------------
 BitcoinSilver is the original BitcoinSilver client and it builds the backbone of the network. It downloads and, by default, stores the entire history of BitcoinSilver transactions, which requires a few hundred gigabytes of disk space. Depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
 
-To download BitcoinSilver, visit [getbitcoinsilver.org](https://getbitcoinsilver.org/en/download/).
+To download BitcoinSilver, visit [mrvistos.github.io/bitcoinsilver/](https://mrvistos.github.io/bitcoinsilver//en/download/).
 
 Running
 ---------------------
@@ -54,7 +54,7 @@ The BitcoinSilver repo's [root README](/README.md) contains relevant information
 - [Developer Notes](developer-notes.md)
 - [Productivity Notes](productivity.md)
 - [Release Process](release-process.md)
-- [Source Code Documentation (External Link)](https://doxygen.getbitcoinsilver.org/)
+- [Source Code Documentation (External Link)](https://doxygen.mrvistos.github.io/bitcoinsilver//)
 - [Translation Process](translation_process.md)
 - [Translation Strings Policy](translation_strings_policy.md)
 - [JSON-RPC Interface](JSON-RPC-interface.md)

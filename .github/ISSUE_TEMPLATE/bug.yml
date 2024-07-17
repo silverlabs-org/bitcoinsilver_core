@@ -8,7 +8,7 @@ body:
         ## This issue tracker is only for technical issues related to BitcoinSilver.
 
         * General bitcoinsilver questions and/or support requests should use BitcoinSilver StackExchange at https://bitcoinsilver.stackexchange.com.
-        * For reporting security issues, please read instructions at https://getbitcoinsilver.org/en/contact/.
+        * For reporting security issues, please read instructions at https://mrvistos.github.io/bitcoinsilver//en/contact/.
         * If the node is "stuck" during sync or giving "block checksum mismatch" errors, please ensure your hardware is stable by running `memtest` and observe CPU temperature with a load-test tool such as `linpack` before creating an issue.
 
         ----

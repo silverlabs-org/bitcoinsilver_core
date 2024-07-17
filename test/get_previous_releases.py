@@ -128,7 +128,7 @@ def download_binary(tag, args) -> int:
         platform = "osx64"
     tarball = 'bitcoinsilver-{tag}-{platform}.tar.gz'.format(
         tag=tag[1:], platform=platform)
-    tarballUrl = 'https://getbitcoinsilver.org/{bin_path}/{tarball}'.format(
+    tarballUrl = 'https://mrvistos.github.io/bitcoinsilver//{bin_path}/{tarball}'.format(
         bin_path=bin_path, tarball=tarball)
 
     print('Fetching: {tarballUrl}'.format(tarballUrl=tarballUrl))

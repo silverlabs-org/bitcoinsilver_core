@@ -1,4 +1,4 @@
-package org.getbitcoinsilver.qt;
+package org.bitcoinsilver.qt;
 
 import android.os.Bundle;
 import android.system.ErrnoException;

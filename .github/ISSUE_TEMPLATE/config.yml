@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/MrVistos/bitcoinsilver/blob/master/SECURITY.md
     about: View security policy
   - name: Bitcoin Core Developers
-    url: https://getbitcoinsilver.org
+    url: https://mrvistos.github.io/bitcoinsilver/
     about: BitcoinSilver homepage

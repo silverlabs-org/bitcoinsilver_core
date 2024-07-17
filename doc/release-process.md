@@ -223,7 +223,7 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 ```
 
 
-- Upload to the getbitcoinsilver.org server (`/var/www/bin/bitcoinsilver-core-${VERSION}/`):
+- Upload to the mrvistos.github.io/bitcoinsilver/ server (`/var/www/bin/bitcoinsilver-core-${VERSION}/`):
     1. The contents of each `./bitcoinsilver/guix-build-${VERSION}/output/${HOST}/` directory, except for
        `*-debug*` files.
 
@@ -236,11 +236,11 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
        for troubleshooting by developers. It is assumed that anyone that is
        interested in debugging can run guix to generate the files for
        themselves. To avoid end-user confusion about which file to pick, as well
-       as save storage space *do not upload these to the getbitcoinsilver.org server,
+       as save storage space *do not upload these to the mrvistos.github.io/bitcoinsilver/ server,
        nor put them in the torrent*.
 
        ```sh
-       find guix-build-${VERSION}/output/ -maxdepth 2 -type f -not -name "SHA256SUMS.part" -and -not -name "*debug*" -exec scp {} user@getbitcoinsilver.org:/var/www/bin/bitcoinsilver-core-${VERSION} \;
+       find guix-build-${VERSION}/output/ -maxdepth 2 -type f -not -name "SHA256SUMS.part" -and -not -name "*debug*" -exec scp {} user@mrvistos.github.io/bitcoinsilver/:/var/www/bin/bitcoinsilver-core-${VERSION} \;
        ```
 
     2. The `SHA256SUMS` file
@@ -259,24 +259,24 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
   ```
 
   Insert the magnet URI into the announcement sent to mailing lists. This permits
-  people without access to `getbitcoinsilver.org` to download the binary distribution.
+  people without access to `mrvistos.github.io/bitcoinsilver/` to download the binary distribution.
   Also put it into the `optional_magnetlink:` slot in the YAML file for
-  getbitcoinsilver.org.
+  mrvistos.github.io/bitcoinsilver/.
 
 - Update other repositories and websites for new version
 
-  - getbitcoinsilver.org blog post
+  - mrvistos.github.io/bitcoinsilver/ blog post
 
-  - getbitcoinsilver.org maintained versions update:
-    [table](https://github.com/bitcoinsilver-core/getbitcoinsilver.org/commits/master/_includes/posts/maintenance-table.md)
+  - mrvistos.github.io/bitcoinsilver/ maintained versions update:
+    [table](https://github.com/bitcoinsilver-core/mrvistos.github.io/bitcoinsilver//commits/master/_includes/posts/maintenance-table.md)
 
   - Delete post-EOL [release branches](https://github.com/MrVistos/bitcoinsilver/branches/all) and create a tag `v${branch_name}-final`.
 
   - Delete ["Needs backport" labels](https://github.com/MrVistos/bitcoinsilver/labels?q=backport) for non-existing branches.
 
-  - getbitcoinsilver.org RPC documentation update
+  - mrvistos.github.io/bitcoinsilver/ RPC documentation update
 
-      - See https://github.com/bitcoinsilver-core/getbitcoinsilver.org/blob/master/contrib/doc-gen/
+      - See https://github.com/bitcoinsilver-core/mrvistos.github.io/bitcoinsilver//blob/master/contrib/doc-gen/
 
   - Update packaging repo
 
@@ -294,7 +294,7 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 
   - bitcoinsilver-dev and bitcoinsilver-core-dev mailing list
 
-  - BitcoinSilver announcements list https://getbitcoinsilver.org/en/list/announcements/join/
+  - BitcoinSilver announcements list https://mrvistos.github.io/bitcoinsilver//en/list/announcements/join/
 
   - BitcoinSilver Twitter https://twitter.com/bitcoincoreorg
 

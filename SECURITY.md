@@ -3,11 +3,11 @@
 ## Supported Versions
 
 See our website for versions of BitcoinSilver that are currently supported with
-security updates: https://getbitcoinsilver.org/en/lifecycle/#schedule
+security updates: https://mrvistos.github.io/bitcoinsilver//en/lifecycle/#schedule
 
 ## Reporting a Vulnerability
 
-To report security issues send an email to security@getbitcoinsilver.org (not for support).
+To report security issues send an email to security@mrvistos.github.io/bitcoinsilver/ (not for support).
 
 The following keys may be used to communicate sensitive information to developers:
 
