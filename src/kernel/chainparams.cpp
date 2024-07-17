@@ -134,7 +134,7 @@ public:
 
         vSeeds.emplace_back("78.138.45.19");
         vSeeds.emplace_back("109.205.181.171");
-        vSeeds.emplace_back("78.138.45.19");
+        // also update chainparamsseeds.h
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0x1A); // Addresses start with 'B'
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,0x05);
