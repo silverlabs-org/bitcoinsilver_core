@@ -52,10 +52,10 @@ Before you begin, ensure you have met the following requirements:
 
 2. **Build the Source Code**
 ```bash
-   mkdir build
-   cd build
-   cmake ..
-   make
+   ./autogen.sh
+   ./configure
+   make # use "-j N" for N parallel jobs
+   make install # optional
 ```
 
    3. **Run the Node**
