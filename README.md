@@ -53,7 +53,7 @@ Before you begin, ensure you have met the following requirements:
 2. **Build the Source Code**
 ```bash
    ./autogen.sh
-   ./configure
+   ./configure # possible arguments: --disable-wallet --without-gui --disable-test --disable-bench
    make # use "-j N" for N parallel jobs
    make install # optional
 ```
