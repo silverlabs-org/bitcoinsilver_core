@@ -1,8 +1,0 @@
-blank_issues_enabled: true
-contact_links:
-  - name: BitcoinSilver Security Policy
-    url: https://github.com/MrVistos/bitcoinsilver/blob/master/SECURITY.md
-    about: View security policy
-  - name: Bitcoin Core Developers
-    url: https://mrvistos.github.io/bitcoinsilver/
-    about: BitcoinSilver homepage
