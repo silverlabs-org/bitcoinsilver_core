@@ -63,7 +63,7 @@ Before you begin, ensure you have met the following requirements:
    cd depends
    make HOST=x86_64-w64-mingw32
    cd ..
-   ./configure --prefix=`pwd`/depends/x86_64-w64-mingw32
+   ./configure --prefix=`pwd`/depends/x86_64-w64-mingw32 --with-gui=qt5 --disable-test --disable-bench
    make
 ```
 
