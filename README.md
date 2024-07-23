@@ -56,10 +56,10 @@ Before you begin, ensure you have met the following requirements:
    make distclean
    ./autogen.sh
    # for linux:
-   ./configure --with-gui=qt5 --disable-test --disable-bench # possible arguments: --disable-wallet --without-gui --disable-test --disable-bench
+   ./configure --with-gui=qt5 --disable-test --disable-bench # possible arguments: --disable-wallet --without-gui
    make
    # for windows:
-   make clean  # Bereinigen des vorherigen Builds
+   make clean
    ./configure --host=x86_64-w64-mingw32 --with-gui=qt5 --disable-test --disable-bench
    make
 ```
