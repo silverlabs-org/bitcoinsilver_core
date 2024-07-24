@@ -56,7 +56,7 @@ Before you begin, ensure you have met the following requirements:
    make distclean
    ./autogen.sh
    # for linux:
-   ./configure --with-gui=qt5 --disable-test --disable-bench # possible arguments: --disable-wallet --without-gui
+   ./configure --disable-test --disable-bench # possible arguments: --with-gui=qt5 --disable-wallet --without-gui
    make
    # for windows:
    make clean
