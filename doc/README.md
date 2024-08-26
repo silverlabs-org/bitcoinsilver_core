@@ -5,7 +5,7 @@ Setup
 ---------------------
 BitcoinSilver is the original BitcoinSilver client and it builds the backbone of the network. It downloads and, by default, stores the entire history of BitcoinSilver transactions, which requires a few hundred gigabytes of disk space. Depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
 
-To download BitcoinSilver, visit [mrvistos.github.io/bitcoinsilver/](https://mrvistos.github.io/bitcoinsilver//en/download/).
+To download BitcoinSilver, visit [https://github.com/MrVistos/bitcoinsilver/releases](https://github.com/MrVistos/bitcoinsilver/releases).
 
 Running
 ---------------------
@@ -28,10 +28,9 @@ Drag BitcoinSilver to your applications folder, and then run BitcoinSilver.
 
 ### Need Help?
 
-* See the documentation at the [BitcoinSilver Wiki](https://en.bitcoinsilver.it/wiki/Main_Page)
+* See the documentation at the [BitcoinSilver Readme](https://github.com/MrVistos/bitcoinsilver/)
 for help and more information.
-* Ask for help on [BitcoinSilver StackExchange](https://bitcoinsilver.stackexchange.com).
-* Ask for help on #bitcoinsilver on Libera Chat. If you don't have an IRC client, you can use [web.libera.chat](https://web.libera.chat/#bitcoinsilver).
+* Ask for help on [BitcoinSilver Discord](https://discord.com/invite/MCGn7dzvgd).
 * Ask for help on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Technical Support board](https://bitcointalk.org/index.php?board=4.0).
 
 Building
@@ -67,7 +66,6 @@ The BitcoinSilver repo's [root README](/README.md) contains relevant information
 
 ### Resources
 * Discuss on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Development & Technical Discussion board](https://bitcointalk.org/index.php?board=6.0).
-* Discuss project-specific development on #bitcoinsilver-core-dev on Libera Chat. If you don't have an IRC client, you can use [web.libera.chat](https://web.libera.chat/#bitcoinsilver-core-dev).
 
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)
