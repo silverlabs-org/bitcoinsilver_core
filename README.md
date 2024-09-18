@@ -56,14 +56,14 @@ Before you begin, ensure you have met the following requirements:
    make distclean
    ./autogen.sh
    # for linux:
-   ./configure --disable-test --disable-bench # possible arguments: --with-gui=qt5 --disable-wallet --without-gui
+   ./configure --disable-tests --disable-bench # possible arguments: --with-gui=qt5 --disable-wallet --without-gui
    make
    # for windows:
    make clean
    cd depends
    make HOST=x86_64-w64-mingw32
    cd ..
-   ./configure --prefix=`pwd`/depends/x86_64-w64-mingw32 --with-gui=qt5 --disable-test --disable-bench
+   ./configure --prefix=`pwd`/depends/x86_64-w64-mingw32 --with-gui=qt5 --disable-tests --disable-bench
    make
 ```
 
